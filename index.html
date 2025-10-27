@@ -1,0 +1,4180 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gunpla Hangar Command Console</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="transition-colors duration-300">
+    <div class="app-shell">
+      <aside class="app-sidebar card card--lifted" aria-label="Primary navigation">
+        <div class="app-sidebar__inner">
+          <div class="app-sidebar__top">
+            <div>
+              <p class="app-sidebar__eyebrow">Gunpla Hangar</p>
+              <p class="app-sidebar__title">Command Hub</p>
+            </div>
+            <button
+              id="themeToggleBtn"
+              class="theme-toggle"
+              type="button"
+              aria-label="Toggle dark theme"
+            >
+              <svg
+                id="sunIcon"
+                class="theme-toggle__icon theme-toggle__icon--sun hidden"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                ></path>
+              </svg>
+              <svg
+                id="moonIcon"
+                class="theme-toggle__icon theme-toggle__icon--moon"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                ></path>
+              </svg>
+            </button>
+          </div>
+          <p class="app-sidebar__intro">
+            Route between diagnostics, loadouts, and supply lines without leaving the cockpit.
+          </p>
+          <nav class="app-sidebar__nav" aria-label="Section navigation">
+            <ul class="app-sidebar__list">
+              <li>
+                <a class="app-sidebar__link" href="#overview"
+                  ><span class="app-sidebar__index">01</span><span>Hangar Overview</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#allocation"
+                  ><span class="app-sidebar__index">02</span><span>Unit Loadout</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#chart-section"
+                  ><span class="app-sidebar__index">03</span><span>Combat Telemetry</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#details"
+                  ><span class="app-sidebar__index">04</span><span>Inventory Manifest</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#simulation"
+                  ><span class="app-sidebar__index">05</span><span>Battle Simulation</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#advanced-tracker"
+                  ><span class="app-sidebar__index">06</span><span>Supply Logistics</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#analytics"
+                  ><span class="app-sidebar__index">07</span><span>Analysis Deck</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#ai-recommendations"
+                  ><span class="app-sidebar__index">08</span><span>AI Co-Pilot</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#performance"
+                  ><span class="app-sidebar__index">09</span><span>Sortie Debrief</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#marketHeatmap"
+                  ><span class="app-sidebar__index">10</span><span>Sector Heatmap</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#marketIndices"
+                  ><span class="app-sidebar__index">11</span><span>Federation Indices</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#fearGreed"
+                  ><span class="app-sidebar__index">12</span><span>Psycho-Frame Index</span></a
+                >
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <main class="app-main">
+        <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+      <header class="hero card card--lifted">
+        <span class="hero__badge">Side 7 Hangar  -  RX Ops</span>
+        <p class="hero__eyebrow">Tan Tran  -  Hangar Chief</p>
+        <h1 class="hero__title">Gunpla Hangar Command Console</h1>
+        <p class="hero__lead">
+          Monitor frame integrity, supply flows, and sortie readiness for every Gunpla kit in your collection  -  all from a single operations deck.
+        </p>
+        <div class="hero__actions">
+          <a class="hero__btn hero__btn--primary" href="#analytics">Deploy analytics deck</a>
+          <a class="hero__btn hero__btn--ghost" href="#advanced-tracker">Open supply logistics</a>
+        </div>
+        <div class="hero__readouts">
+          <div class="hero__readout">
+            <span class="hero__readout-label">Frame integrity</span>
+            <span class="hero__readout-value">92%</span>
+          </div>
+          <div class="hero__readout">
+            <span class="hero__readout-label">Sortie readiness</span>
+            <span class="hero__readout-value">T-05 days</span>
+          </div>
+          <div class="hero__readout">
+            <span class="hero__readout-label">Supply reserves</span>
+            <span class="hero__readout-value">78%</span>
+          </div>
+        </div>
+      </header>
+
+      <section id="overview" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">1. Hangar Diagnostics</h2>
+            <p class="section-intro">
+              Run quick vitals on your Gunpla fleet  -  frame stability, pilot readiness, and resource flow  -  before launching into deeper analysis.
+            </p>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <article class="stat-card stat-card--emerald">
+            <div class="stat-card__top">
+              <div class="stat-card__icon">
+                <svg
+                  class="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                  ></path>
+                </svg>
+              </div>
+              <div>
+                <p class="stat-card__label">Portfolio health</p>
+                <div class="stat-card__value">
+                  <span id="portfolioScore">9.0</span>
+                  <span class="stat-card__unit">/10</span>
+                </div>
+              </div>
+            </div>
+            <p class="stat-card__description">
+              Strong structure with growth focus
+            </p>
+            <div class="stat-card__progress">
+              <div
+                class="stat-card__progress-bar"
+                id="portfolioScoreBar"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="10"
+                aria-valuenow="9"
+                style="width: 90%"
+              ></div>
+            </div>
+          </article>
+
+          <article class="stat-card stat-card--indigo">
+            <div class="stat-card__top">
+              <div class="stat-card__icon">
+                <svg
+                  class="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                  ></path>
+                </svg>
+              </div>
+              <div>
+                <p class="stat-card__label">Portfolio value</p>
+                <div class="stat-card__value">
+                  <span id="currentTotalValueDisplay">$449.12</span>
+                  <span class="stat-card__unit">USD</span>
+                </div>
+              </div>
+            </div>
+            <p class="stat-card__description">Current market value</p>
+            <div class="stat-card__progress">
+              <div class="stat-card__progress-bar" style="width: 75%"></div>
+            </div>
+          </article>
+
+          <article class="stat-card stat-card--amber">
+            <div class="stat-card__top">
+              <div class="stat-card__icon">
+                <svg
+                  class="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  ></path>
+                </svg>
+              </div>
+              <div>
+                <p class="stat-card__label">Risk posture</p>
+                <div class="stat-card__value">
+                  <span id="riskLevel">High</span>
+                </div>
+              </div>
+            </div>
+            <div class="stat-card__progress">
+              <div class="stat-card__progress-bar" id="riskLevelBar" style="width: 85%"></div>
+            </div>
+            <p class="stat-card__description">20-30 year horizon</p>
+          </article>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric-tile">
+            <span class="metric-tile__dot metric-tile__dot--psycho" aria-hidden="true"></span>
+            <div class="metric-tile__content">
+              <p class="metric-tile__label">Assets</p>
+              <p class="metric-tile__value" id="metricAssetCount">--</p>
+              <p class="metric-tile__caption" id="metricAssetCaption">Holdings</p>
+              <div class="metric-dropdown-wrapper">
+                <button
+                  type="button"
+                  class="metric-dropdown-toggle"
+                  data-metric-toggle="metricAssetList"
+                  aria-controls="metricAssetList"
+                  aria-expanded="false"
+                >
+                  View holdings
+                </button>
+                <ul
+                  id="metricAssetList"
+                  class="metric-dropdown hidden"
+                  aria-hidden="true"
+                ></ul>
+              </div>
+            </div>
+          </article>
+          <article class="metric-tile">
+            <span class="metric-tile__dot metric-tile__dot--blue" aria-hidden="true"></span>
+            <div class="metric-tile__content">
+              <p class="metric-tile__label">Sectors</p>
+              <p class="metric-tile__value" id="metricSectorCount">--</p>
+              <p class="metric-tile__caption" id="metricSectorCaption">Sectors covered</p>
+              <div class="metric-dropdown-wrapper">
+                <button
+                  type="button"
+                  class="metric-dropdown-toggle"
+                  data-metric-toggle="metricSectorList"
+                  aria-controls="metricSectorList"
+                  aria-expanded="false"
+                >
+                  View sectors
+                </button>
+                <ul
+                  id="metricSectorList"
+                  class="metric-dropdown hidden"
+                  aria-hidden="true"
+                ></ul>
+              </div>
+            </div>
+          </article>
+          <article class="metric-tile">
+            <span class="metric-tile__dot metric-tile__dot--purple" aria-hidden="true"></span>
+            <div class="metric-tile__content">
+              <p class="metric-tile__label">Regions</p>
+              <p class="metric-tile__value" id="metricRegionCount">--</p>
+              <p class="metric-tile__caption" id="metricRegionCaption">Regions tracked</p>
+              <div class="metric-dropdown-wrapper">
+                <button
+                  type="button"
+                  class="metric-dropdown-toggle"
+                  data-metric-toggle="metricRegionList"
+                  aria-controls="metricRegionList"
+                  aria-expanded="false"
+                >
+                  View regions
+                </button>
+                <ul
+                  id="metricRegionList"
+                  class="metric-dropdown hidden"
+                  aria-hidden="true"
+                ></ul>
+              </div>
+            </div>
+          </article>
+          <article class="metric-tile">
+            <span class="metric-tile__dot metric-tile__dot--orange" aria-hidden="true"></span>
+            <div class="metric-tile__content">
+              <p class="metric-tile__label">Last update</p>
+              <p class="metric-tile__value" id="metricLastUpdateValue">--</p>
+              <p class="metric-tile__caption" id="metricLastUpdateCaption">Awaiting sync</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="allocation" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"
+              ></path>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">2. Unit Loadout Matrix</h2>
+            <p class="section-intro">
+              Compare planned loadouts versus actual deployments to see which Gunpla squads need reinforcement or part redistribution.
+            </p>
+          </div>
+        </div>
+
+        <!-- Allocation Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-300"
+          >
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-3 h-3 bg-rose-500 rounded-full"></div>
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Assets</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="allocationAssetCount">--</div>
+            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+              Holdings
+            </div>
+            <div class="metric-dropdown-wrapper metric-dropdown-wrapper--full">
+              <button
+                type="button"
+                class="metric-dropdown-toggle metric-dropdown-toggle--light"
+                data-metric-toggle="allocationAssetList"
+                aria-controls="allocationAssetList"
+                aria-expanded="false"
+              >
+                View list
+              </button>
+              <ul
+                id="allocationAssetList"
+                class="metric-dropdown metric-dropdown--surface hidden"
+                aria-hidden="true"
+              ></ul>
+            </div>
+          </div>
+
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-300"
+          >
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">US Stocks</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="usStockCount">--</div>
+            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">Domestic holdings</div>
+            <div class="metric-dropdown-wrapper metric-dropdown-wrapper--full">
+              <button
+                type="button"
+                class="metric-dropdown-toggle metric-dropdown-toggle--light"
+                data-metric-toggle="allocationUSList"
+                aria-controls="allocationUSList"
+                aria-expanded="false"
+              >
+                View tickers
+              </button>
+              <ul
+                id="allocationUSList"
+                class="metric-dropdown metric-dropdown--surface hidden"
+                aria-hidden="true"
+              ></ul>
+            </div>
+          </div>
+
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-300"
+          >
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">International Stocks</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="intlStockCount">--</div>
+            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">Global exposure</div>
+            <div class="metric-dropdown-wrapper metric-dropdown-wrapper--full">
+              <button
+                type="button"
+                class="metric-dropdown-toggle metric-dropdown-toggle--light"
+                data-metric-toggle="allocationIntlList"
+                aria-controls="allocationIntlList"
+                aria-expanded="false"
+              >
+                View tickers
+              </button>
+              <ul
+                id="allocationIntlList"
+                class="metric-dropdown metric-dropdown--surface hidden"
+                aria-hidden="true"
+              ></ul>
+            </div>
+          </div>
+
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-300"
+          >
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-3 h-3 bg-orange-500 rounded-full"></div>
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Alternatives</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="altAssetCount">--</div>
+            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">Non-traditional assets</div>
+            <div class="metric-dropdown-wrapper metric-dropdown-wrapper--full">
+              <button
+                type="button"
+                class="metric-dropdown-toggle metric-dropdown-toggle--light"
+                data-metric-toggle="allocationAltList"
+                aria-controls="allocationAltList"
+                aria-expanded="false"
+              >
+                View tickers
+              </button>
+              <ul
+                id="allocationAltList"
+                class="metric-dropdown metric-dropdown--surface hidden"
+                aria-hidden="true"
+              ></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-8">
+          <div
+            id="allocation-ai-review-card"
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md hover:shadow-xl transition-shadow duration-300"
+          >
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 p-6">
+                            <div class="flex-1 space-y-3">
+                <div class="flex items-center gap-2 text-sm font-semibold text-sky-500 dark:text-sky-200 uppercase tracking-wide">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  AI Allocation Insight
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  AI allocation diagnostics keep your target mix on course.
+                </h3>
+                <p id="allocation-ai-summary" class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                  AI is preparing the latest allocation review. Launch the analysis to refresh this panel.
+                </p>
+                <div id="allocation-ai-focus" class="text-sm font-medium text-blue-600 dark:text-blue-400">
+                  Run the AI analysis to surface the next recommended action.
+                </div>
+              </div>
+              <div class="flex flex-col items-center justify-center min-w-[160px] bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                  AI Score
+                </div>
+                <div id="allocation-ai-score" class="text-4xl font-black text-gray-900 dark:text-white">
+                  --
+                </div>
+                <div id="allocation-ai-status" class="mt-1 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                  Waiting
+                </div>
+                <span
+                  id="allocation-ai-priority"
+                  class="mt-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                >
+                  Pending
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart and Top Holdings Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Main Chart -->
+          <div class="lg:col-span-2">
+            <div
+              class="allocation-chart-shell card card--lifted relative overflow-hidden rounded-3xl p-6 md:p-8 transition-all duration-500"
+            >
+              <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                  Portfolio Distribution
+                </h3>
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 bg-rose-500 rounded-full"></div>
+                  <span class="text-sm text-gray-600 dark:text-gray-400"
+                    >Portfolio Allocation</span
+                  >
+                </div>
+              </div>
+              <div class="chart-container allocation-chart-container h-[24rem] md:h-[28rem] max-h-[28rem]">
+                <canvas id="allocationChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Holdings Sidebar -->
+          <div class="space-y-6">
+            <!-- Top Holdings -->
+            <div
+              class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-xl"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"
+              >
+                <svg
+                  class="w-5 h-5 text-sky-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                  ></path>
+                </svg>
+                Top Holdings
+              </h3>
+              <div class="space-y-3" id="topHoldingsList">
+                <!-- Will be populated by JS -->
+              </div>
+            </div>
+
+            <!-- Allocation Insights -->
+            <div
+              class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-800"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"
+              >
+                <svg
+                  class="w-5 h-5 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  ></path>
+                </svg>
+                Insights
+              </h3>
+              <div class="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                <div class="flex items-start gap-2">
+                  <div
+                    class="w-2 h-2 bg-rose-500 rounded-full mt-1.5 flex-shrink-0"
+                  ></div>
+                  <p>Well-diversified across asset classes</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <div
+                    class="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"
+                  ></div>
+                  <p>Balanced growth and income focus</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <div
+                    class="w-2 h-2 bg-purple-500 rounded-full mt-1.5 flex-shrink-0"
+                  ></div>
+                  <p>Moderate risk-adjusted positioning</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- UPDATED SECTION 3: FULL STOCK CHART -->
+      <section id="chart-section" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 12l3-3 3 3 4-4"
+              ></path>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 21l4-4 4 4M3 4h18M5 4h14v16H5z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">3. Combat Telemetry</h2>
+            <p class="section-intro">
+              Visualize sortie performance, damage logs, and rival benchmarks with live telemetry overlays.
+            </p>
+          </div>
+        </div>
+        <div class="p-6 md:p-8 rounded-xl border card min-h-[500px] h-[70vh]">
+          <div id="tradingview_chart" class="h-full w-full"></div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: ASSET DETAILS -->
+      <section id="details" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">4. Inventory Manifest</h2>
+            <p class="section-intro">
+              Audit individual kits, upgrade grades, and custom mod stats to prioritize your next maintenance cycle.
+            </p>
+          </div>
+        </div>
+        <div
+          class="flex flex-wrap justify-center gap-4 mb-6"
+          id="stockTabs"
+        ></div>
+
+        <div
+          id="stockDetailContent"
+          class="p-6 md:p-8 rounded-xl border card min-h-[600px] transition-all duration-500"
+        >
+          <p class="text-center text-gray-500 dark:text-gray-400 animate-pulse">
+            Select a ticker above to load fundamentals, risk stats, and tailored guidance. Use the "+ Ticker" button to add custom symbols.
+          </p>
+        </div>
+      </section>
+
+      <section id="simulation" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">5. Battle Simulation Lab</h2>
+            <p class="section-intro">
+              Simulate build queues, sortie frequencies, and resource shocks to see how each Gunpla responds under fire.
+            </p>
+          </div>
+        </div>
+
+        <!-- Compact Form with Icons -->
+        <div class="simulation-panel border rounded-xl p-4 mb-6">
+          <h3
+            class="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-2"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+              ></path>
+            </svg>
+            Investment Parameters
+          </h3>
+          <form
+            id="simForm"
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end"
+          >
+            <div class="space-y-1">
+              <label
+                for="initial"
+                class="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-400"
+              >
+                <svg
+                  class="w-3 h-3 text-sky-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                  ></path>
+                </svg>
+                Initial Capital ($)
+              </label>
+              <input
+                type="text"
+                id="initial"
+                inputmode="decimal"
+                pattern="[0-9]*\.?[0-9]*"
+                autocomplete="off"
+                readonly
+                value="449.12"
+                class="block w-full styled-input text-sm p-2 rounded-md border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+              />
+            </div>
+            <div class="space-y-1">
+              <label
+                for="monthly"
+                class="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-400"
+              >
+                <svg
+                  class="w-3 h-3 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  ></path>
+                </svg>
+                Monthly Investment ($)
+              </label>
+              <input
+                type="number"
+                id="monthly"
+                value="500"
+                class="block w-full styled-input text-sm p-2 rounded-md border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+              />
+            </div>
+            <div class="space-y-1">
+              <label
+                for="rate"
+                class="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-400"
+              >
+                <svg
+                  class="w-3 h-3 text-purple-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                  ></path>
+                </svg>
+                Annual Return (%)
+              </label>
+              <input
+                type="number"
+                id="rate"
+                value="10"
+                class="block w-full styled-input text-sm p-2 rounded-md border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+              />
+            </div>
+            <div class="space-y-1">
+              <label
+                for="years"
+                class="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-400"
+              >
+                <svg
+                  class="w-3 h-3 text-orange-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  ></path>
+                </svg>
+                Time Horizon (Years)
+              </label>
+              <input
+                type="number"
+                id="years"
+                value="36"
+                min="1"
+                max="100"
+                class="block w-full styled-input text-sm p-2 rounded-md border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+              />
+            </div>
+            <div class="md:col-span-2 lg:col-span-4 flex justify-center mt-2">
+              <button
+                type="submit"
+                class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-2 px-6 rounded-lg shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 text-sm flex items-center gap-1"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.586a1 1 0 01.707.293l.707.707A1 1 0 0012.414 11H15m2 0h1.586a1 1 0 01.707.293l.707.707A1 1 0 0021 12.414V15m0 2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2.586a1 1 0 01.293-.707l.707-.707A1 1 0 015.414 13H7"
+                  ></path>
+                </svg>
+                Run Growth Simulation
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Compact Chart Container -->
+        <div
+          class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden"
+        >
+          <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3
+              class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"
+            >
+              <svg
+                class="w-5 h-5 text-sky-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                ></path>
+              </svg>
+              Investment Growth Projection
+            </h3>
+          </div>
+          <div class="p-4">
+            <div
+              class="chart-container max-w-4xl h-80 md:h-96 max-h-96 mx-auto relative"
+            >
+              <div
+                id="chartLoadingIndicator"
+                class="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-800/80 rounded-lg z-10 hidden"
+              >
+                <div class="text-center">
+                  <div
+                    class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"
+                  ></div>
+                  <p class="text-gray-600 dark:text-gray-400 text-sm">
+                    Calculating growth projection...
+                  </p>
+                </div>
+              </div>
+              <canvas id="growthChart"></canvas>
+            </div>
+            <div
+              id="simResult"
+              class="text-center mt-2 px-4 py-3 bg-gradient-to-r from-sky-500/10 to-rose-500/10 dark:from-sky-900/20 dark:to-rose-900/20 rounded-xl border border-sky-400/40 dark:border-rose-700/40 transition-all duration-300 opacity-0 transform translate-y-1"
+            >
+              <div class="animate-pulse space-y-2">
+                <div
+                  class="text-3xl font-bold text-cyan-400 dark:text-cyan-300"
+                >
+                  $--
+                </div>
+                <p class="text-gray-500 text-xs uppercase tracking-wide">
+                  Run simulation to see projected value
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 6: ADVANCED REBALANCE & DEPOSIT TOOL -->
+      <section id="advanced-tracker" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">6. Supply Logistics Deck</h2>
+            <p class="section-intro">
+              Stage shipments, allocate spare parts, and manage upgrade budgets across your Gunpla hangar.
+            </p>
+          </div>
+        </div>
+
+        <!-- Compact Reference Data -->
+        <div
+          class="mb-6 p-3 rounded-lg bg-sky-500/10 dark:bg-sky-900/20 border border-sky-400/40 dark:border-sky-600/40"
+        >          <p class="text-sm font-medium text-rose-500 dark:text-cyan-300 mb-1">
+            Reference sheet used by this dashboard for live data connections. Open it if you need to inspect or update source values.
+          </p>
+          <div class="flex flex-wrap items-center gap-3">
+            <a
+              href="https://docs.google.com/spreadsheets/d/1NbkrKzAaiiEik1LGUAPm2GnstT23jDJV/edit?usp=sharing&ouid=104292123868888226876&rtpof=true&sd=true"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-sky-200/70 dark:border-sky-600/40 text-sky-600 dark:text-sky-200 hover:border-sky-300 hover:text-sky-300 transition"
+            >
+              <svg
+                aria-hidden="true"
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect x="4" y="3" width="16" height="18" rx="2" fill="#22c55e"></rect>
+                <path
+                  d="M16 3v5a1 1 0 01-1 1h-6"
+                  fill="#16a34a"
+                ></path>
+                <rect x="8" y="11" width="8" height="1.5" rx=".25" fill="#bbf7d0"></rect>
+                <rect x="8" y="14" width="6" height="1.5" rx=".25" fill="#bbf7d0"></rect>
+                <rect x="8" y="17" width="4" height="1.5" rx=".25" fill="#bbf7d0"></rect>
+              </svg>
+              <span>Google Sheet</span>
+            </a>
+            <a
+              href="https://robinhood.com/retirement"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-sky-200/70 dark:border-sky-600/40 text-sky-600 dark:text-sky-200 hover:border-sky-300 hover:text-sky-300 transition"
+            >
+              <svg
+                aria-hidden="true"
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12.62 2.75c-2.88 1.62-6.05 4.69-8.15 8.05l3.2-.78C6.1 13.32 4.95 16.62 4.5 19c3.45-3.35 6.21-7.08 8.67-11.43l4.33-.98c-.76-2.22-2.8-3.43-4.88-3.84z"
+                  fill="#22c55e"
+                ></path>
+                <path
+                  d="M7 18.9c1.36-2.53 3.63-6.1 6.45-9.07"
+                  stroke="#065f46"
+                  stroke-width="1.15"
+                  stroke-linecap="round"
+                ></path>
+              </svg>
+              <span>Robinhood</span>
+            </a>
+            <a
+              href="https://digital.fidelity.com/ftgw/digital/portfolio/managed-account/dma#Y84379187"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-lime-300/70 dark:border-lime-600/40 text-lime-700 dark:text-lime-200 hover:border-lime-400 hover:text-lime-400 transition"
+            >
+              <svg
+                aria-hidden="true"
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="12" cy="12" r="9" fill="#166534"></circle>
+                <circle cx="12" cy="12" r="6" fill="#facc15"></circle>
+                <path
+                  d="M12 7v5l4 2"
+                  stroke="#166534"
+                  stroke-width="1.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+                <path
+                  d="M12 7.5l-3 6.5"
+                  stroke="#166534"
+                  stroke-width="1.1"
+                  stroke-linecap="round"
+                ></path>
+              </svg>
+              <span>Fidelity</span>
+            </a>
+            <a
+              href="https://wwws.betterment.com/app/account/TWFuYWdlZEFjY291bnQ6NGRkN2NmM2YtMjUzNy00NWJlLWExYTMtNzZhZDc4MmQxMTA2"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-sky-300/70 dark:border-sky-600/40 text-sky-700 dark:text-sky-200 hover:border-sky-400 hover:text-sky-400 transition"
+            >
+              <svg
+                aria-hidden="true"
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M5 17c2.4-4.1 6.2-7.5 7.9-7.5 1.6 0 4.9 1.7 6.1 4.7v2.8H5.4L5 17z"
+                  fill="#0ea5e9"
+                ></path>
+                <path
+                  d="M5.4 17h13.6"
+                  stroke="#1d4ed8"
+                  stroke-width="1"
+                  stroke-linecap="round"
+                ></path>
+              </svg>
+              <span>Betterment</span>
+            </a>
+          </div>
+        </div>
+
+        <div
+          class="mb-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden"
+        >
+          <div
+            class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 px-5 py-4 border-b border-gray-200 dark:border-gray-700"
+          >
+            <div class="space-y-1">
+              <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                Live snapshot from Google Sheets
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                Auto-refreshes every 60 seconds. Trigger a manual sync anytime.
+              </p>
+            </div>
+            <div
+              class="flex flex-wrap items-center gap-3"
+            >
+              <div
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-500/10 dark:bg-sky-900/30 border border-sky-500/30 text-sky-600 dark:text-sky-200 text-xs font-semibold"
+              >
+                <span class="uppercase tracking-wide text-[10px] text-sky-400 dark:text-sky-200/80"
+                  >Total Value</span
+                >
+                <span
+                  id="livePriceSummaryValue"
+                  class="text-sm font-semibold text-slate-900 dark:text-slate-100"
+                  >--</span
+                >
+              </div>
+              <div
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-900/30 border border-emerald-500/30 text-emerald-600 dark:text-emerald-200 text-xs font-semibold"
+              >
+                <span class="uppercase tracking-wide text-[10px] text-emerald-400 dark:text-emerald-200/80"
+                  >Today&apos;s Gain</span
+                >
+                <span
+                  id="livePriceSummaryGain"
+                  class="text-sm font-semibold"
+                  >--</span
+                >
+              </div>
+              <div
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 dark:bg-amber-900/40 border border-amber-500/30 text-amber-600 dark:text-amber-200 text-xs font-semibold"
+              >
+                <span class="uppercase tracking-wide text-[10px] text-amber-400 dark:text-amber-200/80"
+                  >Yield Income</span
+                >
+                <span
+                  id="livePriceSummaryYield"
+                  class="text-sm font-semibold"
+                  >--</span
+                >
+              </div>
+              <span
+                id="livePriceStatus"
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-900/80 text-gray-600 dark:text-gray-300 border border-gray-200/80 dark:border-gray-700/60"
+                >Waiting for data...</span
+              >
+              <button
+                id="livePriceRefreshBtn"
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sky-500/40 text-sky-600 dark:text-sky-200 bg-white/70 dark:bg-slate-900/50 text-xs font-semibold hover:bg-sky-500/10 hover:border-sky-500/70 transition"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  ></path>
+                </svg>
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto live-snapshot-scroll">
+            <table
+              class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm"
+            >
+              <thead class="bg-gray-50 dark:bg-gray-700/80 backdrop-blur">
+                <tr
+                  class="text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider text-right"
+                >
+                  <th class="px-4 py-3 text-left">Ticker</th>
+                  <th class="px-4 py-3">Total Invested ($)</th>
+                  <th class="px-4 py-3">Held %</th>
+                  <th class="px-4 py-3">Shares Held</th>
+                  <th class="px-4 py-3">Stock Price ($)</th>
+                  <th class="px-4 py-3">Current Value ($)</th>
+                  <th class="px-4 py-3">Current %</th>
+                  <th class="px-4 py-3">Allocation Drift (%)</th>
+                  <th class="px-4 py-3">Gain/Loss ($)</th>
+                  <th class="px-4 py-3">Gain/Loss (%)</th>
+                  <th class="px-4 py-3">Yield Income ($)</th>
+                  <th class="px-4 py-3">Total Return ($)</th>
+                </tr>
+              </thead>
+              <tbody
+                id="livePriceRows"
+                class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-100"
+              ></tbody>
+              <tfoot class="bg-gray-100 dark:bg-gray-700 font-semibold text-gray-800 dark:text-gray-100">
+                <tr id="live-price-total-row">
+                  <td class="px-4 py-3 text-left">TOTAL</td>
+                  <td class="px-4 py-3 text-right" data-field="totalInvested">--</td>
+                  <td class="px-4 py-3 text-right" data-field="held">--</td>
+                  <td class="px-4 py-3 text-right" data-field="shares">--</td>
+                  <td class="px-4 py-3 text-right" data-field="price">--</td>
+                  <td class="px-4 py-3 text-right" data-field="currentValue">--</td>
+                  <td class="px-4 py-3 text-right" data-field="currentPercent">--</td>
+                  <td class="px-4 py-3 text-right" data-field="drift">--</td>
+                  <td class="px-4 py-3 text-right" data-field="gain">--</td>
+                  <td class="px-4 py-3 text-right" data-field="gainPercent">--</td>
+                  <td class="px-4 py-3 text-right" data-field="yield">--</td>
+                  <td class="px-4 py-3 text-right" data-field="totalReturn">--</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- 6A: REBALANCE TOOL -->
+          <div
+            class="rebalance-card bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-4"
+          >
+            <h3
+              class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2"
+            >
+              <svg
+                class="w-5 h-5 text-sky-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                ></path>
+              </svg>
+              Portfolio Tracker & Rebalance
+            </h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Enter current values from your sheet
+              </p>
+
+              <div class="flex flex-wrap gap-2 mb-3">
+                <button
+                  id="rebalanceNormalizeBtn"
+                  type="button"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white/80 dark:bg-slate-900/50 hover:border-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                >
+                  <span>Normalize Targets</span>
+                </button>
+                <button
+                  id="rebalanceResetTargetsBtn"
+                  type="button"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-rose-300 dark:border-rose-600 text-xs font-semibold text-rose-600 dark:text-rose-300 bg-white/80 dark:bg-rose-950/40 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-200 transition"
+                >
+                  <span>Reset to Defaults</span>
+                </button>
+              </div>
+
+              <div class="overflow-x-auto fancy-scrollbar">
+                <table
+                  class="min-w-full divide-y divide-gray-200 dark:divide-gray-600 text-sm"
+                >
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                  <tr
+                    class="text-[11px] md:text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider text-right"
+                  >
+                      <th class="px-2 py-2 text-left">Ticker</th>
+                      <th class="px-2 py-2">Target %</th>
+                      <th class="px-2 py-2">Current ($)</th>
+                      <th class="px-2 py-2">Current %</th>
+                      <th class="px-2 py-2">Drift %</th>
+                      <th class="px-2 py-2">Rebalance ($)</th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="rebalanceInputs"
+                    class="divide-y divide-gray-200 dark:divide-gray-700"
+                  ></tbody>
+                  <tfoot class="bg-gray-100 dark:bg-gray-700 font-semibold">
+                    <tr>
+                      <td class="px-3 py-2 text-left">TOTAL</td>
+                      <td id="totalTarget" class="px-3 py-2 text-right"></td>
+                      <td
+                        id="totalCurrentValue"
+                        class="px-3 py-2 text-right"
+                      ></td>
+                      <td
+                        id="totalCurrentPercent"
+                        class="px-3 py-2 text-right"
+                      ></td>
+                      <td
+                        id="totalDrift"
+                        class="px-3 py-2 text-right text-slate-500"
+                      ></td>
+                      <td id="totalRebalance" class="px-3 py-2 text-right"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+            <button
+              id="calculateRebalanceBtn"
+              class="w-full mt-4 bg-rose-600 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500/50 transition-all duration-200 text-sm"
+            >
+              Update
+            </button>
+
+              <div
+                id="rebalanceResults"
+                class="mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+              >
+                <div class="rebalance-results-content">
+                  <div class="rebalance-results-header flex items-start justify-between gap-3">
+                    <div>
+                      <h4 class="text-xl font-bold text-slate-700 dark:text-slate-200">Rebalance snapshot pending</h4>
+                      <p class="text-xs text-slate-600 dark:text-slate-400">
+                        Run an update to surface buy/sell suggestions. Adjust the guardrail below to change when alerts trigger.
+                      </p>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold uppercase tracking-wide">Idle</span>
+                  </div>
+                  <div class="rebalance-results-scroll fancy-scrollbar">
+                    <div class="flex items-center justify-center h-full">
+                      <p class="text-sm font-medium text-slate-600 dark:text-slate-300 text-center">
+                        Run an update to surface buy/sell suggestions. Adjust the guardrail below to change when alerts trigger.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                id="rebalanceAdvancedTools"
+                class="rebalance-advanced-tools grid grid-cols-1 xl:grid-cols-3 gap-4"
+              >
+                <div
+                  class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/50 p-4 flex flex-col gap-3"
+                >
+                  <div class="flex items-center justify-between">
+                    <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      Control Center
+                    </h4>
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300"
+                    >
+                      Drift tolerance
+                    </span>
+                  </div>
+                  <div>
+                    <label
+                      for="rebalanceToleranceInput"
+                      class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2"
+                    >
+                      Trigger warning at
+                      <span
+                        id="rebalanceToleranceValue"
+                        class="font-semibold text-slate-800 dark:text-slate-100"
+                        >5.0%</span
+                      >
+                    </label>
+                    <input
+                      type="range"
+                      id="rebalanceToleranceInput"
+                      min="1"
+                      max="15"
+                      step="0.5"
+                      class="w-full accent-rose-500"
+                    />
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
+                      Lower the threshold to rebalance sooner, or raise it to allow more drift before firing alerts.
+                    </p>
+                  </div>
+                  <button
+                    id="rebalanceResetControlsBtn"
+                    type="button"
+                    class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-600 dark:text-slate-200 hover:border-slate-400 hover:text-slate-800 dark:hover:text-white transition"
+                  >
+                    Reset controls
+                  </button>
+                </div>
+
+                <div
+                  class="rounded-xl border border-emerald-200/70 dark:border-emerald-700/60 bg-emerald-50/70 dark:bg-emerald-900/30 p-4 flex flex-col gap-3"
+                >
+                  <div class="flex items-center justify-between">
+                    <h4 class="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                      Trade Flow Snapshot
+                    </h4>
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white/70 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-200"
+                    >
+                      Auto-updated
+                    </span>
+                  </div>
+                  <dl class="space-y-2 text-sm">
+                    <div class="flex items-center justify-between">
+                      <dt class="text-emerald-700 dark:text-emerald-200">Buys Required</dt>
+                      <dd
+                        id="rebalanceTotalBuy"
+                        class="font-semibold text-emerald-900 dark:text-emerald-100"
+                      >
+                        $0.00
+                      </dd>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <dt class="text-emerald-700 dark:text-emerald-200">Sells Required</dt>
+                      <dd
+                        id="rebalanceTotalSell"
+                        class="font-semibold text-emerald-900 dark:text-emerald-100"
+                      >
+                        $0.00
+                      </dd>
+                    </div>
+                    <div class="flex items-center justify-between border-t border-emerald-200/70 dark:border-emerald-700/50 pt-2">
+                      <dt class="text-emerald-700 dark:text-emerald-200">Net Cash Flow</dt>
+                      <dd
+                        id="rebalanceNetFlow"
+                        class="font-semibold text-emerald-900 dark:text-emerald-100"
+                      >
+                        $0.00
+                      </dd>
+                    </div>
+                  </dl>
+                  <button
+                    id="rebalanceCopySummaryBtn"
+                    type="button"
+                    class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-emerald-300 dark:border-emerald-600 text-xs font-semibold text-emerald-700 dark:text-emerald-100 hover:border-emerald-400 hover:text-emerald-900 dark:hover:text-white transition"
+                  >
+                    Copy trade summary
+                  </button>
+                </div>
+
+                <div
+                  class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/50 p-4 flex flex-col gap-3"
+                >
+                  <div class="flex items-center justify-between">
+                    <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      Drift Watchlist
+                    </h4>
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300"
+                    >
+                      Top movers
+                    </span>
+                  </div>
+                  <div
+                    id="rebalanceTopDrifts"
+                    class="space-y-2 text-sm text-slate-600 dark:text-slate-300"
+                  >
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                      Update the table to surface the biggest deviations.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-6">
+            <!-- 6B: NEW DEPOSIT ALLOCATION TOOL -->
+            <div
+              class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-4"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2"
+              >
+                <svg
+                  class="w-5 h-5 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  ></path>
+                </svg>
+                Deposit Allocation Tool
+              </h3>
+
+              <div
+                class="grid gap-3 md:grid-cols-[minmax(0,220px)_minmax(0,220px)_auto] md:items-end"
+              >
+                <div>
+                  <label
+                    for="newDepositInput"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1"
+                    >Deposit Amount ($)</label
+                  >
+                  <input
+                    type="number"
+                    id="newDepositInput"
+                    value="500"
+                    min="0"
+                    step="0.01"
+                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-black focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label
+                    for="depositRoundingMode"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1"
+                    >Rounding Mode</label
+                  >
+                  <select
+                    id="depositRoundingMode"
+                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors"
+                  >
+                    <option value="exact">Exact dollars (no rounding)</option>
+                    <option value="floor">Whole shares (round down)</option>
+                    <option value="nearest">Whole shares (nearest share)</option>
+                  </select>
+                  <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                    Use live prices to convert dollar targets into share counts and control rounding.
+                  </p>
+                </div>
+                <button
+                  id="calculateDepositAllocationBtn"
+                  class="w-full md:w-auto bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 text-sm md:justify-self-end"
+                >
+                  Calculate Allocation
+                </button>
+              </div>
+              <div
+                class="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400"
+              >
+                <span
+                  id="depositPriceStatus"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-200"
+                  >Waiting for live prices...</span
+                >
+                <span
+                  id="depositCalcSummary"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-200/70 dark:bg-gray-700/80 text-gray-600 dark:text-gray-300"
+                  >No allocation calculated yet.</span
+                >
+              </div>
+
+              <div
+                id="depositAllocationResults"
+                class="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+              >
+                <h4
+                  class="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-3"
+                >
+                  Proposed Allocation ($)
+                </h4>
+                <div class="overflow-x-auto">
+                  <table
+                    class="min-w-full divide-y divide-gray-200 dark:divide-gray-600 text-sm"
+                  >
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                      <tr
+                        class="text-[11px] md:text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider text-right"
+                      >
+                        <th class="px-2 py-2 text-left">Ticker</th>
+                        <th class="px-2 py-2">Target %</th>
+                        <th class="px-2 py-2">Price ($)</th>
+                        <th class="px-2 py-2">Raw ($)</th>
+                        <th class="px-2 py-2">Shares</th>
+                        <th class="px-2 py-2">Final ($)</th>
+                        <th class="px-2 py-2">Diff ($)</th>
+                      </tr>
+                    </thead>
+                    <tbody
+                      id="depositAllocationRows"
+                      class="divide-y divide-gray-200 dark:divide-gray-700"
+                    ></tbody>
+                    <tfoot class="bg-gray-100 dark:bg-gray-700 font-semibold">
+                      <tr>
+                        <td class="px-2 py-2 text-left">TOTAL</td>
+                        <td
+                          id="totalTargetAlloc"
+                          class="px-2 py-2 text-right"
+                        ></td>
+                        <td
+                          class="px-2 py-2 text-right text-gray-400 dark:text-gray-500"
+                        >
+                          --
+                        </td>
+                        <td
+                          id="totalRawAmount"
+                          class="px-2 py-2 text-right"
+                        ></td>
+                        <td
+                          class="px-2 py-2 text-right text-gray-400 dark:text-gray-500"
+                        >
+                          --
+                        </td>
+                        <td
+                          id="totalAllocatedAmount"
+                          class="px-2 py-2 text-right text-blue-600 dark:text-blue-400"
+                        ></td>
+                        <td
+                          id="totalAllocationDiff"
+                          class="px-2 py-2 text-right"
+                        ></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <div
+                  id="depositAllocationSummary"
+                  class="mt-3 grid gap-3 sm:grid-cols-2"
+                >
+                  <div
+                    class="rounded-lg border border-blue-200 dark:border-blue-800 bg-white/80 dark:bg-blue-900/10 p-3"
+                  >
+                    <p class="text-xs font-semibold text-blue-700 dark:text-blue-200">
+                      Leftover Cash / Shortfall
+                    </p>
+                    <p
+                      id="depositLeftoverAmount"
+                      class="text-lg font-semibold text-blue-800 dark:text-blue-200"
+                    >
+                      $0.00
+                    </p>
+                    <p
+                      id="depositLeftoverNote"
+                      class="text-[11px] text-blue-700/80 dark:text-blue-200/80"
+                    >
+                      Calculated after applying the selected rounding mode.
+                    </p>
+                  </div>
+                  <div
+                    class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/30 p-3"
+                  >
+                    <p class="text-xs font-semibold text-slate-600 dark:text-slate-200">
+                      Allocation Integrity
+                    </p>
+                    <p
+                      id="depositIntegritySummary"
+                      class="text-lg font-semibold text-slate-700 dark:text-slate-100"
+                    >
+                      Waiting for calculation
+                    </p>
+                    <p
+                      id="depositIntegrityNote"
+                      class="text-[11px] text-slate-500 dark:text-slate-400"
+                    >
+                      Targets rescale automatically when totals deviate from 100%.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6C: DEPOSIT REBALANCING HELPER -->
+            <div
+              class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-4"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2"
+              >
+                <svg
+                  class="w-5 h-5 text-amber-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.636 1.006M12 8V6m0 12v-2m8-4a8 8 0 11-16 0 8 8 0 0116 0z"
+                  ></path>
+                </svg>
+                Deposit Rebalancing Helper
+              </h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                Use this helper to distribute fresh supply shipments across squads while staying aligned with mission loadouts. Enter the crate value, confirm target ratios, then run the calculator to see how much to allocate to each unit.
+              </p>
+
+              <div
+                class="grid gap-4 mb-4 md:grid-cols-[minmax(0,220px)_minmax(0,240px)_auto]"
+              >
+                <div class="w-full">
+                  <label
+                    for="rebalanceDepositAmount"
+                    class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1"
+                    >Total Deposit ($)</label
+                  >
+                  <input
+                    type="number"
+                    id="rebalanceDepositAmount"
+                    min="0"
+                    step="0.01"
+                    placeholder="Enter deposit amount"
+                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/60"
+                  />
+                  <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                    Tip: leave the field blank or zero if you do not want the new deposit to touch a holding.
+                  </p>
+                </div>
+                <div class="w-full">
+                  <label
+                    for="rebalanceRoundingMode"
+                    class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1"
+                    >Share Rounding</label
+                  >
+                  <select
+                    id="rebalanceRoundingMode"
+                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/60"
+                  >
+                    <option value="exact">Exact dollars (no rounding)</option>
+                    <option value="floor">Whole shares (round down)</option>
+                    <option value="nearest">Whole shares (nearest)</option>
+                  </select>
+                  <div class="flex items-center gap-2 mt-2">
+                    <input
+                      type="checkbox"
+                      id="rebalanceAutoDistributeCheckbox"
+                      class="h-3.5 w-3.5 rounded border-gray-300 text-amber-500 focus:ring-amber-400"
+                      checked
+                    />
+                    <label
+                      for="rebalanceAutoDistributeCheckbox"
+                      class="text-[11px] font-medium text-gray-500 dark:text-gray-400"
+                      >Auto-spend leftover by target weight</label
+                    >
+                  </div>
+                </div>
+                <button
+                  id="rebalanceDepositCalcBtn"
+                  class="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-md shadow focus:outline-none focus:ring-2 focus:ring-amber-400/60 transition"
+                >
+                  Run Allocation
+                  <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 4v6h6M20 20v-6h-6M5 19a9 9 0 010-14M19 5a9 9 0 010 14"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="overflow-x-auto fancy-scrollbar">
+                <table
+                  class="min-w-full divide-y divide-gray-200 dark:divide-gray-600 text-xs md:text-sm deposit-rebalance-table"
+                >
+                  <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr
+                      class="text-[1px] md:text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider text-center"
+                    >
+                      <th class="px-1 py-2 text-left">Lock</th>
+                      <th class="px-1 py-2 text-left">Ticker</th>
+                      <th class="px-1 py-2">Current ($)</th>
+                      <th class="px-1 py-2">Target %</th>
+                      <th class="px-1 py-2">Current %</th>
+                      <th class="px-1 py-2 bg-amber-500/10 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200 rounded">Deposit ($)</th>
+                      <th class="px-1 py-2">New ($)</th>
+                      <th class="px-1 py-2">New %</th>
+                      <th class="px-1 py-2">Delta vs Target (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="rebalanceDepositRows"
+                    class="divide-y divide-gray-200 dark:divide-gray-700"
+                  ></tbody>
+                  <tfoot class="bg-gray-100 dark:bg-gray-700 font-semibold text-gray-800 dark:text-gray-100">
+                    <tr id="rebalance-deposit-total-row">
+                      <td class="px-1 py-2 text-left text-gray-500 dark:text-gray-400">--</td>
+                      <td class="px-1 py-2 text-left">TOTAL</td>
+                      <td class="px-1 py-2 text-right" data-field="current">--</td>
+                      <td class="px-1 py-2 text-right text-xs text-gray-500 dark:text-gray-400">100%</td>
+                      <td class="px-1 py-2 text-right" data-field="currentPercent">--</td>
+                      <td class="px-1 py-2 text-right" data-field="deposit"><span class="inline-flex items-center justify-end min-w-[72px] px-2 py-1 rounded bg-amber-500/20 text-amber-700 dark:bg-amber-500/30 dark:text-amber-200 font-semibold">--</span></td>
+                      <td class="px-1 py-2 text-right" data-field="newValue">--</td>
+                      <td class="px-1 py-2 text-right" data-field="newPercent">--</td>
+                      <td class="px-1 py-2 text-right" data-field="delta">--</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <div
+                id="rebalanceDepositSummary"
+                class="mt-3 grid gap-3 sm:grid-cols-2"
+              >
+                <div
+                  class="rounded-lg border border-amber-300/60 dark:border-amber-500/40 bg-white/70 dark:bg-amber-500/10 p-3"
+                >
+                  <p class="text-xs font-semibold text-amber-700 dark:text-amber-200">
+                    Cash Deployment
+                  </p>
+                  <p
+                    id="rebalanceSpentSummary"
+                    class="text-lg font-semibold text-amber-700 dark:text-amber-200"
+                  >
+                    $0.00 spent
+                  </p>
+                  <p
+                    id="rebalanceLeftoverSummary"
+                    class="text-[11px] text-amber-700/80 dark:text-amber-200/80"
+                  >
+                    $0.00 leftover
+                  </p>
+                </div>
+                <div
+                  class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/40 p-3"
+                >
+                  <p class="text-xs font-semibold text-slate-600 dark:text-slate-200">
+                    Rebalance Impact
+                  </p>
+                  <p
+                    id="rebalanceImpactSummary"
+                    class="text-lg font-semibold text-slate-700 dark:text-slate-100"
+                  >
+                    Waiting for calculation
+                  </p>
+                  <p
+                    id="rebalanceImpactNote"
+                    class="text-[11px] text-slate-500 dark:text-slate-400"
+                  >
+                    Run the allocation to see drift improvements and holdings touched.
+                  </p>
+                </div>
+              </div>
+              <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-3">
+                Notes: totals stay pinned at 100% for both current and proposed allocations. Deposit and new value columns update live as you edit weights or cash.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="analytics" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">7. Analysis Deck</h2>
+            <p class="section-intro">
+              Interrogate sortie logs, threat exposure, and diversification metrics as you tune each squad's mission profile.
+            </p>
+          </div>
+        </div>
+
+        <div class="analysis-hud" id="analysisHud">
+          <div class="analysis-hud__backdrop" aria-hidden="true"></div>
+          <div class="analysis-hud__scanlines" aria-hidden="true"></div>
+
+          <div class="analysis-hud__header">
+            <div>
+              <p class="analysis-hud__eyebrow">Neo Zeon Telemetry Feed</p>
+              <h3 class="analysis-hud__title">Mission Metric Console</h3>
+            </div>
+            <button
+              type="button"
+              id="hudModeToggle"
+              class="hud-mode-toggle"
+              aria-pressed="false"
+            >
+              <span class="hud-mode-toggle__label">Mission Mode</span>
+              <span class="hud-mode-toggle__rail">
+                <span class="hud-mode-toggle__pill hud-mode-toggle__pill--analysis">Analysis</span>
+                <span class="hud-mode-toggle__pill hud-mode-toggle__pill--combat">Combat</span>
+              </span>
+            </button>
+          </div>
+
+          <div class="analysis-hud__grid analysis-hud__grid--matrix">
+            <article class="hud-card hud-card--return">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 01</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 15l4.5-4.5L12 14l6-6"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M16 8h4v4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Expected Annual Return</h3>
+                <p id="expectedReturnValue" class="hud-card__value">-</p>
+                <p class="hud-card__meta">
+                  Composite score blends growth, drawdown resilience, and liquidity metrics from the AI review.
+                </p>
+                <p id="expectedReturnDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Growth Vector</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--volatility">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 02</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 18h16M4 6h16M8 6v12m8-12v12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Portfolio Volatility</h3>
+                <p id="volatilityValue" class="hud-card__value">-</p>
+                <p class="hud-card__meta">
+                  Annualized volatility estimate derived from historical variance of the underlying assets.
+                </p>
+                <p id="volatilityDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Stability Monitor</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--sharpe">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 03</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M5 17l4-9 3 5 3-7 4 11"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Sharpe Ratio</h3>
+                <p id="sharpeValue" class="hud-card__value">-</p>
+                <p class="hud-card__meta">
+                  Compares excess return to volatility so you can gauge risk-adjusted efficiency in the field.
+                </p>
+                <p id="sharpeDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Efficiency Index</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--beta">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 04</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M5 12h5l2-4 2 8 2-4h3"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Portfolio Beta</h3>
+                <p id="portfolioBetaValue" class="hud-card__value">-</p>
+                <p class="hud-card__meta">
+                  Shows sensitivity to the S&amp;P 500; values near one mirror Federation-wide market maneuvers.
+                </p>
+                <p id="betaDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Market Sync</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--score">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 05</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 12l4 4 12-12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <circle
+                      cx="8"
+                      cy="16"
+                      r="1"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Portfolio Score</h3>
+                <p id="analyticsPortfolioScore" class="hud-card__value">-</p>
+                <p class="hud-card__meta">
+                  Composite rank blending expected returns, volatility drag, and resilience diagnostics.
+                </p>
+                <p id="portfolioScoreDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Composite Signal</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--diversity">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 06</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 12h16M8 8l4-4 4 4M8 16l4 4 4-4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Diversity Score</h3>
+                <p id="diversityScoreValue" class="hud-card__value">-</p>
+                <p class="hud-card__meta">
+                  Captures concentration risk; higher scores indicate broad hangar exposure across squad sleeves.
+                </p>
+                <p id="diversityDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Spread Index</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+            <article class="hud-card hud-card--compact hud-card--sortino">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 07</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M5 19V9l6 4 8-8"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Sortino Ratio</h3>
+                <p id="sortinoValue" class="hud-card__value">-</p>
+                <p class="hud-card__meta">
+                  Uses downside deviation only for a clearer view of return quality under fire.
+                </p>
+                <p id="sortinoDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Downside Shield</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--drawdown">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 08</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M5 6l4 4-4 4m10-8l4 4-4 4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M9 10h6"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Max Drawdown</h3>
+                <p id="maxDrawdownValue" class="hud-card__value">-</p>
+                <p class="hud-card__meta">
+                  Simulated worst-case hangar capital slide to assess crash tolerance before sortie.
+                </p>
+                <p id="maxDrawdownDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Loss Containment</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--calmar">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 09</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 16l6-8 4 5 6-9"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Calmar Ratio</h3>
+                <p id="calmarValue" class="hud-card__value">-</p>
+                <p class="hud-card__meta">
+                  Balances expected annual return against deepest stress loss to judge reward-to-risk.
+                </p>
+                <p id="calmarDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Uplift Quotient</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--alpha">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 10</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M5 12h4l2-3 4 6 4-7"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Alpha vs. Market</h3>
+                <p id="alphaValue" class="hud-card__value">-</p>
+                <p class="hud-card__meta">
+                  Excess return after normalizing for beta-adjusted Federation benchmark paths.
+                </p>
+                <p id="alphaDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Outperformance Pulse</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--expense">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 11</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M5 11h14M8 7h8M9 15h6"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="9"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Weighted Expense</h3>
+                <p id="expenseRatioValue" class="hud-card__value">-</p>
+                <p class="hud-card__meta">
+                  Shows kit upgrade drag based on target weights to monitor hangar burn rate.
+                </p>
+                <p id="expenseDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Cost Watch</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--recovery">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 12</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M12 6v6l3 3"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="8"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Recovery Time</h3>
+                <p id="recoveryTimeValue" class="hud-card__value">-</p>
+                <p class="hud-card__meta">
+                  Estimated duration to reclaim peak capital after a major drawdown event.
+                </p>
+                <p id="recoveryDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Resilience Clock</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- Advanced Portfolio Insights & Recommendations -->
+        <div
+          class="mb-8 p-6 rounded-2xl border card bg-gradient-to-br from-blue-50/30 via-indigo-50/20 to-purple-50/30 dark:from-blue-900/10 dark:via-indigo-900/5 dark:to-purple-900/10 relative overflow-hidden"
+        >
+          <!-- Background Pattern -->
+          <div class="absolute inset-0 opacity-5">
+            <div
+              class="absolute top-4 left-4 w-20 h-20 border border-blue-500 rounded-full"
+            ></div>
+            <div
+              class="absolute top-8 right-8 w-16 h-16 border border-purple-500 rounded-full"
+            ></div>
+            <div
+              class="absolute bottom-6 left-1/2 w-12 h-12 border border-indigo-500 rounded-full"
+            ></div>
+          </div>
+
+          <div class="relative z-10">
+            <h3
+              class="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3"
+            >
+              <div
+                class="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500"
+              >
+                <svg
+                  class="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  ></path>
+                </svg>
+              </div>
+              Portfolio Intelligence Hub
+            </h3>
+
+                                    <div class="intelligence-ops">
+              <section class="ops-column">
+                <header class="ops-column__header">
+                  <span class="ops-column__eyebrow">Telemetry Feed</span>
+                  <h4 class="ops-column__title">Core Signals</h4>
+                </header>
+                <div class="ops-stack">
+                  <article class="ops-card ops-card--telemetry">
+                    <div class="ops-card__rail" aria-hidden="true"></div>
+                    <div>
+                      <p class="ops-card__label">Diversification</p>
+                      <p id="diversificationLevel" class="ops-card__value">-</p>
+                    </div>
+                    <span class="ops-card__meta">Spread index across sleeves</span>
+                  </article>
+                  <article class="ops-card ops-card--telemetry">
+                    <div class="ops-card__rail" aria-hidden="true"></div>
+                    <div>
+                      <p class="ops-card__label">Risk-Adjusted Return</p>
+                      <p id="riskAdjustedReturn" class="ops-card__value">-</p>
+                    </div>
+                    <span class="ops-card__meta">Sharpe sync from analytics</span>
+                  </article>
+                  <article class="ops-card ops-card--telemetry">
+                    <div class="ops-card__rail" aria-hidden="true"></div>
+                    <div>
+                      <p class="ops-card__label">Growth Potential</p>
+                      <p id="growthPotential" class="ops-card__value">-</p>
+                    </div>
+                    <span class="ops-card__meta">Trajectory versus targets</span>
+                  </article>
+                </div>
+              </section>
+
+              <section class="ops-column ops-column--orders">
+                <header class="ops-column__header">
+                  <span class="ops-column__eyebrow">AI Orders</span>
+                  <h4 class="ops-column__title">Command Queue</h4>
+                </header>
+                <div class="ops-orders">
+                  <article class="ops-order">
+                    <span class="ops-order__tag ops-order__tag--defense">DEF</span>
+                    <div class="ops-order__body">
+                        Dial back positions in high-volatility assets to keep the risk budget stable.
+                      <span class="ops-order__timestamp">Issued T-12s</span>
+                    </div>
+                  </article>
+                  <article class="ops-order">
+                    <span class="ops-order__tag ops-order__tag--attack">ATK</span>
+                    <div class="ops-order__body">
+                        Add steadier sleeves such as broad ETFs or short-duration treasuries.
+                      <span class="ops-order__timestamp">Issued T-9s</span>
+                    </div>
+                  </article>
+                  <article class="ops-order">
+                    <span class="ops-order__tag ops-order__tag--support">SUP</span>
+                    <div class="ops-order__body">
+                        Watch volatility swings and rebalance for better risk-adjusted returns.
+                      <span class="ops-order__timestamp">Queue T-4s</span>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="ops-column ops-column--timeline">
+                <header class="ops-column__header">
+                  <span class="ops-column__eyebrow">Mission Timeline</span>
+                  <h4 class="ops-column__title">Health Grid</h4>
+                </header>
+                <div class="ops-timeline">
+                  <article class="ops-timeline__item">
+                    <div class="ops-timeline__marker ops-timeline__marker--active"></div>
+                    <div class="ops-timeline__content">
+                      <p class="ops-timeline__label">Risk Management</p>
+                      <div class="ops-progress">
+                        <span
+                          id="healthRiskBar"
+                          class="ops-progress__bar ops-progress__bar--risk"
+                          role="progressbar"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                          aria-valuenow="0"
+                          style="width: 0%"
+                        ></span>
+                      </div>
+                      <span id="healthRiskValue" class="ops-timeline__value">--</span>
+                    </div>
+                  </article>
+                  <article class="ops-timeline__item">
+                    <div class="ops-timeline__marker"></div>
+                    <div class="ops-timeline__content">
+                      <p class="ops-timeline__label">Diversification</p>
+                      <div class="ops-progress">
+                        <span
+                          id="healthDiversificationBar"
+                          class="ops-progress__bar ops-progress__bar--diversification"
+                          role="progressbar"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                          aria-valuenow="0"
+                          style="width: 0%"
+                        ></span>
+                      </div>
+                      <span id="healthDiversificationValue" class="ops-timeline__value">--</span>
+                    </div>
+                  </article>
+                  <article class="ops-timeline__item">
+                    <div class="ops-timeline__marker"></div>
+                    <div class="ops-timeline__content">
+                      <p class="ops-timeline__label">Growth Alignment</p>
+                      <div class="ops-progress">
+                        <span
+                          id="healthGrowthBar"
+                          class="ops-progress__bar ops-progress__bar--growth"
+                          role="progressbar"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                          aria-valuenow="0"
+                          style="width: 0%"
+                        ></span>
+                      </div>
+                      <span id="healthGrowthValue" class="ops-timeline__value">--</span>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </div>
+        <!-- Asset Contribution Table -->
+        <div class="p-4 rounded-xl border card mb-6">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                Asset Contribution to Portfolio
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Toggle between return, risk, and Sharpe lenses to inspect each sleeve's impact.
+              </p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">View</span>
+              <div
+                class="inline-flex rounded-lg bg-slate-100 dark:bg-slate-800 p-1 shadow-inner"
+                role="group"
+                aria-label="Contribution view selector"
+              >
+                <button
+                  type="button"
+                  class="contribution-toggle active"
+                  data-mode="return"
+                >
+                  Return
+                </button>
+                <button
+                  type="button"
+                  class="contribution-toggle"
+                  data-mode="risk"
+                >
+                  Risk
+                </button>
+                <button
+                  type="button"
+                  class="contribution-toggle"
+                  data-mode="sharpe"
+                >
+                  Sharpe
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid gap-6 mt-4 lg:grid-cols-[minmax(0,1fr)_260px]">
+            <div class="overflow-x-auto">
+              <table
+                class="min-w-full divide-y divide-gray-300 dark:divide-gray-600 modern-table text-sm"
+              >
+                <thead>
+                  <tr
+                    class="text-xs font-semibold text-gray-700 dark:text-gray-100 uppercase tracking-wider"
+                  >
+                    <th class="px-1.5 py-2 text-left">Asset</th>
+                    <th class="px-1.5 py-2 text-right">Target %</th>
+                    <th class="px-1.5 py-2 text-right" id="contributionSignalHeader">
+                      Expected Return (%)
+                    </th>
+                    <th class="px-1.5 py-2 text-right">Volatility</th>
+                    <th class="px-1.5 py-2 text-right" id="contributionValueHeader">
+                      Contribution
+                    </th>
+                    <th class="px-1.5 py-2 text-right">Delta vs. Snapshot</th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="assetContributionTable"
+                  class="divide-y divide-gray-200 dark:divide-gray-700"
+                >
+                  <!-- Rows will be populated by JS -->
+                </tbody>
+                <tfoot
+                  id="assetContributionSummary"
+                  class="bg-slate-100/80 dark:bg-slate-900/40 text-gray-700 dark:text-gray-200"
+                >
+                  <tr>
+                    <th class="px-2 py-3 text-left font-semibold" colspan="2">
+                      Portfolio Totals
+                    </th>
+                    <td class="px-2 py-3 text-right font-semibold" id="summarySignalValue">--</td>
+                    <td class="px-2 py-3 text-right text-gray-500 dark:text-gray-400"> - </td>
+                    <td class="px-2 py-3 text-right font-semibold" id="summaryContributionValue">--</td>
+                    <td class="px-2 py-3 text-right text-xs font-semibold" id="summaryDeltaValue">
+                      Delta 0.0%
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <aside
+              class="rounded-xl border border-slate-200/70 dark:border-slate-700/60 bg-white/70 dark:bg-slate-900/60 p-4 flex flex-col gap-4 backdrop-blur-sm"
+            >
+              <div>
+                <h4 class="text-base font-semibold text-gray-800 dark:text-gray-200">
+                  Scenario Stress Test
+                </h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  Apply a +/-5% shift to expected returns to gauge sensitivity. Set back to 0% to clear.
+                </p>
+              </div>
+              <div>
+                <input
+                  id="stressTestSlider"
+                  type="range"
+                  min="-5"
+                  max="5"
+                  step="0.5"
+                  value="0"
+                  class="w-full accent-blue-500"
+                  aria-describedby="stressTestHint"
+                />
+                <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  <span>-5%</span>
+                  <span id="stressTestValue">0%</span>
+                  <span>+5%</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                id="applyStressTestBtn"
+                class="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-400/60 styled-button"
+              >
+                Apply Scenario
+              </button>
+              <p
+                id="stressTestHint"
+                class="text-xs text-gray-500 dark:text-gray-400"
+              >
+                Latest multiplier: <span id="stressTestMultiplier">1.00x</span>
+              </p>
+            </aside>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button
+            id="refreshAnalyticsBtn"
+            class="bg-rose-600 text-white font-semibold py-3 px-6 rounded-md shadow-lg hover:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-500/70 focus:ring-offset-2 styled-button"
+          >
+            Refresh Insights
+          </button>
+        </div>
+      </section>
+
+      <section id="ai-recommendations" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-rose-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">8. AI Co-Pilot Console</h2>
+            <p class="section-intro">
+              Consult tactical guidance from your Haro co-pilot to capture kit upgrades and smooth hanger turbulence.
+            </p>
+          </div>
+        </div>
+
+        <!-- Portfolio Health Score -->
+        <div
+          class="mb-8 p-6 rounded-xl border card bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20"
+        >
+          <div
+            class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-4"
+          >
+            <div>
+              <h3
+                class="text-xl font-semibold text-purple-800 dark:text-purple-300"
+              >
+                Portfolio Health Assessment
+              </h3>
+              <p class="text-sm text-gray-600 dark:text-gray-300">
+                Portfolio Health Score (PHS) = (RRB x 30%) + (DIV x 25%) + (DR x 20%) + (LQ x 10%) + (GA x 15%).
+              </p>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 max-w-md">
+              PHS uses a 0-10 scale. Higher scores indicate a balanced, well diversified portfolio aligned with long-term hangar objectives.
+            </p>
+          </div>
+          <div id="ai-portfolio-health" class="relative">
+            <div
+              class="rounded-3xl bg-white/80 dark:bg-slate-950/70 border border-white/50 dark:border-white/10 p-6 md:p-8 animate-pulse"
+            >
+              <div class="grid gap-6 md:grid-cols-[230px_1fr]">
+                <div
+                  class="rounded-2xl bg-white/90 dark:bg-white/10 border border-white/60 dark:border-white/10 px-6 py-7 flex flex-col gap-4 items-center md:items-start text-center md:text-left"
+                >
+                  <div class="h-14 w-24 bg-gray-300/70 dark:bg-gray-700/40 rounded-2xl"></div>
+                  <div class="h-3 w-20 bg-gray-300/60 dark:bg-gray-700/50 rounded-full"></div>
+                  <div class="h-3 w-full bg-gray-300/40 dark:bg-gray-700/40 rounded-full"></div>
+                </div>
+                <div class="space-y-4">
+                  <div class="h-4 bg-gray-300/60 dark:bg-gray-700/50 rounded"></div>
+                  <div class="h-3 bg-gray-300/40 dark:bg-gray-700/40 rounded-full"></div>
+                  <div class="h-24 bg-gray-300/20 dark:bg-gray-800/30 rounded-2xl"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <div
+              class="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-3"
+            >
+              <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                Portfolio Health Score Breakdown
+              </h4>
+            </div>
+            <div class="overflow-x-auto">
+              <table
+                class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm"
+              >
+                <thead class="bg-white/70 dark:bg-gray-900/40 text-gray-600 dark:text-gray-300 uppercase tracking-wide text-xs">
+                  <tr>
+                    <th class="px-3 py-2 text-left">Component</th>
+                    <th class="px-3 py-2 text-center">Weight</th>
+                    <th class="px-3 py-2 text-center">Score (0-10)</th>
+                    <th class="px-3 py-2 text-left">Live context</th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="phs-breakdown-body"
+                  class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-700 dark:text-gray-200"
+                >
+                  <tr data-component="rrb">
+                    <td class="px-3 py-3 font-medium">Risk-Return Balance (RRB)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">30%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Focus on Sharpe ratio, volatility and expected return.
+                    </td>
+                  </tr>
+                  <tr data-component="div">
+                    <td class="px-3 py-3 font-medium">Diversification &amp; Correlation (DIV)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">25%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Mix of asset classes, regions and correlation structure.
+                    </td>
+                  </tr>
+                  <tr data-component="dr">
+                    <td class="px-3 py-3 font-medium">Drawdown Resilience (DR)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">20%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Considers beta, realised volatility and drawdown history.
+                    </td>
+                  </tr>
+                  <tr data-component="lq">
+                    <td class="px-3 py-3 font-medium">Liquidity &amp; Simplicity (LQ)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">10%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Looks at ETF coverage versus concentrated or illiquid positions.
+                    </td>
+                  </tr>
+                  <tr data-component="ga">
+                    <td class="px-3 py-3 font-medium">Goal Alignment (GA)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">15%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Measures how the mix supports long-horizon hangar objectives.
+                    </td>
+                  </tr>
+                  <tr
+                    data-component="total"
+                    class="bg-purple-50/60 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 font-semibold"
+                  >
+                    <td class="px-3 py-3">Portfolio Health Score</td>
+                    <td class="px-3 py-3 text-center" data-role="weight">100%</td>
+                    <td class="px-3 py-3 text-center text-lg">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Weighted blend of the five core pillars.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <!-- Immediate Actions -->
+          <div class="p-6 rounded-xl border card card--lifted">
+            <h3
+              class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"
+            >
+              <span class="text-red-500">!</span>
+              Immediate Actions Required
+            </h3>
+            <div id="ai-immediate-actions" class="text-center py-4">
+              <p class="text-gray-500">
+                Click "Generate AI Analysis" to get personalized recommendations
+              </p>
+            </div>
+          </div>
+
+          <!-- Strategic Advice -->
+          <div class="p-6 rounded-xl border card card--lifted">
+            <h3
+              class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"
+            >
+              <span class="text-blue-500">Coach</span>
+              Strategic Recommendations
+            </h3>
+            <div id="ai-strategic-advice" class="text-center py-4">
+              <p class="text-gray-500">
+                AI analysis will provide strategic investment advice
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <!-- Risk Management -->
+          <div class="p-6 rounded-xl border card card--lifted">
+            <h3
+              class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"
+            >
+              <span class="text-amber-500">Shield</span>
+              Risk Management Playbook
+            </h3>
+            <div
+              id="ai-risk-management"
+              class="text-gray-500 dark:text-gray-400 text-sm space-y-3"
+            >
+              <p>Generate the AI report to surface hedges and guardrails.</p>
+            </div>
+          </div>
+
+          <!-- Market Insights -->
+          <div class="p-6 rounded-xl border card card--lifted">
+            <h3
+              class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"
+            >
+              <span class="text-sky-400">Scope</span>
+              Market &amp; Macro Signals
+            </h3>
+            <div
+              id="ai-market-insights"
+              class="text-gray-500 dark:text-gray-400 text-sm space-y-3"
+            >
+              <p>Run the AI analysis to get real-time market context.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Future Predictions -->
+        <div class="mb-8 p-6 rounded-xl border card card--lifted">
+          <h3
+            class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"
+          >
+            <span class="text-indigo-500">Outlook</span>
+            Future Market Predictions
+          </h3>
+          <div id="ai-future-predictions" class="mt-4">
+            <p class="text-gray-500">
+              AI-powered predictions for different market scenarios
+            </p>
+          </div>
+        </div>
+        <div class="text-center">
+          <button
+            id="ai-refresh-btn"
+            class="bg-purple-600 text-white font-semibold py-3 px-8 rounded-md shadow-lg hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-500/70 focus:ring-offset-2 styled-button text-lg"
+          >
+            Generate AI Analysis
+          </button>
+        </div>
+      </section>
+      <section id="performance" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">9. Sortie Debrief Analytics</h2>
+            <p class="section-intro">
+              Review sortie archives, projection bands, and rolling battle performance against your federation benchmarks.
+            </p>
+          </div>
+        </div>
+
+        <div class="mb-6 flex justify-center gap-4 flex-wrap">
+          <button
+            id="period1Y"
+            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            1 Year
+          </button>
+          <button
+            id="period5Y"
+            class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+          >
+            5 Years
+          </button>
+          <button
+            id="period10Y"
+            class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+          >
+            10 Years
+          </button>
+          <button
+            id="period20Y"
+            class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+          >
+            20 Years
+          </button>
+          <button
+            id="period30Y"
+            class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+          >
+            30 Years
+          </button>
+          <button
+            id="period35Y"
+            class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+          >
+            35 Years
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <!-- Performance Chart -->
+          <div class="p-6 rounded-xl border card card--lifted">
+            <h3
+              class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4"
+            >
+              Portfolio Value Over Time
+            </h3>
+            <div class="chart-container h-80">
+              <canvas id="performanceChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Performance Metrics -->
+          <div class="p-6 rounded-xl border card card--lifted">
+            <h3
+              class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4"
+            >
+              Performance Metrics
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div
+                class="p-4 rounded-lg border border-sky-400/40 dark:border-rose-700/40 bg-sky-500/10 dark:bg-sky-900/20"
+              >
+                <div class="flex items-baseline justify-between">
+                  <span class="text-xs font-semibold uppercase text-gray-600 dark:text-gray-400"
+                    >Portfolio CAGR</span
+                  >
+                  <span
+                    id="annualizedReturn"
+                    class="text-xl font-bold text-cyan-400 dark:text-cyan-300"
+                    >-</span
+                  >
+                </div>
+                <p class="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                  Compound annual growth over the selected window.
+                </p>
+              </div>
+
+              <div
+                class="p-4 rounded-lg border border-blue-200/60 dark:border-blue-700/60 bg-blue-50/40 dark:bg-blue-900/10"
+              >
+                <div class="flex items-baseline justify-between">
+                  <span class="text-xs font-semibold uppercase text-gray-600 dark:text-gray-400"
+                    >Benchmark CAGR</span
+                  >
+                  <span
+                    id="benchmarkReturn"
+                    class="text-xl font-bold text-blue-600 dark:text-blue-400"
+                    >-</span
+                  >
+                </div>
+                <p class="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                  S&P&nbsp;500 compound growth for the same period.
+                </p>
+              </div>
+
+              <div
+                class="p-4 rounded-lg border border-sky-200/60 dark:border-sky-600/60 bg-sky-100/40 dark:bg-sky-900/10"
+              >
+                <div class="flex items-baseline justify-between">
+                  <span class="text-xs font-semibold uppercase text-gray-600 dark:text-gray-400"
+                    >Excess CAGR</span
+                  >
+                  <span
+                    id="excessAnnualizedReturn"
+                    class="text-xl font-bold text-sky-500 dark:text-sky-300"
+                    >-</span
+                  >
+                </div>
+                <p class="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                  Annualised alpha versus the benchmark.
+                </p>
+              </div>
+
+              <div
+                class="p-4 rounded-lg border border-indigo-200/60 dark:border-indigo-700/60 bg-indigo-50/40 dark:bg-indigo-900/10"
+              >
+                <div class="flex items-baseline justify-between">
+                  <span class="text-xs font-semibold uppercase text-gray-600 dark:text-gray-400"
+                    >Total Return</span
+                  >
+                  <span
+                    id="totalReturn"
+                    class="text-xl font-bold text-indigo-600 dark:text-indigo-400"
+                    >-</span
+                  >
+                </div>
+                <div class="mt-3 space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                  <div class="flex justify-between">
+                    <span>Benchmark</span>
+                    <span
+                      id="benchmarkTotalReturn"
+                      class="font-semibold text-blue-600 dark:text-blue-400"
+                      >-</span
+                    >
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Excess</span>
+                    <span
+                      id="excessTotalReturn"
+                      class="font-semibold text-sky-500 dark:text-sky-300"
+                      >-</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="p-4 rounded-lg border border-red-200/60 dark:border-red-700/60 bg-red-50/40 dark:bg-red-900/10"
+              >
+                <div class="flex items-baseline justify-between">
+                  <span class="text-xs font-semibold uppercase text-gray-600 dark:text-gray-400"
+                    >Max Drawdown</span
+                  >
+                  <span
+                    id="maxDrawdown"
+                    class="text-xl font-bold text-red-600 dark:text-red-400"
+                    >-</span
+                  >
+                </div>
+                <div class="mt-3 flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+                  <span>Annual Volatility</span>
+                  <span
+                    id="performanceVolatility"
+                    class="font-semibold text-orange-600 dark:text-orange-400"
+                    >-</span
+                  >
+                </div>
+              </div>
+
+              <div
+                class="p-4 rounded-lg border border-slate-200/60 dark:border-slate-700/60 bg-slate-50/40 dark:bg-slate-900/10"
+              >
+                <div class="flex items-baseline justify-between">
+                  <span class="text-xs font-semibold uppercase text-gray-600 dark:text-gray-400"
+                    >Risk Efficiency</span
+                  >
+                  <span
+                    id="portfolioSharpe"
+                    class="text-xl font-bold text-slate-700 dark:text-slate-200"
+                    >-</span
+                  >
+                </div>
+                <div class="mt-3 space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                  <div class="flex justify-between">
+                    <span>Information Ratio</span>
+                    <span
+                      id="informationRatio"
+                      class="font-semibold text-slate-700 dark:text-slate-200"
+                      >-</span
+                    >
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Tracking Error</span>
+                    <span
+                      id="trackingError"
+                      class="font-semibold text-purple-600 dark:text-purple-400"
+                      >-</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Asset Performance Table -->
+        <div class="p-6 rounded-xl border card mb-6">
+          <h3
+            class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4"
+          >
+            Asset Performance Projections
+          </h3>
+          <div class="overflow-x-auto">
+            <table
+              class="min-w-full divide-y divide-gray-300 dark:divide-gray-600 modern-table"
+            >
+              <thead>
+                <tr
+                  class="text-xs font-semibold text-gray-700 dark:text-gray-100 uppercase tracking-wider"
+                >
+                  <th class="px-2 py-3 text-left">Asset</th>
+                  <th class="px-2 py-3 text-right">1 Year</th>
+                  <th class="px-2 py-3 text-right">5 Years</th>
+                  <th class="px-2 py-3 text-right">10 Years</th>
+                  <th class="px-2 py-3 text-right">15 Years</th>
+                  <th class="px-2 py-3 text-right">20 Years</th>
+                  <th class="px-2 py-3 text-right">30 Years</th>
+                  <th class="px-2 py-3 text-right">35 Years</th>
+                </tr>
+              </thead>
+              <tbody
+                id="assetPerformanceTable"
+                class="divide-y divide-gray-200 dark:divide-gray-700"
+              >
+                <!-- Rows will be populated by JS -->
+              </tbody>
+              <tfoot class="bg-gray-200 dark:bg-slate-700 font-bold text-sm">
+                <tr>
+                  <td class="px-2 py-3 text-left">TOTAL</td>
+                  <td
+                    id="total1Y"
+                    class="px-2 py-3 text-right text-blue-600 dark:text-blue-400"
+                  >
+                    -
+                  </td>
+                  <td
+                    id="total5Y"
+                    class="px-2 py-3 text-right text-blue-600 dark:text-blue-400"
+                  >
+                    -
+                  </td>
+                  <td
+                    id="total10Y"
+                    class="px-2 py-3 text-right text-blue-600 dark:text-blue-400"
+                  >
+                    -
+                  </td>
+                  <td
+                    id="total15Y"
+                    class="px-2 py-3 text-right text-blue-600 dark:text-blue-400"
+                  >
+                    -
+                  </td>
+                  <td
+                    id="total20Y"
+                    class="px-2 py-3 text-right text-blue-600 dark:text-blue-400"
+                  >
+                    -
+                  </td>
+                  <td
+                    id="total30Y"
+                    class="px-2 py-3 text-right text-blue-600 dark:text-blue-400"
+                  >
+                    -
+                  </td>
+                  <td
+                    id="total35Y"
+                    class="px-2 py-3 text-right text-blue-600 dark:text-blue-400"
+                  >
+                    -
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button
+            id="refreshPerformanceBtn"
+            class="bg-rose-600 text-white font-semibold py-3 px-6 rounded-md shadow-lg hover:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-500/70 focus:ring-offset-2 styled-button"
+          >
+            Refresh Performance
+          </button>
+        </div>
+      </section>
+
+      <section id="marketHeatmap" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 7h18M3 12h18M3 17h18"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">10. Sector Heatmap Array</h2>
+            <p class="section-intro">
+              Sweep battlefront sectors and global markets to spot hotspots before they impact your Gunpla supply lines.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
+          <aside
+            class="card card--lifted rounded-3xl p-6 flex flex-col gap-6 bg-white/90 dark:bg-slate-950/90 border border-gray-100 dark:border-slate-800"
+          >
+            <div>
+              <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                Map Filters
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Toggle between preset universes to compare how sectors are behaving. Each view feeds the heatmap on the right.
+              </p>
+            </div>
+
+            <div id="heatmapFilters" class="flex flex-col gap-2">
+              <button
+                type="button"
+                class="heatmap-filter-btn"
+                data-filter="sp500"
+              >
+                S&P 500
+              </button>
+              <button
+                type="button"
+                class="heatmap-filter-btn"
+                data-filter="dow30"
+              >
+                Dow Jones 30
+              </button>
+              <button
+                type="button"
+                class="heatmap-filter-btn"
+                data-filter="nasdaq100"
+              >
+                Nasdaq 100
+              </button>
+              <button
+                type="button"
+                class="heatmap-filter-btn"
+                data-filter="russell2000"
+              >
+                Russell 2000
+              </button>
+              <button
+                type="button"
+                class="heatmap-filter-btn"
+                data-filter="etfs"
+              >
+                ETFs
+              </button>
+            </div>
+
+            <div class="pt-4 border-t border-gray-200 dark:border-slate-800">
+              <label
+                for="heatmapMetricSelect"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide"
+              >
+                Performance Window
+              </label>
+              <select
+                id="heatmapMetricSelect"
+                class="heatmap-select w-full"
+              >
+                <option value="day">1-Day Change</option>
+                <option value="week">1-Week Change</option>
+              </select>
+            </div>
+          </aside>
+
+          <div class="flex flex-col gap-6">
+            <div
+              class="card card--lifted relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800/70 p-6 md:p-8 bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-950 dark:via-slate-950 dark:to-slate-950 shadow-xl shadow-sky-400/5"
+            >
+              <div
+                class="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-300/10 via-transparent to-sky-400/10 dark:from-sky-300/10 dark:via-transparent dark:to-sky-500/15"
+              ></div>
+
+              <div class="relative flex flex-col gap-6">
+              <div
+                class="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+              >
+                <div>
+                  <h3
+                    class="text-xl font-semibold text-gray-800 dark:text-gray-200"
+                  >
+                    Heatmap snapshot
+                  </h3>
+                  <p
+                    id="heatmapSelectedLabel"
+                    class="text-sm text-gray-600 dark:text-gray-400"
+                  >
+                    S&P 500 - 1-Day Change
+                  </p>
+                </div>
+                <div
+                  class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400"
+                >
+                  <span class="font-semibold text-red-500">-5%</span>
+                  <div class="heatmap-legend-bar"></div>
+                  <span class="font-semibold text-sky-400">+5%</span>
+                </div>
+              </div>
+
+              <div class="relative">
+                <div class="heatmap-widget-shell">  
+                  <div
+                    id="heatmapWidgetContainer"
+                    class="tradingview-widget-container heatmap-widget-container"
+                  ></div>
+                </div>
+                <div
+                  id="heatmapLoading"
+                  class="heatmap-loading-state hidden"
+                >
+                  Loading TradingView heatmap...
+                </div>
+                <div
+                  id="heatmapError"
+                  class="heatmap-error hidden"
+                >
+                  Unable to load the TradingView heatmap. Check your network connection and try again.
+                </div>
+              </div>
+
+              <div
+                class="flex items-center justify-between flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400"
+              >
+                <span id="heatmapLastUpdated">Updated: --</span>
+                <button
+                  type="button"
+                  id="heatmapReloadBtn"
+                  class="inline-flex items-center gap-2 bg-sky-500 text-white font-semibold px-3 py-2 rounded-md shadow hover:bg-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-400/60 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-950"
+                >
+                  <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9M20 20v-5h-.581m-15.357-2a8.003 8.003 0 0015.357 2"
+                    ></path>
+                  </svg>
+                  <span class="heatmap-reload-label">Reload TradingView heatmap</span>
+                </button>
+              </div>
+
+            </div>
+
+            <div class="grid gap-6 md:grid-cols-2">
+              <section
+                class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 p-5 shadow-sm shadow-sky-400/10"
+                aria-labelledby="heatmapIntelTitle"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <h4
+                      id="heatmapIntelTitle"
+                      class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                    >
+                      Sector Intel Briefing
+                    </h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      Tactical notes adapt to the selected universe and window.
+                    </p>
+                  </div>
+                  <span
+                    class="inline-flex items-center rounded-full bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-600 dark:text-sky-300"
+                  >
+                    Live
+                  </span>
+                </div>
+                <ul
+                  id="heatmapIntelList"
+                  class="mt-4 space-y-3 text-sm text-gray-600 dark:text-gray-300"
+                ></ul>
+                <p
+                  id="heatmapIntelEmpty"
+                  class="mt-4 text-sm text-gray-500 dark:text-gray-400"
+                >
+                  Select a sector universe or change the performance window to generate intel.
+                </p>
+              </section>
+
+              <section
+                class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 p-5 shadow-sm shadow-sky-400/10"
+                aria-labelledby="heatmapWatchlistTitle"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <h4
+                      id="heatmapWatchlistTitle"
+                      class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                    >
+                      Tactical Watchlist
+                    </h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      Track priority tickers alongside the heatmap. Stored locally.
+                    </p>
+                  </div>
+                </div>
+                <form id="heatmapWatchlistForm" class="mt-4 flex flex-col gap-3 sm:flex-row">
+                  <label class="sr-only" for="heatmapWatchlistInput">Add ticker</label>
+                  <input
+                    id="heatmapWatchlistInput"
+                    type="text"
+                    autocomplete="off"
+                    class="flex-1 rounded-lg border border-slate-200 bg-white/70 px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-300/40 dark:border-slate-700 dark:bg-slate-900/40 dark:text-gray-200"
+                    placeholder="Enter ticker (e.g. NVDA)"
+                    maxlength="10"
+                  />
+                  <button
+                    id="heatmapWatchlistAddBtn"
+                    type="submit"
+                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-400/70 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-950"
+                  >
+                    <svg
+                      class="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 4v16m8-8H4"
+                      ></path>
+                    </svg>
+                    Add
+                  </button>
+                </form>
+                <p
+                  id="heatmapWatchlistEmpty"
+                  class="mt-4 text-sm text-gray-500 dark:text-gray-400"
+                >
+                  No tickers tracked yet. Add symbols to build a rapid response list.
+                </p>
+                <ul
+                  id="heatmapWatchlist"
+                  class="mt-4 space-y-3 text-sm text-gray-600 dark:text-gray-300"
+                ></ul>
+                <p
+                  id="heatmapWatchlistSummary"
+                  class="mt-3 text-xs text-gray-500 dark:text-gray-400"
+                ></p>
+              </section>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="marketIndices"
+        class="section mb-12"
+        data-fmp-key="qPhDU6pPgXTmbdzSL7FxdxXUzQFELzW9"
+      >
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M11 3h2a2 2 0 012 2v3h3a2 2 0 012 2v2a2 2 0 01-2 2h-3v3a2 2 0 01-2 2h-2a2 2 0 01-2-2v-3H6a2 2 0 01-2-2V10a2 2 0 012-2h3V5a2 2 0 012-2z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">11. Federation Indices Feed</h2>
+            <p class="section-intro">
+              Ping Earth Federation markets for live signals and stage alerts directly into your cockpit.
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800/70 p-6 md:p-8 mb-6 bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-950 dark:via-slate-950 dark:to-slate-950 shadow-xl shadow-sky-400/5"
+        >
+          <div
+            class="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-300/10 via-transparent to-sky-400/10 dark:from-sky-300/10 dark:via-transparent dark:to-sky-500/15"
+          ></div>
+
+          <div class="relative">
+            <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+              <div class="flex flex-col gap-6">
+                <div
+                  class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+                >
+                  <div class="space-y-4">
+                    <div>
+                      <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                        Real-time global benchmarks
+                      </h3>
+                      <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Track live pricing on major equity indices. Values refresh automatically every 60 seconds.
+                      </p>
+                    </div>
+                    <div
+                      id="indicesRegionFilters"
+                      class="flex flex-wrap items-center gap-2"
+                      role="tablist"
+                      aria-label="Market theatre filter"
+                    >
+                      <button
+                        type="button"
+                        class="indices-filter-btn inline-flex items-center rounded-full border border-sky-500/30 bg-white/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-sky-600 shadow-sm transition hover:border-sky-500 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/60 dark:bg-slate-900/40 dark:text-sky-200"
+                        data-region="all"
+                        role="tab"
+                        aria-selected="true"
+                      >
+                        All Theatres
+                      </button>
+                      <button
+                        type="button"
+                        class="indices-filter-btn inline-flex items-center rounded-full border border-sky-500/30 bg-white/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-sky-600 shadow-sm transition hover:border-sky-500 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/60 dark:bg-slate-900/40 dark:text-sky-200"
+                        data-region="earth-sphere"
+                        role="tab"
+                        aria-selected="false"
+                      >
+                        Earth Sphere
+                      </button>
+                      <button
+                        type="button"
+                        class="indices-filter-btn inline-flex items-center rounded-full border border-sky-500/30 bg-white/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-sky-600 shadow-sm transition hover:border-sky-500 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/60 dark:bg-slate-900/40 dark:text-sky-200"
+                        data-region="outer-colonies"
+                        role="tab"
+                        aria-selected="false"
+                      >
+                        Outer Colonies
+                      </button>
+                      <button
+                        type="button"
+                        class="indices-filter-btn inline-flex items-center rounded-full border border-sky-500/30 bg-white/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-sky-600 shadow-sm transition hover:border-sky-500 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/60 dark:bg-slate-900/40 dark:text-sky-200"
+                        data-region="neo-zeon"
+                        role="tab"
+                        aria-selected="false"
+                      >
+                        Neo Zeon Watchlist
+                      </button>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-4">
+                    <button
+                      type="button"
+                      id="indicesAutoSyncToggle"
+                      role="switch"
+                      aria-checked="true"
+                      class="relative flex items-center gap-3 rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-sky-600 transition hover:border-sky-500 hover:bg-sky-500/20 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/60 dark:border-sky-300/30 dark:bg-sky-400/10 dark:text-sky-200"
+                    >
+                      <span class="auto-sync-label">Auto-sync</span>
+                      <span
+                        class="inline-flex h-5 w-10 items-center rounded-full bg-slate-200/70 px-1 transition dark:bg-slate-700/70"
+                      >
+                        <span
+                          class="toggle-indicator inline-block h-4 w-4 rounded-full bg-sky-500 shadow transition-transform"
+                        ></span>
+                      </span>
+                    </button>
+                    <div class="flex items-center gap-3">
+                      <button
+                        id="refreshIndicesBtn"
+                        class="bg-sky-500 text-white font-semibold py-2 px-4 rounded-md shadow-lg hover:bg-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-400/70 focus:ring-offset-2"
+                      >
+                        Refresh Now
+                      </button>
+                      <span
+                        id="indicesLastUpdated"
+                        class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400"
+                      >
+                        Updated: --
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  id="marketIndicesGrid"
+                  class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4"
+                >
+                  <!-- Live cards populated by JS -->
+                </div>
+
+                <div
+                  id="marketIndicesError"
+                  class="hidden mt-2 p-4 rounded-xl border border-red-200 bg-red-50 text-red-600 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-200"
+                >
+                  Unable to load market data right now. Please try again shortly.
+                </div>
+
+                <div
+                  id="marketIndicesFallback"
+                  class="hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-950/90 p-6 shadow-xl backdrop-blur"
+                >
+                  <h3
+                    class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"
+                  >
+                    <svg
+                      class="w-5 h-5 text-sky-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 12l2 2 4-4M7.5 4.21l.97-.242a2 2 0 011.554.3l.757.535a2 2 0 002.222 0l.758-.535a2 2 0 011.553-.3l.97.242a2 2 0 011.43 1.43l.241.97a2 2 0 01-.3 1.554l-.535.757a2 2 0 000 2.222l.535.758a2 2 0 01.3 1.553l-.242.97a2 2 0 01-1.43 1.43l-.97.241a2 2 0 01-1.553-.3l-.758-.535a2 2 0 00-2.222 0l-.757.535a2 2 0 01-1.554.3l-.97-.242a2 2 0 01-1.43-1.43l-.241-.97a2 2 0 01.3-1.553l.535-.758a2 2 0 000-2.222l-.535-.757a2 2 0 01-.3-1.554l.242-.97a2 2 0 011.43-1.43z"
+                      ></path>
+                    </svg>
+                    Live view provided by TradingView
+                  </h3>
+                  <div class="tradingview-widget-container">
+                    <div
+                      id="marketIndicesWidget"
+                      class="overflow-hidden rounded-xl border border-gray-200/80 dark:border-slate-800/70"
+                    ></div>
+                    <div class="tradingview-widget-copyright text-xs text-gray-400">
+                      <a
+                        href="https://www.tradingview.com/markets/indices/quotes-major/"
+                        rel="noopener"
+                        target="_blank"
+                        class="hover:underline"
+                      >
+                        Quotes by TradingView
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="flex flex-col gap-6">
+                <article
+                  id="marketIndicesInsights"
+                  class="rounded-2xl border border-slate-200/80 bg-white/80 p-6 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/80"
+                >
+                  <header class="mb-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-sky-500 dark:text-sky-300">
+                      Tactical Metrics
+                    </p>
+                    <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                      Mission readiness snapshot
+                    </h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                      Compare live deltas against 30-day drift and key thresholds.
+                    </p>
+                  </header>
+                  <dl
+                    id="marketIndicesStats"
+                    class="space-y-4 text-sm text-gray-700 dark:text-gray-300"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <dt class="font-medium text-gray-500 dark:text-gray-400">
+                        Volatility (30d stdev)
+                      </dt>
+                      <dd class="font-semibold text-gray-900 dark:text-gray-100" data-stat="volatility">
+                        --
+                      </dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                      <dt class="font-medium text-gray-500 dark:text-gray-400">
+                        Momentum Score
+                      </dt>
+                      <dd class="font-semibold text-gray-900 dark:text-gray-100" data-stat="momentum">
+                        --
+                      </dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                      <dt class="font-medium text-gray-500 dark:text-gray-400">
+                        52w Range Utilization
+                      </dt>
+                      <dd class="font-semibold text-gray-900 dark:text-gray-100" data-stat="range">
+                        --
+                      </dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                      <dt class="font-medium text-gray-500 dark:text-gray-400">
+                        Cross-Index Correlation
+                      </dt>
+                      <dd class="font-semibold text-gray-900 dark:text-gray-100" data-stat="correlation">
+                        --
+                      </dd>
+                    </div>
+                  </dl>
+                </article>
+
+                <article
+                  id="marketIndicesTimeline"
+                  class="rounded-2xl border border-slate-200/80 bg-white/80 p-6 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/80"
+                >
+                  <header class="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                      <p class="text-xs font-semibold uppercase tracking-wide text-amber-500 dark:text-amber-300">
+                        Upcoming Signals
+                      </p>
+                      <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                        Macro event timeline
+                      </h4>
+                    </div>
+                    <span
+                      class="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-600 dark:bg-amber-400/10 dark:text-amber-300"
+                      id="marketIndicesTimelineStatus"
+                    >
+                      Syncing
+                    </span>
+                  </header>
+                  <ul
+                    id="marketIndicesEventsList"
+                    class="market-indices-event-list space-y-3 text-sm text-gray-600 dark:text-gray-400"
+                  >
+                    <li class="flex items-start gap-3">
+                      <span class="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-slate-400/70"></span>
+                      <div>
+                        <p class="font-semibold text-gray-800 dark:text-gray-200">
+                          Awaiting intel feed...
+                        </p>
+                        <p class="text-xs uppercase tracking-wide text-gray-400">
+                          Initialising channel
+                        </p>
+                      </div>
+                    </li>
+                  </ul>
+                </article>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="fearGreed" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-rose-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.95-6.95l-2.12 2.12M9.17 14.83L7.05 16.95m12.02 0l-2.12-2.12M9.17 9.17L7.05 7.05"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">12. Psycho-Frame Sentiment Monitor</h2>
+            <p class="section-intro">
+              Gauge collective pilot morale with a Psycho-Frame index, historical checkpoints, and context for redeploying your Gunpla assets.
+            </p>
+          </div>
+        </div>
+
+        <div class="sentiment-hud" id="sentimentHud">
+          <div class="sentiment-hud__backdrop" aria-hidden="true"></div>
+          <div class="sentiment-hud__scanlines" aria-hidden="true"></div>
+
+          <header class="sentiment-hud__header">
+            <div>
+              <p class="sentiment-hud__eyebrow">Psycho-Frame Telemetry</p>
+              <h3 class="sentiment-hud__title">Sentiment Nexus Console</h3>
+            </div>
+            <div class="sentiment-hud__actions">
+              <span id="fearGreedError" class="sentiment-hud__error hidden">
+                Live feed unstable – pulling from cache
+              </span>
+              <button
+                id="fearGreedRefreshBtn"
+                type="button"
+                class="sentiment-refresh-btn"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  ></path>
+                </svg>
+                <span class="fear-greed-refresh-label">Refresh now</span>
+              </button>
+            </div>
+          </header>
+
+          <div class="sentiment-hud__grid">
+            <article class="sentiment-module sentiment-module--core">
+              <div class="sentiment-core">
+                <div class="sentiment-core__gauge">
+                  <div class="sentiment-module__titlebar">
+                    <span class="sentiment-module__eyebrow">Core Index</span>
+                    <h4 class="sentiment-module__title">Psycho-Frame Gauge</h4>
+                  </div>
+                  <div class="sentiment-core__gauge-inner">
+                    <div class="fear-greed-meter">
+                      <div class="fear-greed-meter__canvas">
+                        <canvas id="fearGreedGauge"></canvas>
+                        <div id="fearGreedNeedle" class="fear-greed-meter__needle"></div>
+                        <div class="fear-greed-meter__pivot"></div>
+                        <div class="fear-greed-meter__value">
+                          <span id="fearGreedValue" class="fear-greed-meter__score">--</span>
+                          <span id="fearGreedLabel" class="fear-greed-meter__status">Loading...</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="sentiment-core__gauge-meta">
+                      <div class="sentiment-core__badges">
+                        <span id="fearGreedStatusBadge" class="fear-greed-badge">--</span>
+                        <span id="fearGreedChange" class="fear-greed-change">
+                          Awaiting data
+                        </span>
+                      </div>
+                      <p class="sentiment-core__description">
+                        Composite morale index blending momentum, breadth, volatility, and safety flows.
+                        Deploy alongside battle plans to sense risk-on or risk-off pivots.
+                      </p>
+                      <dl class="sentiment-core__stats">
+                        <div>
+                          <dt>Updated</dt>
+                          <dd id="fearGreedUpdated">--</dd>
+                        </div>
+                        <div>
+                          <dt>Next refresh</dt>
+                          <dd id="fearGreedCountdown">--</dd>
+                        </div>
+                        <div>
+                          <dt>30-day mean</dt>
+                          <dd id="fearGreedAverage">--</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+                <div class="sentiment-core__radar">
+                  <div class="sentiment-module__titlebar">
+                    <span class="sentiment-module__eyebrow">Source Sync</span>
+                    <h4 class="sentiment-module__title">Composite Sentiment Mesh</h4>
+                  </div>
+                  <div class="sentiment-radar">
+                    <canvas id="sentimentRadarChart"></canvas>
+                  </div>
+                  <ul id="sentimentSourceList" class="sentiment-source-list">
+                    <li class="sentiment-source-list__item">
+                      <span class="sentiment-source-list__label">Market breadth</span>
+                      <span class="sentiment-source-list__value">--</span>
+                    </li>
+                    <li class="sentiment-source-list__item">
+                      <span class="sentiment-source-list__label">Social pulse</span>
+                      <span class="sentiment-source-list__value">--</span>
+                    </li>
+                    <li class="sentiment-source-list__item">
+                      <span class="sentiment-source-list__label">Fund flows</span>
+                      <span class="sentiment-source-list__value">--</span>
+                    </li>
+                    <li class="sentiment-source-list__item">
+                      <span class="sentiment-source-list__label">Options skew</span>
+                      <span class="sentiment-source-list__value">--</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div class="sentiment-history">
+                <div class="sentiment-module__titlebar">
+                  <span class="sentiment-module__eyebrow">Checkpoints</span>
+                  <h4 class="sentiment-module__title">Temporal Anchors</h4>
+                </div>
+                <ul id="fearGreedHistory" class="sentiment-history__list">
+                  <li class="sentiment-history__item">
+                    <p class="sentiment-history__label">Yesterday</p>
+                    <p class="sentiment-history__meta">Awaiting data</p>
+                    <span class="sentiment-history__value">--</span>
+                  </li>
+                  <li class="sentiment-history__item">
+                    <p class="sentiment-history__label">Last week</p>
+                    <p class="sentiment-history__meta">Awaiting data</p>
+                    <span class="sentiment-history__value">--</span>
+                  </li>
+                  <li class="sentiment-history__item">
+                    <p class="sentiment-history__label">Last month</p>
+                    <p class="sentiment-history__meta">Awaiting data</p>
+                    <span class="sentiment-history__value">--</span>
+                  </li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="sentiment-module sentiment-module--forecast">
+              <div class="sentiment-module__titlebar">
+                <span class="sentiment-module__eyebrow">Sentiment Forecast</span>
+                <h4 class="sentiment-module__title">7-Day Psycho-Frame Projection</h4>
+              </div>
+              <div class="sentiment-forecast-chart">
+                <canvas id="sentimentForecastChart"></canvas>
+              </div>
+              <dl class="sentiment-forecast-stats" id="sentimentForecastStats">
+                <div>
+                  <dt>Trend vector</dt>
+                  <dd id="forecastTrendLabel">--</dd>
+                </div>
+                <div>
+                  <dt>Expected range</dt>
+                  <dd id="forecastRangeLabel">--</dd>
+                </div>
+                <div>
+                  <dt>Confidence band</dt>
+                  <dd id="forecastConfidenceLabel">--</dd>
+                </div>
+              </dl>
+            </article>
+
+            <article class="sentiment-module sentiment-module--compare">
+              <div class="sentiment-module__titlebar">
+                <span class="sentiment-module__eyebrow">Cross-Market Diagnostics</span>
+                <h4 class="sentiment-module__title">Correlation Combat Scanner</h4>
+              </div>
+              <div class="sentiment-compare-controls">
+                <label for="sentimentCompareSelect" class="sentiment-control-label">
+                  Data stream
+                </label>
+                <select id="sentimentCompareSelect" class="sentiment-select">
+                  <option value="SPY" selected>S&amp;P 500 (SPY)</option>
+                  <option value="VIXY">Volatility Complex (VIX proxy)</option>
+                  <option value="BTC">Bitcoin (BTC-USD)</option>
+                </select>
+                <span class="sentiment-compare-roll">
+                  Rolling window:
+                  <span id="sentimentCompareWindowLabel">14</span> sessions
+                </span>
+              </div>
+              <div class="sentiment-compare-grid">
+                <div class="sentiment-chart sentiment-chart--line">
+                  <canvas id="sentimentCorrelationChart"></canvas>
+                </div>
+                <div class="sentiment-chart sentiment-chart--scatter">
+                  <canvas id="sentimentScatterChart"></canvas>
+                </div>
+              </div>
+              <p class="sentiment-compare-note" id="sentimentCompareNote">
+                Awaiting data synchronisation…
+              </p>
+            </article>
+
+            <article class="sentiment-module sentiment-module--alerts">
+              <div class="sentiment-module__titlebar">
+                <span class="sentiment-module__eyebrow">Psycho-Frame Tripwires</span>
+                <h4 class="sentiment-module__title">Custom Alert Programming</h4>
+              </div>
+              <div class="sentiment-alerts-grid">
+                <div class="sentiment-alerts-slider">
+                  <label for="alertLowerInput">Lower threshold</label>
+                  <input id="alertLowerInput" type="range" min="0" max="100" step="1" />
+                  <span id="alertLowerLabel" class="sentiment-alerts-value">--</span>
+                </div>
+                <div class="sentiment-alerts-slider">
+                  <label for="alertUpperInput">Upper threshold</label>
+                  <input id="alertUpperInput" type="range" min="0" max="100" step="1" />
+                  <span id="alertUpperLabel" class="sentiment-alerts-value">--</span>
+                </div>
+                <div class="sentiment-alerts-options">
+                  <label class="sentiment-toggle">
+                    <input type="checkbox" id="alertEnableToggle" />
+                    <span>Activate alerting protocol</span>
+                  </label>
+                  <label class="sentiment-toggle">
+                    <input type="checkbox" id="alertSoundToggle" />
+                    <span>Arm audio ping</span>
+                  </label>
+                  <label class="sentiment-toggle">
+                    <input type="checkbox" id="alertThemeToggle" />
+                    <span>Flash HUD colour on trigger</span>
+                  </label>
+                </div>
+                <div class="sentiment-alerts-status">
+                  <p class="sentiment-alerts-summary">
+                    Status: <span id="sentimentAlertStatus">Standby</span>
+                  </p>
+                  <p class="sentiment-alerts-summary">
+                    Current reading: <span id="sentimentAlertCurrent">--</span>
+                  </p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <footer
+        class="text-center mt-12 pt-6 border-t border-gray-300 dark:border-gray-700"
+      >
+        <p class="text-sm text-gray-500 dark:text-gray-500">
+          &copy; 2025. Side 7 Dockyard interface built for Tan Tran's Gunpla collection command ops.
+        </p>
+      </footer>
+        </div>
+      </main>
+    </div>
+
+    <script src="js/data.js" defer></script>
+    <script src="js/utils.js" defer></script>
+    <script src="js/charts.js" defer></script>
+    <script src="js/deposit-core.js" defer></script>
+    <script src="js/deposit-rebalance-core.js" defer></script>
+    <script src="js/rebalance.js" defer></script>
+    <script src="js/simulation.js" defer></script>
+    <script src="js/tradingview.js" defer></script>
+    <script src="js/tradingview-loader.js" defer></script>
+    <script src="js/stockDetails.js" defer></script>
+    <script src="js/theme.js" defer></script>
+    <script src="js/analytics.js" defer></script>
+    <script src="js/ai-recommendations.js" defer></script>
+    <script src="js/heatmap.js" defer></script>
+    <script src="js/fear-greed.js" defer></script>
+    <script src="js/market-indices.js" defer></script>
+    <script src="js/performance.js" defer></script>
+    <script src="js/deposit-tracker.js" defer></script>
+    <script src="js/live-prices.js" defer></script>
+    <script src="js/app.js" defer></script>
+    <button
+      type="button"
+      id="scrollToTopBtn"
+      class="scroll-to-top-btn"
+      aria-label="Scroll to top"
+    >
+      <svg
+        class="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M5 11l7-7m0 0l7 7m-7-7v18"
+        ></path>
+      </svg>
+    </button>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
