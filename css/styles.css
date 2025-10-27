@@ -15,6 +15,13 @@
   --font-heading: "Orbitron", "Rajdhani", "Inter", sans-serif;
 }
 
+/* --- Global Resets & Utilities --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* --- Dark Mode Variables (brightness dialed down) --- */
 .dark-mode {
   --color-background: #020308; /* Starfield void */
@@ -41,6 +48,7 @@ body {
   position: relative;
   min-height: 100vh;
   overflow-x: hidden;
+  margin: 0;
 }
 body::before {
   content: "";
@@ -290,6 +298,7 @@ h3,
   display: grid;
   grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
   gap: clamp(1.5rem, 4vw, 3rem);
+  max-width: 1800px;
   width: min(96vw, 1800px);
   margin: 0 auto;
   padding: clamp(1.5rem, 4vw, 3rem);
@@ -1299,6 +1308,8 @@ h3,
     grid-template-columns: 1fr;
     padding: clamp(1.25rem, 4vw, 2rem);
     gap: 2rem;
+    width: 100%;
+    max-width: 100%;
   }
   .app-sidebar {
     position: static;
@@ -1353,6 +1364,10 @@ h3,
   .metric-grid {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
+}
+
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
 }
 
 .chart-container {
