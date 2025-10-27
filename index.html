@@ -1611,7 +1611,6 @@
                         <th class="px-2 py-2">Raw ($)</th>
                         <th class="px-2 py-2">Shares</th>
                         <th class="px-2 py-2">Final ($)</th>
-                        <th class="px-2 py-2">Diff ($)</th>
                       </tr>
                     </thead>
                     <tbody
@@ -1642,10 +1641,6 @@
                         <td
                           id="totalAllocatedAmount"
                           class="px-2 py-2 text-right text-blue-600 dark:text-blue-400"
-                        ></td>
-                        <td
-                          id="totalAllocationDiff"
-                          class="px-2 py-2 text-right"
                         ></td>
                       </tr>
                     </tfoot>
@@ -3787,43 +3782,6 @@
                   </dl>
                 </article>
 
-                <article
-                  id="marketIndicesTimeline"
-                  class="rounded-2xl border border-slate-200/80 bg-white/80 p-6 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/80"
-                >
-                  <header class="mb-4 flex items-start justify-between gap-3">
-                    <div>
-                      <p class="text-xs font-semibold uppercase tracking-wide text-amber-500 dark:text-amber-300">
-                        Upcoming Signals
-                      </p>
-                      <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                        Macro event timeline
-                      </h4>
-                    </div>
-                    <span
-                      class="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-600 dark:bg-amber-400/10 dark:text-amber-300"
-                      id="marketIndicesTimelineStatus"
-                    >
-                      Syncing
-                    </span>
-                  </header>
-                  <ul
-                    id="marketIndicesEventsList"
-                    class="market-indices-event-list space-y-3 text-sm text-gray-600 dark:text-gray-400"
-                  >
-                    <li class="flex items-start gap-3">
-                      <span class="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-slate-400/70"></span>
-                      <div>
-                        <p class="font-semibold text-gray-800 dark:text-gray-200">
-                          Awaiting intel feed...
-                        </p>
-                        <p class="text-xs uppercase tracking-wide text-gray-400">
-                          Initialising channel
-                        </p>
-                      </div>
-                    </li>
-                  </ul>
-                </article>
               </aside>
             </div>
           </div>

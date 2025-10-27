@@ -369,7 +369,6 @@ function initializeDepositAllocationInputs() {
       <td class="px-2 py-2 text-right" data-field="raw">--</td>
       <td class="px-2 py-2 text-right" data-field="shares">--</td>
       <td class="px-2 py-2 text-right font-semibold text-blue-600 dark:text-blue-300" data-field="final">--</td>
-      <td class="px-2 py-2 text-right" data-field="diff">--</td>
     `;
     allocationRowsEl.appendChild(row);
 
@@ -530,23 +529,6 @@ function calculateDepositAllocation(isAutoUpdate = false) {
       formatSharesForDisplay(val, roundingMode)
     );
 
-    const diffCell = row.querySelector('[data-field="diff"]');
-    if (diffCell) {
-      const diffValue = data.diffAmount || 0;
-      diffCell.textContent = formatCurrency(diffValue);
-      diffCell.classList.remove(
-        "text-emerald-500",
-        "text-rose-500",
-        "text-slate-500"
-      );
-      if (Math.abs(diffValue) < 0.005) {
-        diffCell.classList.add("text-slate-500");
-      } else if (diffValue > 0) {
-        diffCell.classList.add("text-emerald-500");
-      } else {
-        diffCell.classList.add("text-rose-500");
-      }
-    }
   });
 
   const totalTargetEl = document.getElementById("totalTargetAlloc");
@@ -560,23 +542,6 @@ function calculateDepositAllocation(isAutoUpdate = false) {
   const totalFinalEl = document.getElementById("totalAllocatedAmount");
   if (totalFinalEl) {
     totalFinalEl.textContent = formatCurrency(plan.totals.finalTotal);
-  }
-  const totalDiffEl = document.getElementById("totalAllocationDiff");
-  if (totalDiffEl) {
-    const diffValue = plan.totals.diffTotal || 0;
-    totalDiffEl.textContent = formatCurrency(diffValue);
-    totalDiffEl.classList.remove(
-      "text-emerald-500",
-      "text-rose-500",
-      "text-slate-500"
-    );
-    if (Math.abs(diffValue) < 0.005) {
-      totalDiffEl.classList.add("text-slate-500");
-    } else if (diffValue > 0) {
-      totalDiffEl.classList.add("text-emerald-500");
-    } else {
-      totalDiffEl.classList.add("text-rose-500");
-    }
   }
 
   const leftoverEl = document.getElementById("depositLeftoverAmount");
