@@ -1525,18 +1525,53 @@ document.addEventListener('DOMContentLoaded', function() {
   const resetAssumptionsBtn = document.getElementById('resetAssumptionsBtn');
   if (resetAssumptionsBtn) {
     resetAssumptionsBtn.addEventListener('click', () => {
-      if (typeof window.resetPortfolioAssumptionsToDefaults === 'function') {
-        window.resetPortfolioAssumptionsToDefaults();
+      if (typeof window.showActionFeedback === 'function') {
+        window.showActionFeedback('Resetting portfolio assumptions…', {
+          state: 'progress',
+          autoHide: false,
+        });
+      }
+      try {
+        if (typeof window.resetPortfolioAssumptionsToDefaults === 'function') {
+          window.resetPortfolioAssumptionsToDefaults();
+        }
+      } catch (error) {
+        console.error('Failed to trigger portfolio assumption reset:', error);
+        if (typeof window.showActionFeedback === 'function') {
+          window.showActionFeedback(
+            'Could not reset assumptions. Check console logs.',
+            { state: 'error', autoHide: 4200 }
+          );
+        }
       }
     });
   }
 
-  window.addEventListener('portfolio-assumptions-reset', () => {
+  window.addEventListener('portfolio-assumptions-reset', (event) => {
     loadExpectedReturnsFromStorage();
+    const cleared = Boolean(event && event.detail && event.detail.clearedStorage);
+    let initError = null;
     try {
       initializeAnalytics();
     } catch (error) {
+      initError = error;
       console.error('Failed to reinitialize analytics after reset:', error);
+    }
+    if (typeof window.showActionFeedback === 'function') {
+      if (initError) {
+        window.showActionFeedback(
+          'Baseline reset but analytics refresh failed. Check console logs.',
+          { state: 'error', autoHide: 4200 }
+        );
+      } else {
+        const message = cleared
+          ? 'Baseline assumptions restored and overrides cleared.'
+          : 'Baseline assumptions restored.';
+        window.showActionFeedback(message, {
+          state: 'success',
+          autoHide: 2600,
+        });
+      }
     }
   });
 

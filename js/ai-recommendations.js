@@ -1319,35 +1319,64 @@ function updateAllocationAIReview(existingRecommendations) {
   }
 }
 
-function updateAIRecommendationsSection() {
-  const { targets, currentValues } = collectPortfolioSnapshot();
-  const recommendations = aiEngine.analyzePortfolio(
-    targets,
-    currentValues,
-    DEFAULT_EXPECTED_RETURNS,
-    DEFAULT_VOLATILITIES
-  );
-  latestAIRecommendations = recommendations;
+function updateAIRecommendationsSection(options = {}) {
+  const userInitiated = Boolean(options && options.userInitiated);
+  if (userInitiated && typeof window.showActionFeedback === "function") {
+    window.showActionFeedback("Running AI diagnostics...", {
+      state: "progress",
+      autoHide: false,
+    });
+  }
 
-  updatePortfolioHealth(recommendations.portfolioHealth);
-  updateImmediateActions(recommendations.immediateActions);
-  updateStrategicAdvice(recommendations.strategicAdvice);
-  updateRiskManagement(recommendations.riskManagement);
-  updateMarketInsights(recommendations.marketInsights);
-  updateFuturePredictions(recommendations.futurePredictions);
-  updatePersonalizedTips(recommendations.personalizedTips);
-  updateAllocationAIReview(recommendations);
+  try {
+    const { targets, currentValues } = collectPortfolioSnapshot();
+    const recommendations = aiEngine.analyzePortfolio(
+      targets,
+      currentValues,
+      DEFAULT_EXPECTED_RETURNS,
+      DEFAULT_VOLATILITIES
+    );
+    latestAIRecommendations = recommendations;
+
+    updatePortfolioHealth(recommendations.portfolioHealth);
+    updateImmediateActions(recommendations.immediateActions);
+    updateStrategicAdvice(recommendations.strategicAdvice);
+    updateRiskManagement(recommendations.riskManagement);
+    updateMarketInsights(recommendations.marketInsights);
+    updateFuturePredictions(recommendations.futurePredictions);
+    updatePersonalizedTips(recommendations.personalizedTips);
+    updateAllocationAIReview(recommendations);
+
+    if (userInitiated && typeof window.showActionFeedback === "function") {
+      window.showActionFeedback("AI diagnostics refreshed.", {
+        state: "success",
+        autoHide: 2600,
+      });
+    }
+    return recommendations;
+  } catch (error) {
+    console.error("AI recommendation update failed:", error);
+    if (userInitiated && typeof window.showActionFeedback === "function") {
+      window.showActionFeedback("AI diagnostics failed. Check console logs.", {
+        state: "error",
+        autoHide: 4200,
+      });
+    }
+    return null;
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   const refreshBtn = document.getElementById("ai-refresh-btn");
   if (refreshBtn) {
-    refreshBtn.addEventListener("click", updateAIRecommendationsSection);
+    refreshBtn.addEventListener("click", () => {
+      updateAIRecommendationsSection({ userInitiated: true });
+    });
   }
 
   // Initial load: warm up allocation card immediately, full AI after short delay.
   updateAllocationAIReview();
-  setTimeout(updateAIRecommendationsSection, 800);
+  setTimeout(() => updateAIRecommendationsSection(), 800);
 });
 
 window.addEventListener("portfolio-assumptions-reset", () => {

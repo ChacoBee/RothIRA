@@ -1,5 +1,82 @@
 // --- Initialize inputs for table 6A ---
 
+const actionFeedbackManager = (() => {
+  const panel = document.getElementById("actionFeedbackPanel");
+  if (!panel) {
+    return {
+      show: () => {},
+      hide: () => {},
+    };
+  }
+
+  const stateClasses = [
+    "action-feedback--progress",
+    "action-feedback--success",
+    "action-feedback--error",
+    "action-feedback--info",
+  ];
+  const validStates = new Set(["progress", "success", "error", "info"]);
+  let hideTimer = null;
+
+  function ensureMessageContainer() {
+    let messageEl = panel.querySelector(".action-feedback__message");
+    if (!messageEl) {
+      messageEl = document.createElement("span");
+      messageEl.className = "action-feedback__message";
+      panel.appendChild(messageEl);
+    }
+    return messageEl;
+  }
+
+  function hideInternal() {
+    panel.classList.remove("action-feedback--visible");
+    panel.classList.add("action-feedback--hidden");
+    panel.classList.remove(...stateClasses);
+    panel.setAttribute("aria-hidden", "true");
+  }
+
+  function show(message, options = {}) {
+    if (!message) {
+      hide();
+      return;
+    }
+    const { state = "info", autoHide = 2200 } = options;
+    clearTimeout(hideTimer);
+    const messageEl = ensureMessageContainer();
+    messageEl.textContent = message;
+
+    panel.classList.remove("action-feedback--hidden", ...stateClasses);
+    panel.classList.add("action-feedback--visible");
+
+    const normalizedState = validStates.has(state) ? state : "info";
+    panel.classList.add(`action-feedback--${normalizedState}`);
+    panel.setAttribute("aria-hidden", "false");
+    panel.setAttribute("data-state", normalizedState);
+
+    if (autoHide !== false) {
+      hideTimer = window.setTimeout(() => {
+        hideInternal();
+      }, Math.max(600, Number(autoHide) || 2200));
+    }
+  }
+
+  function hide(delay = 0) {
+    clearTimeout(hideTimer);
+    if (delay > 0) {
+      hideTimer = window.setTimeout(() => {
+        hideInternal();
+      }, delay);
+    } else {
+      hideInternal();
+    }
+  }
+
+  return { show, hide };
+})();
+
+window.showActionFeedback = actionFeedbackManager.show;
+window.hideActionFeedback = actionFeedbackManager.hide;
+
 const REBALANCE_TOLERANCE_STORAGE_KEY = "rebalanceTolerancePercent";
 
 const DEFAULT_REBALANCE_TOLERANCE =
@@ -2289,7 +2366,6 @@ function initializeMetricDropdownToggles() {
   }
 
 }
-
 
 
 

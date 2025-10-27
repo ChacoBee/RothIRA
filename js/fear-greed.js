@@ -1619,12 +1619,20 @@
     }
   }
 
-  async function fetchFearGreed() {
+  async function fetchFearGreed(options = {}) {
+    const userInitiated = Boolean(options && options.userInitiated);
+    if (userInitiated && typeof window.showActionFeedback === "function") {
+      window.showActionFeedback("Pulling sentiment telemetry...", {
+        state: "progress",
+        autoHide: false,
+      });
+    }
     setLoadingState(true);
     const errorEl = $("fearGreedError");
     if (errorEl) {
       errorEl.classList.add("hidden");
     }
+    let cached = null;
     try {
       const response = await fetch(API_URL, { cache: "no-cache" });
       if (!response.ok) {
@@ -1637,9 +1645,15 @@
       }
       writeCache({ data: normalized });
       renderFearGreed(normalized);
+      if (userInitiated && typeof window.showActionFeedback === "function") {
+        window.showActionFeedback("Sentiment telemetry refreshed.", {
+          state: "success",
+          autoHide: 2500,
+        });
+      }
     } catch (error) {
       console.error("Failed to load fear & greed index", error);
-      const cached = readCache();
+      cached = readCache();
       if (errorEl) {
         errorEl.classList.remove("hidden");
       }
@@ -1647,6 +1661,15 @@
         renderFearGreed(cached.data);
       } else {
         renderFearGreed(SAMPLE_DATA);
+      }
+      if (userInitiated && typeof window.showActionFeedback === "function") {
+        const fallbackMessage = cached
+          ? "Live sentiment feed down. Showing cached telemetry."
+          : "Live sentiment feed down. Loaded sample telemetry.";
+        window.showActionFeedback(fallbackMessage, {
+          state: "error",
+          autoHide: 4200,
+        });
       }
     } finally {
       setLoadingState(false);
@@ -1664,7 +1687,7 @@
     const btn = $("fearGreedRefreshBtn");
     if (btn) {
       btn.addEventListener("click", () => {
-        fetchFearGreed();
+        fetchFearGreed({ userInitiated: true });
       });
     }
     fetchFearGreed();

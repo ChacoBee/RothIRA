@@ -16,7 +16,7 @@ function initializeLivePriceTest() {
   const refreshBtn = document.getElementById("livePriceRefreshBtn");
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => {
-      fetchAndRenderLivePrices();
+      fetchAndRenderLivePrices({ userInitiated: true });
     });
   }
 
@@ -63,7 +63,7 @@ function initializeLivePriceTest() {
 
   fetchAndRenderLivePrices();
   if (livePriceTimer) clearInterval(livePriceTimer);
-  livePriceTimer = setInterval(fetchAndRenderLivePrices, 60000);
+  livePriceTimer = setInterval(() => fetchAndRenderLivePrices(), 60000);
 }
 
 function formatNumber(value, digits = 2) {
@@ -198,7 +198,8 @@ async function fetchSheetPrices() {
   return { rows: results, totals };
 }
 
-async function fetchAndRenderLivePrices() {
+async function fetchAndRenderLivePrices(options = {}) {
+  const userInitiated = Boolean(options && options.userInitiated);
   const statusEl = document.getElementById("livePriceStatus");
   const statusClassReset = [
     "bg-gray-100",
@@ -223,6 +224,13 @@ async function fetchAndRenderLivePrices() {
       "text-gray-600",
       "dark:text-gray-300"
     );
+  }
+
+  if (userInitiated && typeof window.showActionFeedback === "function") {
+    window.showActionFeedback("Syncing Google Sheets snapshot...", {
+      state: "progress",
+      autoHide: false,
+    });
   }
 
   const highlightGainClasses = [
@@ -557,6 +565,13 @@ async function fetchAndRenderLivePrices() {
       );
     }
 
+    if (userInitiated && typeof window.showActionFeedback === "function") {
+      window.showActionFeedback("Google Sheets snapshot refreshed.", {
+        state: "success",
+        autoHide: 2600,
+      });
+    }
+
     window.livePriceSheetData = { rows: quoteMap, totals };
     document.dispatchEvent(
       new CustomEvent("livePriceSheetUpdated", {
@@ -572,6 +587,12 @@ async function fetchAndRenderLivePrices() {
         "dark:bg-rose-900/40",
         "text-rose-400",
         "dark:text-rose-300"
+      );
+    }
+    if (userInitiated && typeof window.showActionFeedback === "function") {
+      window.showActionFeedback(
+        "Sync failed. Showing last known Google Sheets snapshot.",
+        { state: "error", autoHide: 4200 }
       );
     }
   }
