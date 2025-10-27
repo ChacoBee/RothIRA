@@ -3326,30 +3326,8 @@
               >
                 Russell 2000
               </button>
-              <button
-                type="button"
-                class="heatmap-filter-btn"
-                data-filter="etfs"
-              >
-                ETFs
-              </button>
             </div>
 
-            <div class="pt-4 border-t border-gray-200 dark:border-slate-800">
-              <label
-                for="heatmapMetricSelect"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide"
-              >
-                Performance Window
-              </label>
-              <select
-                id="heatmapMetricSelect"
-                class="heatmap-select w-full"
-              >
-                <option value="day">1-Day Change</option>
-                <option value="week">1-Week Change</option>
-              </select>
-            </div>
           </aside>
 
           <div class="flex flex-col gap-6">
@@ -3877,6 +3855,12 @@
                         <span id="fearGreedChange" class="fear-greed-change">
                           Awaiting data
                         </span>
+                        <p
+                          id="fearGreedComparison"
+                          class="mt-2 text-xs text-gray-500 dark:text-gray-400"
+                        >
+                          --
+                        </p>
                       </div>
                       <p class="sentiment-core__description">
                         Composite morale index blending momentum, breadth, volatility, and safety flows.

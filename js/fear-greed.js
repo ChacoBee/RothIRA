@@ -223,6 +223,7 @@
         }
         return {
           value: String(Math.round(score)),
+          value_raw: Number.isFinite(score) ? score : null,
           value_classification: toClassificationLabel(point?.rating),
           timestamp: String(Math.round(timestampMs / 1000)),
           time_until_update: "0",
@@ -233,12 +234,21 @@
 
     const latest = payload?.fear_and_greed;
     if (latest && Number.isFinite(Number(latest.score))) {
+      const intradayScore = Number(latest.score);
+      const previousCloseScore = Number(latest.previous_close);
       const parsedTimestamp = Date.parse(latest.timestamp);
       const timestampMs = Number.isFinite(parsedTimestamp)
         ? parsedTimestamp
         : Number(history[0]?.timestamp) * 1000 || NaN;
       const normalizedLatest = {
-        value: String(Math.round(Number(latest.score))),
+        value: String(Math.round(intradayScore)),
+        value_raw: Number.isFinite(intradayScore) ? intradayScore : null,
+        previous_close: Number.isFinite(previousCloseScore)
+          ? Math.round(previousCloseScore)
+          : null,
+        previous_close_raw: Number.isFinite(previousCloseScore)
+          ? previousCloseScore
+          : null,
         value_classification: toClassificationLabel(latest.rating),
         timestamp: Number.isFinite(timestampMs)
           ? String(Math.round(timestampMs / 1000))
@@ -1509,27 +1519,70 @@
 
     latestSeries = data;
     const latest = data[0];
-    const previous = data[1];
+    const previousCloseEntry = data[1];
+    const priorEntry = data[2];
     const gaugeValue = Number(latest.value);
+    const previousCloseValue = Number.isFinite(latest.previous_close)
+      ? latest.previous_close
+      : Number(previousCloseEntry?.value);
+    const displayValue = Number.isFinite(previousCloseValue)
+      ? previousCloseValue
+      : gaugeValue;
+    const displayClassification =
+      previousCloseEntry?.value_classification || latest.value_classification;
 
     rotateNeedle($("fearGreedNeedle"), gaugeValue);
 
     const valueEl = $("fearGreedValue");
     const labelEl = $("fearGreedLabel");
     if (valueEl) {
-      valueEl.textContent = Number.isFinite(gaugeValue) ? gaugeValue : "--";
+      valueEl.textContent = Number.isFinite(displayValue)
+        ? Math.round(displayValue)
+        : "--";
     }
     if (labelEl) {
-      labelEl.textContent = latest.value_classification || "--";
+      labelEl.textContent = displayClassification || "--";
     }
 
-    setBadge($("fearGreedStatusBadge"), latest.value_classification);
+    setBadge($("fearGreedStatusBadge"), displayClassification);
     setChange(
       $("fearGreedChange"),
-      latest.value,
-      previous?.value,
-      previous?.value_classification || "prior close"
+      displayValue,
+      Number(priorEntry?.value),
+      priorEntry?.value_classification
+        ? `${priorEntry.value_classification} (prior close)`
+        : "prior close"
     );
+
+    const comparisonEl = $("fearGreedComparison");
+    if (comparisonEl) {
+      comparisonEl.classList.remove(
+        "text-emerald-500",
+        "dark:text-emerald-300",
+        "text-rose-500",
+        "dark:text-rose-300",
+        "text-gray-500",
+        "dark:text-gray-400"
+      );
+      if (Number.isFinite(gaugeValue) && Number.isFinite(previousCloseValue)) {
+        const intradayRounded = Math.round(gaugeValue);
+        const previousRounded = Math.round(previousCloseValue);
+        const delta = intradayRounded - previousRounded;
+        const deltaText =
+          delta > 0 ? `+${Math.abs(delta)}` : delta < 0 ? `-${Math.abs(delta)}` : "0";
+        comparisonEl.textContent = `Intraday ${intradayRounded} vs prev close ${previousRounded} (${deltaText} pts)`;
+        if (delta > 0) {
+          comparisonEl.classList.add("text-emerald-500", "dark:text-emerald-300");
+        } else if (delta < 0) {
+          comparisonEl.classList.add("text-rose-500", "dark:text-rose-300");
+        } else {
+          comparisonEl.classList.add("text-gray-500", "dark:text-gray-400");
+        }
+      } else {
+        comparisonEl.textContent = "Intraday vs previous close unavailable";
+        comparisonEl.classList.add("text-gray-500", "dark:text-gray-400");
+      }
+    }
 
     const updatedEl = $("fearGreedUpdated");
     if (updatedEl) {

@@ -6,7 +6,6 @@
     dow30: "Dow Jones 30",
     nasdaq100: "Nasdaq 100",
     russell2000: "Russell 2000",
-    etfs: "ETFs",
   };
 
   // TradingView dataset identifiers for the stock heatmap
@@ -15,17 +14,6 @@
     dow30: "DOWJONES",
     nasdaq100: "NASDAQ100",
     russell2000: "RUSSELL2000",
-    etfs: "ETFs",
-  };
-
-  const METRIC_LABELS = {
-    day: "1-Day Change",
-    week: "1-Week Change",
-  };
-
-  const METRIC_RANGES = {
-    day: "1D",
-    week: "1W",
   };
 
   const HEATMAP_INTEL_LIBRARY = {
@@ -70,16 +58,6 @@
         "Khi small-cap phục hồi, xem xét nâng vị thế giá trị nhỏ (AVUV).",
       ],
     },
-    etfs: {
-      day: [
-        "Theo dõi ETF thematic để phát hiện dòng tiền vào chủ đề mới.",
-        "Diễn biến ETF phòng thủ vs tăng trưởng giúp cân chỉnh tái cơ cấu.",
-      ],
-      week: [
-        "Trend ETF trong tuần hỗ trợ quyết định xoay trục giữa sleeve lõi và vệ tinh.",
-        "Lặp lại đánh giá để đảm bảo phí giao dịch không ăn mòn lợi nhuận.",
-      ],
-    },
   };
 
   const HEATMAP_PORTFOLIO_MEMBERSHIP = {
@@ -87,7 +65,6 @@
     dow30: ["VOO", "AMZN"],
     nasdaq100: ["QQQM", "SMH", "AMZN"],
     russell2000: ["AVUV"],
-    etfs: ["VOO", "QQQM", "SMH", "VXUS", "AVUV", "IBIT"],
   };
 
   const WATCHLIST_STORAGE_KEY = "heatmapWatchlist";
@@ -151,6 +128,8 @@
   }
 
   const SCRIPT_URL = "https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js";
+  const HEATMAP_DEFAULT_METRIC_LABEL = "1-Day Change";
+  const HEATMAP_DEFAULT_METRIC_RANGE = "1D";
 
   document.addEventListener("DOMContentLoaded", () => {
     const widgetContainer = document.getElementById("heatmapWidgetContainer");
@@ -158,7 +137,6 @@
     const errorEl = document.getElementById("heatmapError");
     const labelEl = document.getElementById("heatmapSelectedLabel");
     const updatedEl = document.getElementById("heatmapLastUpdated");
-    const metricSelect = document.getElementById("heatmapMetricSelect");
     const reloadBtn = document.getElementById("heatmapReloadBtn");
     const reloadLabelEl = reloadBtn ? reloadBtn.querySelector(".heatmap-reload-label") : null;
     const filterButtons = Array.from(document.querySelectorAll(".heatmap-filter-btn"));
@@ -179,11 +157,6 @@
       activeFilter = "sp500";
     }
 
-    let activeMetric = metricSelect?.value || "day";
-    if (!METRIC_RANGES[activeMetric]) {
-      activeMetric = "day";
-    }
-
     let currentTheme = document.documentElement.classList.contains("dark-mode") ? "dark" : "light";
     try {
       const storedTheme = localStorage.getItem("theme");
@@ -199,17 +172,16 @@
     const reloadDefaultLabel = reloadLabelEl ? reloadLabelEl.textContent.trim() : "Reload TradingView heatmap";
     let heatmapWatchlist = loadWatchlistFromStorage();
 
-    function renderHeatmapIntel(filter, metric) {
+    function renderHeatmapIntel(filter) {
       if (!(intelListEl && intelEmptyEl)) {
         return;
       }
       const filterKey = filter && FILTER_SOURCES[filter] ? filter : "sp500";
-      const metricKey = metric && METRIC_RANGES[metric] ? metric : "day";
       const label = FILTER_LABELS[filterKey] || FILTER_LABELS.sp500;
-      const metricLabel = METRIC_LABELS[metricKey] || METRIC_LABELS.day;
+      const metricLabel = HEATMAP_DEFAULT_METRIC_LABEL;
 
       const baseIntel =
-        (HEATMAP_INTEL_LIBRARY[filterKey] && HEATMAP_INTEL_LIBRARY[filterKey][metricKey]) || [];
+        (HEATMAP_INTEL_LIBRARY[filterKey] && HEATMAP_INTEL_LIBRARY[filterKey].day) || [];
       const intelNotes = Array.isArray(baseIntel) ? [...baseIntel] : [];
 
       const overlapTickers =
@@ -379,7 +351,7 @@
     }
 
     function syncCompanionPanels() {
-      renderHeatmapIntel(activeFilter, activeMetric);
+      renderHeatmapIntel(activeFilter);
       renderWatchlist();
     }
 
@@ -411,9 +383,8 @@
 
     function updateLabel() {
       const filter = FILTER_LABELS[activeFilter] || FILTER_LABELS.sp500;
-      const metric = METRIC_LABELS[activeMetric] || METRIC_LABELS.day;
       if (labelEl) {
-        labelEl.textContent = `${filter} | ${metric}`;
+        labelEl.textContent = `${filter} | ${HEATMAP_DEFAULT_METRIC_LABEL}`;
       }
       syncCompanionPanels();
     }
@@ -457,7 +428,7 @@
         height: 520,
         colorTheme: currentTheme === "dark" ? "dark" : "light",
         dataSource: FILTER_SOURCES[activeFilter] || FILTER_SOURCES.sp500,
-        dateRange: METRIC_RANGES[activeMetric] || METRIC_RANGES.day,
+        dateRange: HEATMAP_DEFAULT_METRIC_RANGE,
         grouping: "sector",
         blockSize: "market_cap",
         blockColor: "change",
@@ -544,19 +515,6 @@
         loadHeatmapWidget();
       });
     });
-
-    if (metricSelect) {
-      metricSelect.addEventListener("change", (event) => {
-        const value = event.target.value;
-        if (!METRIC_RANGES[value]) {
-          metricSelect.value = activeMetric;
-          return;
-        }
-        activeMetric = value;
-        updateLabel();
-        loadHeatmapWidget();
-      });
-    }
 
     if (reloadBtn) {
       reloadBtn.addEventListener("click", () => {
