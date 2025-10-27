@@ -1349,3 +1349,9 @@ document.addEventListener("DOMContentLoaded", () => {
   updateAllocationAIReview();
   setTimeout(updateAIRecommendationsSection, 800);
 });
+
+window.addEventListener("portfolio-assumptions-reset", () => {
+  latestAIRecommendations = null;
+  updateAllocationAIReview();
+  updateAIRecommendationsSection();
+});

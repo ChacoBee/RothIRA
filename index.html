@@ -1912,18 +1912,43 @@
               <p class="analysis-hud__eyebrow">Neo Zeon Telemetry Feed</p>
               <h3 class="analysis-hud__title">Mission Metric Console</h3>
             </div>
-            <button
-              type="button"
-              id="hudModeToggle"
-              class="hud-mode-toggle"
-              aria-pressed="false"
-            >
-              <span class="hud-mode-toggle__label">Mission Mode</span>
-              <span class="hud-mode-toggle__rail">
-                <span class="hud-mode-toggle__pill hud-mode-toggle__pill--analysis">Analysis</span>
-                <span class="hud-mode-toggle__pill hud-mode-toggle__pill--combat">Combat</span>
-              </span>
-            </button>
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                id="resetAssumptionsBtn"
+                class="inline-flex items-center gap-2 rounded-md border border-emerald-400/60 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-600 transition hover:bg-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 focus:ring-offset-2 focus:ring-offset-slate-900/40 dark:border-emerald-400/40 dark:bg-emerald-600/10 dark:text-emerald-300 dark:hover:bg-emerald-600/20"
+                title="Reset expected return assumptions to the portfolio baseline"
+              >
+                <svg
+                  class="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path d="M3 12a9 9 0 1115.9 5.9"></path>
+                  <path d="M3 12h4"></path>
+                  <path d="M3 16v-4"></path>
+                </svg>
+                <span>Reset assumptions</span>
+              </button>
+              <button
+                type="button"
+                id="hudModeToggle"
+                class="hud-mode-toggle"
+                aria-pressed="false"
+              >
+                <span class="hud-mode-toggle__label">Mission Mode</span>
+                <span class="hud-mode-toggle__rail">
+                  <span class="hud-mode-toggle__pill hud-mode-toggle__pill--analysis">Analysis</span>
+                  <span class="hud-mode-toggle__pill hud-mode-toggle__pill--combat">Combat</span>
+                </span>
+              </button>
+            </div>
           </div>
 
           <div class="analysis-hud__grid analysis-hud__grid--matrix">

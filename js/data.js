@@ -150,6 +150,8 @@ const assetBetas = {
   AMZN: 1.4,
 };
 
+const BASE_ASSET_BETAS = Object.freeze({ ...assetBetas });
+
 // Analytics Data: Expected Returns (annual), Volatilities (annual), and Correlations
 const expectedReturns = {
   VOO: 0.08, // 8%
@@ -161,6 +163,8 @@ const expectedReturns = {
   AMZN: 0.18, // 18%
 };
 
+const BASE_EXPECTED_RETURNS = Object.freeze({ ...expectedReturns });
+
 const volatilities = {
   VOO: 0.15, // 15%
   QQQM: 0.25, // 25%
@@ -170,6 +174,8 @@ const volatilities = {
   IBIT: 0.50, // 50%
   AMZN: 0.35, // 35%
 };
+
+const BASE_VOLATILITIES = Object.freeze({ ...volatilities });
 
 const expenseRatios = {
   VOO: 0.0003, // 0.03%
@@ -205,6 +211,62 @@ const correlations = {
   SMH_VOO: 0.7,
   SMH_VXUS: 0.4,
   VOO_VXUS: 0.6,
+};
+
+const portfolioDefaults = Object.freeze({
+  riskFreeRate: RISK_FREE_RATE,
+  expectedReturns: BASE_EXPECTED_RETURNS,
+  volatilities: BASE_VOLATILITIES,
+  assetBetas: BASE_ASSET_BETAS,
+});
+
+window.portfolioDefaults = portfolioDefaults;
+
+function applyDefaultsToMap(targetMap, defaultsMap) {
+  if (!targetMap || !defaultsMap) {
+    return;
+  }
+  Object.keys(targetMap).forEach((key) => {
+    if (!(key in defaultsMap)) {
+      delete targetMap[key];
+    }
+  });
+  Object.keys(defaultsMap).forEach((key) => {
+    targetMap[key] = defaultsMap[key];
+  });
+}
+
+function syncPortfolioDefaults({ clearStorage = false, emitEvent = false } = {}) {
+  applyDefaultsToMap(expectedReturns, BASE_EXPECTED_RETURNS);
+  applyDefaultsToMap(volatilities, BASE_VOLATILITIES);
+
+  if (clearStorage && typeof localStorage !== 'undefined') {
+    assetKeys.forEach((key) => {
+      try {
+        localStorage.removeItem(`expectedReturn_${key}`);
+      } catch (error) {
+        console.warn('Failed to clear stored expected return for', key, error);
+      }
+    });
+  }
+
+  if (emitEvent && typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(
+      new CustomEvent('portfolio-assumptions-reset', {
+        detail: { clearedStorage: clearStorage },
+      })
+    );
+  }
+}
+
+window.hydratePortfolioDefaults = function hydratePortfolioDefaults() {
+  syncPortfolioDefaults({ clearStorage: false, emitEvent: false });
+};
+
+window.resetPortfolioAssumptionsToDefaults = function resetPortfolioAssumptionsToDefaults(options = {}) {
+  const clearStorage = options?.clearStorage !== false;
+  const silent = options?.silent === true;
+  syncPortfolioDefaults({ clearStorage, emitEvent: !silent });
 };
 
 let chartInstance = null;

@@ -1501,10 +1501,17 @@ function updatePortfolioScoreAndRisk(volatility, sharpe, beta, diversityIndex) {
 
 // Load expected returns from localStorage
 function loadExpectedReturnsFromStorage() {
+  if (typeof window !== "undefined" && typeof window.hydratePortfolioDefaults === "function") {
+    window.hydratePortfolioDefaults();
+  }
+
   assetKeys.forEach(key => {
     const stored = localStorage.getItem(`expectedReturn_${key}`);
     if (stored !== null) {
-      expectedReturns[key] = parseFloat(stored);
+      const parsed = parseFloat(stored);
+      if (Number.isFinite(parsed)) {
+        expectedReturns[key] = parsed;
+      }
     }
   });
 }
@@ -1514,6 +1521,24 @@ document.addEventListener('DOMContentLoaded', function() {
   loadExpectedReturnsFromStorage();
   bindContributionControls();
   updateContributionToggleState();
+
+  const resetAssumptionsBtn = document.getElementById('resetAssumptionsBtn');
+  if (resetAssumptionsBtn) {
+    resetAssumptionsBtn.addEventListener('click', () => {
+      if (typeof window.resetPortfolioAssumptionsToDefaults === 'function') {
+        window.resetPortfolioAssumptionsToDefaults();
+      }
+    });
+  }
+
+  window.addEventListener('portfolio-assumptions-reset', () => {
+    loadExpectedReturnsFromStorage();
+    try {
+      initializeAnalytics();
+    } catch (error) {
+      console.error('Failed to reinitialize analytics after reset:', error);
+    }
+  });
 
   const stressSlider = document.getElementById('stressTestSlider');
   if (stressSlider) {
