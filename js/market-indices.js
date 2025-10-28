@@ -514,6 +514,7 @@
 
     try {
       const series = await getHistoricalSeries(symbol);
+      const isSynthetic = Boolean(series && series.isSynthetic);
       if (!series || series.length < 2) {
         if (statusEl) {
           statusEl.textContent = "Awaiting historical feed";
@@ -543,6 +544,17 @@
 
       let chart = sparklineCharts.get(symbol);
       const palette = getSparklinePalette(cfg.accent);
+      const datasetFill = !isSynthetic;
+      const datasetBackground = isSynthetic
+        ? toRgba(
+            palette.stroke,
+            document.documentElement.classList.contains("dark-mode")
+              ? 0.18
+              : 0.12
+          )
+        : palette.fill;
+      const datasetBorderDash = isSynthetic ? [4, 3] : [];
+      const datasetBorderWidth = isSynthetic ? 1.5 : 2;
 
       if (!chart) {
         chart = new window.Chart(ctx, {
@@ -554,11 +566,12 @@
                 label: `${cfg.name} trend`,
                 data: chartData,
                 borderColor: palette.stroke,
-                backgroundColor: palette.fill,
-                borderWidth: 2,
+                backgroundColor: datasetBackground,
+                borderWidth: datasetBorderWidth,
                 pointRadius: 0,
                 tension: 0.35,
-                fill: true,
+                fill: datasetFill,
+                borderDash: datasetBorderDash,
               },
             ],
           },
@@ -607,16 +620,33 @@
         chart.data.labels = labels;
         chart.data.datasets[0].data = chartData;
         chart.data.datasets[0].borderColor = palette.stroke;
-        chart.data.datasets[0].backgroundColor = palette.fill;
+        chart.data.datasets[0].backgroundColor = datasetBackground;
+        chart.data.datasets[0].fill = datasetFill;
+        chart.data.datasets[0].borderDash = datasetBorderDash;
+        chart.data.datasets[0].borderWidth = datasetBorderWidth;
         chart.update("none");
       }
 
       if (statusEl) {
-        statusEl.textContent = "";
+        statusEl.textContent = isSynthetic ? "Synthetic telemetry" : "";
+        if (isSynthetic) {
+          statusEl.setAttribute("data-synthetic", "true");
+        } else {
+          statusEl.removeAttribute("data-synthetic");
+        }
         statusEl.setAttribute("hidden", "hidden");
       }
+      if (isSynthetic) {
+        sparklineHost.setAttribute("data-synthetic", "true");
+        sparklineHost.setAttribute("title", "Synthetic telemetry preview");
+      } else {
+        sparklineHost.removeAttribute("data-synthetic");
+        sparklineHost.removeAttribute("title");
+      }
       sparklineHost.classList.add("market-index-card__sparkline--ready");
-      applySeriesSnapshotToCard(symbol, series);
+      if (!isSynthetic) {
+        applySeriesSnapshotToCard(symbol, series);
+      }
     } catch (error) {
       if (statusEl) {
         statusEl.textContent = "Sparkline offline";
@@ -628,8 +658,11 @@
 
   async function getHistoricalSeries(symbol) {
     const cached = historicalCache.get(symbol);
-    if (cached && Date.now() - cached.timestamp < HISTORICAL_CACHE_TTL) {
-      return cached.data;
+    if (cached) {
+      const ttl = cached.synthetic ? 60 * 1000 : HISTORICAL_CACHE_TTL;
+      if (Date.now() - cached.timestamp < ttl) {
+        return cached.data;
+      }
     }
 
     const encodedSymbol = encodeURIComponent(symbol);
@@ -641,6 +674,8 @@
       `https://cors.isomorphic-git.org/${basePath}`,
       `https://api.allorigins.win/raw?url=${encodeURIComponent(basePath)}`,
       `https://corsproxy.io/?${encodeURIComponent(basePath)}`,
+      `https://thingproxy.freeboard.io/fetch/${basePath}`,
+      `https://r.jina.ai/${basePath}`,
     ];
 
     let lastError = null;
@@ -708,6 +743,7 @@
         historicalCache.set(symbol, {
           timestamp: Date.now(),
           data: trimmed,
+          synthetic: false,
         });
         return trimmed;
       } catch (error) {
@@ -715,9 +751,87 @@
       }
     }
 
+    const synthetic = buildSyntheticSeriesFromQuote(symbol);
+    if (synthetic) {
+      console.warn(
+        `Using synthetic sparkline series for ${symbol} after data fetch fallback.`
+      );
+      Object.defineProperty(synthetic, "isSynthetic", {
+        value: true,
+        enumerable: false,
+      });
+      historicalCache.set(symbol, {
+        timestamp: Date.now(),
+        data: synthetic,
+        synthetic: true,
+      });
+      return synthetic;
+    }
+
     throw (
-      lastError || new Error("Unable to retrieve historical data from Yahoo Finance.")
+      lastError ||
+      new Error("Unable to retrieve historical data from Yahoo Finance.")
     );
+  }
+
+  function buildSyntheticSeriesFromQuote(symbol) {
+    if (!latestQuoteMap || !latestQuoteMap[symbol]) {
+      return null;
+    }
+
+    const quote = latestQuoteMap[symbol];
+    const price = toNumeric(
+      quote.price ?? quote.regularMarketPrice ?? quote.markPrice ?? null
+    );
+    if (price === null) {
+      return null;
+    }
+
+    const changeValue = toNumeric(
+      quote.change ?? quote.regularMarketChange ?? null
+    );
+    const changePercent = toNumeric(
+      quote.changesPercentage ?? quote.regularMarketChangePercent ?? null
+    );
+
+    let startValue = null;
+    if (changeValue !== null) {
+      startValue = price - changeValue;
+    } else if (changePercent !== null && changePercent !== -100) {
+      startValue = price / (1 + changePercent / 100);
+    }
+
+    if (startValue === null || !Number.isFinite(startValue) || startValue <= 0) {
+      startValue = price * 0.95;
+    }
+
+    const steps = HISTORICAL_TIMESERIES;
+    const intervalMs = 24 * 60 * 60 * 1000;
+    const delta = (price - startValue) / Math.max(steps - 1, 1);
+    const now = Date.now();
+    const series = [];
+
+    for (let index = 0; index < steps; index += 1) {
+      const progress = steps > 1 ? index / (steps - 1) : 1;
+      const base = startValue + delta * index;
+      const waveAmplitude = Math.abs(delta) * 0.4 || price * 0.01;
+      const wave =
+        waveAmplitude *
+        Math.sin(progress * Math.PI * 1.65 + symbol.length * 0.45);
+      let value = base + wave;
+      if (index === 0) {
+        value = startValue;
+      } else if (index === steps - 1) {
+        value = price;
+      }
+      value = Math.max(0, value);
+      series.push({
+        t: now - (steps - 1 - index) * intervalMs,
+        v: Number(value.toFixed(2)),
+      });
+    }
+
+    return series;
   }
 
   function getSparklinePalette(accentHex) {
@@ -973,7 +1087,7 @@
         configs.map(async (cfg) => {
           try {
             const series = await getHistoricalSeries(cfg.symbol);
-            if (!series || series.length < 2) {
+            if (!series || series.length < 2 || series.isSynthetic) {
               return null;
             }
             const closes = series.map((point) => point.v);
@@ -1106,8 +1220,35 @@
         return;
       }
       const palette = getSparklinePalette(cfg.accent);
-      chart.data.datasets[0].borderColor = palette.stroke;
-      chart.data.datasets[0].backgroundColor = palette.fill;
+      const dataset = chart.data.datasets[0];
+      const host = chart.canvas?.parentNode;
+      const hostSynthetic = host?.dataset?.synthetic === "true";
+      const datasetSynthetic =
+        hostSynthetic ||
+        dataset.fill === false ||
+        (Array.isArray(dataset.borderDash) && dataset.borderDash.length > 0);
+      const backgroundColor = datasetSynthetic
+        ? toRgba(
+            palette.stroke,
+            document.documentElement.classList.contains("dark-mode")
+              ? 0.18
+              : 0.12
+          )
+        : palette.fill;
+      dataset.borderColor = palette.stroke;
+      dataset.backgroundColor = backgroundColor;
+      if (datasetSynthetic) {
+        dataset.borderDash =
+          Array.isArray(dataset.borderDash) && dataset.borderDash.length
+            ? dataset.borderDash
+            : [4, 3];
+        dataset.fill = false;
+        dataset.borderWidth = dataset.borderWidth ?? 1.5;
+      } else {
+        dataset.borderDash = [];
+        dataset.fill = true;
+        dataset.borderWidth = 2;
+      }
       chart.update("none");
     });
   }

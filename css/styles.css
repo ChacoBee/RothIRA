@@ -1879,6 +1879,23 @@ h3,
   pointer-events: none;
 }
 
+.market-index-card__sparkline[data-synthetic="true"]::after {
+  content: "SYNTHETIC SIGNAL";
+  position: absolute;
+  top: 0.55rem;
+  right: 0.75rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(30, 64, 175, 0.78);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 10px 24px -14px rgba(15, 23, 42, 0.6);
+  pointer-events: none;
+}
+
 .market-index-card--empty {
   display: flex;
   align-items: center;
@@ -2246,6 +2263,11 @@ h3,
 .dark-mode .market-index-card__sparkline-status {
   background: rgba(15, 23, 42, 0.76);
   color: rgba(226, 232, 240, 0.72);
+}
+.dark-mode .market-index-card__sparkline[data-synthetic="true"]::after {
+  color: rgba(191, 219, 254, 0.86);
+  background: rgba(15, 23, 42, 0.76);
+  box-shadow: 0 12px 26px -16px rgba(8, 145, 178, 0.6);
 }
 .dark-mode .market-index-card__empty {
   color: rgba(203, 213, 225, 0.75);
