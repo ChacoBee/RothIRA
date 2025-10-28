@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gunpla Hangar Command Console</title>
-    <link rel="icon" type="image/jpeg" href="img/nu_gundam.jpg" />
+    <link rel="icon" type="image/svg+xml" href="img/favicon.svg" />
     <link rel="stylesheet" href="css/styles.css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
@@ -1037,7 +1037,7 @@
           </p>
           <div class="flex flex-wrap items-center gap-3">
             <a
-              href="https://docs.google.com/spreadsheets/d/e/2PACX-1vRwZrG7ms2qeaAEqYcpHs_kaE7cOwuGvU0d4G0fTSXPUL5wgHk3mPdhpJlEHeUaZw/pubhtml?gid=876414196&single=true"
+              href="https://docs.google.com/spreadsheets/d/1NbkrKzAaiiEik1LGUAPm2GnstT23jDJV/edit?gid=876414196#gid=876414196"
               target="_blank"
               rel="noopener noreferrer"
               class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-sky-200/70 dark:border-sky-600/40 text-sky-600 dark:text-sky-200 hover:border-sky-300 hover:text-sky-300 transition"
@@ -1285,7 +1285,6 @@
                   <th class="px-4 py-3">Stock Price ($)</th>
                   <th class="px-4 py-3">Current Value ($)</th>
                   <th class="px-4 py-3">Current %</th>
-                  <th class="px-4 py-3">Allocation Drift (%)</th>
                   <th class="px-4 py-3">Gain/Loss ($)</th>
                   <th class="px-4 py-3">Gain/Loss (%)</th>
                   <th class="px-4 py-3">Yield Income ($)</th>
@@ -1305,7 +1304,6 @@
                   <td class="px-4 py-3 text-right" data-field="price">--</td>
                   <td class="px-4 py-3 text-right" data-field="currentValue">--</td>
                   <td class="px-4 py-3 text-right" data-field="currentPercent">--</td>
-                  <td class="px-4 py-3 text-right" data-field="drift">--</td>
                   <td class="px-4 py-3 text-right" data-field="gain">--</td>
                   <td class="px-4 py-3 text-right" data-field="gainPercent">--</td>
                   <td class="px-4 py-3 text-right" data-field="yield">--</td>
@@ -3658,20 +3656,11 @@
                       <button
                         type="button"
                         class="indices-filter-btn inline-flex items-center rounded-full border border-sky-500/30 bg-white/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-sky-600 shadow-sm transition hover:border-sky-500 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/60 dark:bg-slate-900/40 dark:text-sky-200"
-                        data-region="all"
+                        data-region="earth-sphere"
                         role="tab"
                         aria-selected="true"
                       >
-                        All Theatres
-                      </button>
-                      <button
-                        type="button"
-                        class="indices-filter-btn inline-flex items-center rounded-full border border-sky-500/30 bg-white/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-sky-600 shadow-sm transition hover:border-sky-500 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/60 dark:bg-slate-900/40 dark:text-sky-200"
-                        data-region="earth-sphere"
-                        role="tab"
-                        aria-selected="false"
-                      >
-                        Earth Sphere
+                        US Benchmarks (S&P/Dow/NASDAQ/Russell)
                       </button>
                       <button
                         type="button"
@@ -3680,7 +3669,7 @@
                         role="tab"
                         aria-selected="false"
                       >
-                        Outer Colonies
+                        Global Hubs (FTSE/DAX/Nikkei)
                       </button>
                       <button
                         type="button"
@@ -3689,7 +3678,7 @@
                         role="tab"
                         aria-selected="false"
                       >
-                        Neo Zeon Watchlist
+                        Frontier Watch (Hang Seng/Sensex)
                       </button>
                     </div>
                   </div>

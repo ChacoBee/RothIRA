@@ -46,13 +46,6 @@ function initializeLivePriceTest() {
           <span data-field="currentPercent">--</span>
         </div>
       </td>
-      <td class="px-4 py-3 text-right">
-        <span
-          data-field="drift"
-          class="inline-flex items-center justify-end min-w-[72px] px-2 py-1 text-xs font-semibold rounded-full bg-slate-200/70 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-          >--</span
-        >
-      </td>
       <td class="px-4 py-3 text-right" data-field="gain">--</td>
       <td class="px-4 py-3 text-right" data-field="gainPercent">--</td>
       <td class="px-4 py-3 text-right" data-field="yield">--</td>
@@ -248,19 +241,7 @@ async function fetchAndRenderLivePrices(options = {}) {
   const highlightClassesToClear = Array.from(
     new Set([...highlightGainClasses, ...highlightLossClasses])
   );
-  const driftBadgeVariants = [
-    "bg-emerald-500/10",
-    "text-emerald-400",
-    "dark:text-emerald-300",
-    "bg-amber-500/10",
-    "text-amber-400",
-    "dark:text-amber-200",
-    "bg-rose-500/10",
-    "text-rose-400",
-    "dark:text-rose-300",
-  ];
   const performanceMetrics = [];
-  const DRIFT_ALERT_THRESHOLD = 1;
 
   try {
     const { rows: quoteMap, totals } = await fetchSheetPrices();
@@ -281,7 +262,6 @@ async function fetchAndRenderLivePrices(options = {}) {
       const currentValueEl = row.querySelector('[data-field="currentValue"]');
       const currentPercentEl = row.querySelector('[data-field="currentPercent"]');
       const currentBarEl = row.querySelector('[data-field="currentBar"]');
-      const driftEl = row.querySelector('[data-field="drift"]');
       const gainEl = row.querySelector('[data-field="gain"]');
       const gainPercentEl = row.querySelector('[data-field="gainPercent"]');
       const yieldEl = row.querySelector('[data-field="yield"]');
@@ -301,11 +281,6 @@ async function fetchAndRenderLivePrices(options = {}) {
         if (currentBarEl) {
           currentBarEl.style.width = "0%";
           currentBarEl.style.opacity = "0.25";
-        }
-        if (driftEl) {
-          driftEl.textContent = "--";
-          driftEl.style.opacity = "0.6";
-          driftEl.classList.remove(...driftBadgeVariants);
         }
         if (gainEl) gainEl.textContent = "--";
         if (gainPercentEl) gainPercentEl.textContent = "--";
@@ -371,43 +346,6 @@ async function fetchAndRenderLivePrices(options = {}) {
         } else {
           currentBarEl.style.width = "0%";
           currentBarEl.style.opacity = "0.25";
-        }
-      }
-
-      let driftValue = null;
-      if (heldPercentValue !== null && currentPercentValue !== null) {
-        driftValue = currentPercentValue - heldPercentValue;
-      }
-      if (driftEl) {
-        driftEl.classList.remove(...driftBadgeVariants);
-        if (driftValue === null) {
-          driftEl.textContent = "--";
-          driftEl.style.opacity = "0.6";
-        } else {
-          driftEl.textContent =
-            driftValue > 0
-              ? `+${formatNumber(driftValue)}%`
-              : `${formatNumber(driftValue)}%`;
-          driftEl.style.opacity = "1";
-          if (driftValue > DRIFT_ALERT_THRESHOLD) {
-            driftEl.classList.add(
-              "bg-emerald-500/10",
-              "text-emerald-400",
-              "dark:text-emerald-300"
-            );
-          } else if (driftValue < -DRIFT_ALERT_THRESHOLD) {
-            driftEl.classList.add(
-              "bg-rose-500/10",
-              "text-rose-400",
-              "dark:text-rose-300"
-            );
-          } else {
-            driftEl.classList.add(
-              "bg-amber-500/10",
-              "text-amber-400",
-              "dark:text-amber-200"
-            );
-          }
         }
       }
 
@@ -493,14 +431,6 @@ async function fetchAndRenderLivePrices(options = {}) {
       setField("price", totals.price, formatCurrency);
       setField("currentValue", totals.currentValue, formatCurrency);
       setField("currentPercent", totals.currentPercent, (v) => `${formatNumber(v)}%`);
-      setField(
-        "drift",
-        totals.currentPercent !== null && totals.heldPercent !== null
-          ? totals.currentPercent - totals.heldPercent
-          : null,
-        (v) => `${formatNumber(v)}%`,
-        true
-      );
       setField("gain", totals.changeValue, formatCurrency, true);
       setField("gainPercent", totals.changePercent, (v) => `${formatNumber(v)}%`, true);
       setField("yield", totals.yieldIncome, formatCurrency);

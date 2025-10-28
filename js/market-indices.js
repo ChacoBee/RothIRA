@@ -74,7 +74,7 @@
     },
   ];
 
-  const REGION_KEYS = ["all", "earth-sphere", "outer-colonies", "neo-zeon"];
+  const REGION_KEYS = ["earth-sphere", "outer-colonies", "neo-zeon"];
   const REFRESH_INTERVAL = 60 * 1000;
   const EVENTS_REFRESH_INTERVAL = 15 * 60 * 1000;
   const HISTORICAL_TIMESERIES = 45;
@@ -110,7 +110,7 @@
   let isFetching = false;
   let fallbackActive = false;
   let fallbackScript = null;
-  let activeRegion = "all";
+  let activeRegion = REGION_KEYS[0];
   let autoSyncEnabled = true;
   const sparklineCharts = new Map();
   const historicalCache = new Map();
@@ -136,10 +136,23 @@
     </article>
   `;
 
-  function getActiveConfigs() {
-    if (activeRegion === "all") {
-      return indicesConfig;
+  function disposeAllSparklines() {
+    if (!sparklineCharts.size) {
+      return;
     }
+    sparklineCharts.forEach((chart) => {
+      if (chart && typeof chart.destroy === "function") {
+        try {
+          chart.destroy();
+        } catch {
+          /* ignore */
+        }
+      }
+    });
+    sparklineCharts.clear();
+  }
+
+  function getActiveConfigs() {
     return indicesConfig.filter((cfg) => cfg.cluster === activeRegion);
   }
 
@@ -460,6 +473,7 @@
       `;
     });
 
+    disposeAllSparklines();
     gridEl.innerHTML = cards.join("");
     if (typeof window.reapplyRevealTransitions === "function") {
       window.reapplyRevealTransitions(gridEl);
@@ -1258,7 +1272,7 @@
       return;
     }
     regionButtons.forEach((button) => {
-      const regionKey = button.dataset.region || "all";
+      const regionKey = button.dataset.region || REGION_KEYS[0];
       const isActive = regionKey === activeRegion;
       button.setAttribute("aria-selected", String(isActive));
       button.classList.toggle("indices-filter-btn--active", isActive);
@@ -1266,7 +1280,7 @@
   }
 
   function setActiveRegion(nextRegion) {
-    const normalized = REGION_KEYS.includes(nextRegion) ? nextRegion : "all";
+    const normalized = REGION_KEYS.includes(nextRegion) ? nextRegion : REGION_KEYS[0];
     if (normalized === activeRegion) {
       return;
     }
@@ -1835,7 +1849,7 @@
   if (regionButtons.length) {
     regionButtons.forEach((button) => {
       button.addEventListener("click", () => {
-        const nextRegion = button.dataset.region || "all";
+        const nextRegion = button.dataset.region || REGION_KEYS[0];
         setActiveRegion(nextRegion);
       });
     });
