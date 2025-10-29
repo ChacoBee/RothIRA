@@ -18,6 +18,8 @@ const aiAssetBetas =
           SMH: 1.3,
           VXUS: 0.9,
           AVUV: 1.1,
+          SPMO: 1.1,
+          SPHQ: 0.9,
           IBIT: 1.6,
           AMZN: 1.4,
         };
@@ -715,7 +717,7 @@ function buildStrategicAdvice(metrics, actions) {
     ? `${leadingAction.asset} is ${leadingAction.deviation}% ${leadingAction.deviation > 0 ? "over" : "under"} target.`
     : "All positions remain inside drift guardrails.";
 
-  const growthWeight = ["QQQM", "SMH", "IBIT", "AMZN"].reduce(
+  const growthWeight = ["QQQM", "SMH", "SPMO", "IBIT", "AMZN"].reduce(
     (acc, asset) => acc + safeNumber(metrics.targetFractions[asset]),
     0
   );
@@ -749,7 +751,7 @@ function buildStrategicAdvice(metrics, actions) {
       actions: [
         "Revisit VOO versus QQQM weights before the next major contribution.",
         "Use scenario lab to model 20% drawdown and recovery timing.",
-        "Track value sleeve (AVUV) to maintain factor diversification.",
+        "Track factor sleeves (AVUV, SPMO, SPHQ) to maintain diversification.",
       ],
     },
     {

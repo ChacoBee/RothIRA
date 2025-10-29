@@ -11,6 +11,8 @@ const portfolioAssetBetas =
         SMH: 1.3,
         VXUS: 0.9,
         AVUV: 1.1,
+        SPMO: 1.1,
+        SPHQ: 0.9,
         IBIT: 1.5,
         AMZN: 1.4,
       };
@@ -24,6 +26,8 @@ const portfolioExpenseRatios =
         SMH: 0.0035,
         VXUS: 0.0007,
         AVUV: 0.0025,
+        SPMO: 0.0013,
+        SPHQ: 0.0029,
         IBIT: 0.0025,
         AMZN: 0,
       };

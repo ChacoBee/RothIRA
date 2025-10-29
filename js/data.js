@@ -5,9 +5,9 @@ const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
 // Sample Data (Based on your Sheet) - Will be updated with real data
 let initialStockData = {
   VOO: {
-    target: 40.0,
-    currentValue: 40.0,
-    currentPercent: 40.0,
+    target: 30.0,
+    currentValue: 30.0,
+    currentPercent: 30.0,
     sector: 'Core US',
     region: 'United States',
     exposureCategory: 'us',
@@ -45,6 +45,24 @@ let initialStockData = {
     currentValue: 10.0,
     currentPercent: 10.0,
     sector: 'Small Cap Value',
+    region: 'United States',
+    exposureCategory: 'us',
+    assetClass: 'equity',
+  },
+  SPMO: {
+    target: 5.0,
+    currentValue: 5.0,
+    currentPercent: 5.0,
+    sector: 'Momentum Factor',
+    region: 'United States',
+    exposureCategory: 'us',
+    assetClass: 'equity',
+  },
+  SPHQ: {
+    target: 5.0,
+    currentValue: 5.0,
+    currentPercent: 5.0,
+    sector: 'Quality Factor',
     region: 'United States',
     exposureCategory: 'us',
     assetClass: 'equity',
@@ -149,6 +167,8 @@ const assetBetas = {
   SMH: 1.3,
   VXUS: 0.9,
   AVUV: 1.1,
+  SPMO: 1.1,
+  SPHQ: 0.9,
   IBIT: 1.5,
   AMZN: 1.4,
 };
@@ -163,6 +183,8 @@ const multiFactorLoadings = {
   SMH: { MKT: 1.25, SMB: -0.3, HML: -0.2, MOM: 0.45 },
   VXUS: { MKT: 0.95, SMB: 0.05, HML: 0.12, MOM: 0.08 },
   AVUV: { MKT: 1.05, SMB: 0.7, HML: 0.4, MOM: -0.05 },
+  SPMO: { MKT: 1.08, SMB: -0.25, HML: -0.2, MOM: 0.7 },
+  SPHQ: { MKT: 0.9, SMB: -0.2, HML: 0.1, MOM: 0.15 },
   IBIT: { MKT: 1.6, SMB: 0.35, HML: -0.45, MOM: 0.85 },
   AMZN: { MKT: 1.3, SMB: -0.2, HML: -0.3, MOM: 0.52 },
 };
@@ -180,6 +202,8 @@ const assetResidualVols = {
   SMH: 0.18,
   VXUS: 0.1,
   AVUV: 0.14,
+  SPMO: 0.15,
+  SPHQ: 0.12,
   IBIT: 0.35,
   AMZN: 0.2,
 };
@@ -223,6 +247,8 @@ const volatilities = {
   SMH: 0.30, // 30%
   VXUS: 0.18, // 18%
   AVUV: 0.22, // 22%
+  SPMO: 0.20, // 20%
+  SPHQ: 0.16, // 16%
   IBIT: 0.50, // 50%
   AMZN: 0.35, // 35%
 };
@@ -235,6 +261,8 @@ const expenseRatios = {
   SMH: 0.0035, // 0.35%
   VXUS: 0.0007, // 0.07%
   AVUV: 0.0025, // 0.25%
+  SPMO: 0.0013, // 0.13%
+  SPHQ: 0.0029, // 0.29%
   IBIT: 0.0025, // 0.25%
   AMZN: 0.0, // Direct equity, no fund expense
 };
@@ -246,21 +274,36 @@ const correlations = {
   AMZN_SMH: 0.8,
   AMZN_VOO: 0.8,
   AMZN_VXUS: 0.5,
+  AMZN_SPMO: 0.82,
+  AMZN_SPHQ: 0.65,
   AVUV_IBIT: 0.25,
   AVUV_QQQM: 0.6,
   AVUV_SMH: 0.55,
   AVUV_VOO: 0.65,
   AVUV_VXUS: 0.5,
+  AVUV_SPMO: 0.58,
+  AVUV_SPHQ: 0.48,
   IBIT_QQQM: 0.4,
   IBIT_SMH: 0.3,
   IBIT_VOO: 0.3,
   IBIT_VXUS: 0.2,
+  IBIT_SPMO: 0.3,
+  IBIT_SPHQ: 0.18,
   QQQM_SMH: 0.9,
   QQQM_VOO: 0.8,
   QQQM_VXUS: 0.5,
+  QQQM_SPMO: 0.82,
+  QQQM_SPHQ: 0.6,
   SMH_VOO: 0.7,
   SMH_VXUS: 0.4,
+  SMH_SPMO: 0.78,
+  SMH_SPHQ: 0.55,
   VOO_VXUS: 0.6,
+  VOO_SPMO: 0.75,
+  VOO_SPHQ: 0.83,
+  VXUS_SPMO: 0.42,
+  VXUS_SPHQ: 0.5,
+  SPMO_SPHQ: 0.7,
 };
 
 const portfolioDefaults = Object.freeze({
@@ -339,7 +382,7 @@ let tvWidget = null; // Cache for the TradingView widget instance
 // TradingView Symbol Mapping
 // Use exchange-prefixed symbols that the embedded TradingView widget accepts.
 function getTradingViewSymbol(ticker) {
-  if (["VOO", "AVUV"].includes(ticker)) {
+  if (["VOO", "AVUV", "SPMO", "SPHQ"].includes(ticker)) {
     return `AMEX:${ticker}`;
   }
   if (["QQQM", "SMH", "VXUS"].includes(ticker)) {
@@ -394,6 +437,16 @@ const stockDetailsContent = {
     desc: "Avantis small-cap value ETF targeting profitable, inexpensive US businesses. Complements the large-cap core with a value tilt.",
     pros: "Diversifies factor exposure beyond mega-cap growth. Historically rebounds when the value factor regains leadership. Adds a disciplined, tax-aware smart-beta sleeve.",
     cons: "More volatile than blue-chip ETFs and can trail in growth-led markets. Smaller fund size requires monitoring liquidity and spreads.",
+  },
+  SPMO: {
+    desc: "Invesco S&P 500 Momentum ETF tilting toward S&P leaders with the strongest price trends.",
+    pros: "Rules-based rebalance keeps exposure in relative winners. Complements core holdings with a systematic growth tilt.",
+    cons: "Momentum rotations can cause sharp reversals and tracking error versus the S&P 500 headline index.",
+  },
+  SPHQ: {
+    desc: "Invesco S&P 500 Quality ETF screening for high return on equity, low leverage, and stable earnings.",
+    pros: "Focus on balance-sheet strength can soften drawdowns while keeping core US exposure.",
+    cons: "Quality tilts may lag speculative rallies and concentrate holdings in select sectors.",
   },
   SMH: {
     desc: "VanEck Semiconductor ETF covering global chip leaders. Tactical sleeve aimed at AI, cloud computing, and high-performance hardware trends.",
