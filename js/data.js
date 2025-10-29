@@ -1,5 +1,5 @@
 // Alpha Vantage API Configuration
-const ALPHA_VANTAGE_API_KEY = 'demo'; // Use 'demo' for free tier, replace with your key for production
+const ALPHA_VANTAGE_API_KEY = 'AI3FRQ1IZHG3GTO1'; // Use 'demo' for free tier, replace with your key for production
 const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
 
 // Sample Data (Based on your Sheet) - Will be updated with real data
@@ -100,8 +100,16 @@ window.defaultTargetAllocations = { ...defaultTargetAllocations };
 // Function to fetch real-time stock data from Alpha Vantage
 async function fetchStockData(symbol) {
   try {
-    const response = await fetch(`${ALPHA_VANTAGE_BASE_URL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`);
-    const data = await response.json();
+    const historicalSeries = await fetchDailyAdjustedSeries(symbol);
+    const latestPoint = Array.isArray(historicalSeries)
+      ? historicalSeries[historicalSeries.length - 1]
+      : null;
+    if (latestPoint && Number.isFinite(latestPoint.price)) {
+      return latestPoint.price;
+    }
+
+    const url = `${ALPHA_VANTAGE_BASE_URL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
+    const data = await fetchAlphaVantageJson(url);
 
     if (data['Global Quote'] && data['Global Quote']['05. price']) {
       return parseFloat(data['Global Quote']['05. price']);
@@ -118,7 +126,8 @@ async function fetchStockData(symbol) {
 // Function to update stock data with real market prices
 async function updateStockDataWithRealPrices() {
   const tickers = Object.keys(initialStockData);
-  const updatePromises = tickers.map(async (ticker) => {
+  for (let i = 0; i < tickers.length; i += 1) {
+    const ticker = tickers[i];
     const realPrice = await fetchStockData(ticker);
     if (realPrice !== null) {
       // Update current value based on target allocation (simplified calculation)
@@ -127,9 +136,7 @@ async function updateStockDataWithRealPrices() {
       initialStockData[ticker].currentValue = targetValue;
       initialStockData[ticker].currentPercent = initialStockData[ticker].target;
     }
-  });
-
-  await Promise.all(updatePromises);
+  }
   console.log('Stock data updated with real market prices');
 }
 
@@ -143,6 +150,25 @@ async function initializeData() {
   try {
     await updateStockDataWithRealPrices();
     console.log('Real market data loaded successfully');
+    const analyticsRefreshes = [
+      loadVolatilitiesFromAlphaVantage().catch((error) => {
+        console.warn('Failed to refresh volatility estimates from Alpha Vantage:', error);
+      }),
+      loadCorrelationsFromAlphaVantage().catch((error) => {
+        console.warn('Failed to refresh correlation matrix from Alpha Vantage:', error);
+      }),
+    ];
+    await Promise.allSettled(analyticsRefreshes);
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.initializeAnalytics === 'function'
+    ) {
+      try {
+        window.initializeAnalytics();
+      } catch (analyticsError) {
+        console.error('Failed to reinitialize analytics after data refresh:', analyticsError);
+      }
+    }
   } catch (error) {
     console.error('Failed to fetch real data, using mock data:', error);
   } finally {
@@ -241,70 +267,478 @@ const expectedReturns = assetKeys.reduce((acc, key) => {
 
 const BASE_EXPECTED_RETURNS = Object.freeze({ ...expectedReturns });
 
-const volatilities = {
-  VOO: 0.15, // 15%
-  QQQM: 0.25, // 25%
-  SMH: 0.30, // 30%
-  VXUS: 0.18, // 18%
-  AVUV: 0.22, // 22%
-  SPMO: 0.20, // 20%
-  SPHQ: 0.16, // 16%
-  IBIT: 0.50, // 50%
-  AMZN: 0.35, // 35%
-};
+const STATIC_DEFAULT_VOLATILITIES = Object.freeze({
+  VOO: 0.1337, // 13,37%
+  QQQM: 0.1676, // 16,76%
+  SMH: 0.2862, // 28,62%
+  VXUS: 0.1384, // 13,84%
+  AVUV: 0.2295, // 22,95%
+  SPMO: 0.1722, // 17,22%
+  SPHQ: 0.1532, // 15,32%
+  IBIT: 0.556, // 55,6%
+  AMZN: 0.352, // 35,2%
+});
 
-const BASE_VOLATILITIES = Object.freeze({ ...volatilities });
+let volatilities = { ...STATIC_DEFAULT_VOLATILITIES };
+if (typeof window !== 'undefined') {
+  window.volatilities = volatilities;
+}
+
+const BASE_VOLATILITIES = Object.freeze({ ...STATIC_DEFAULT_VOLATILITIES });
 
 const expenseRatios = {
   VOO: 0.0003, // 0.03%
   QQQM: 0.0015, // 0.15%
   SMH: 0.0035, // 0.35%
-  VXUS: 0.0007, // 0.07%
+  VXUS: 0.0005, // 0.05%
   AVUV: 0.0025, // 0.25%
   SPMO: 0.0013, // 0.13%
-  SPHQ: 0.0029, // 0.29%
+  SPHQ: 0.0021, // 0.21%
   IBIT: 0.0025, // 0.25%
   AMZN: 0.0, // Direct equity, no fund expense
 };
 
-const correlations = {
-  AMZN_AVUV: 0.6,
-  AMZN_IBIT: 0.3,
-  AMZN_QQQM: 0.9,
+const DEFAULT_CORRELATIONS = Object.freeze({
+  AMZN_AVUV: 0.55,
+  AMZN_IBIT: 0.25,
+  AMZN_QQQM: 0.85,
   AMZN_SMH: 0.8,
-  AMZN_VOO: 0.8,
-  AMZN_VXUS: 0.5,
-  AMZN_SPMO: 0.82,
-  AMZN_SPHQ: 0.65,
-  AVUV_IBIT: 0.25,
-  AVUV_QQQM: 0.6,
-  AVUV_SMH: 0.55,
-  AVUV_VOO: 0.65,
-  AVUV_VXUS: 0.5,
-  AVUV_SPMO: 0.58,
-  AVUV_SPHQ: 0.48,
-  IBIT_QQQM: 0.4,
-  IBIT_SMH: 0.3,
-  IBIT_VOO: 0.3,
+  AMZN_VOO: 0.7,
+  AMZN_VXUS: 0.6,
+  AMZN_SPMO: 0.81,
+  AMZN_SPHQ: 0.62,
+  AVUV_IBIT: 0.2,
+  AVUV_QQQM: 0.7,
+  AVUV_SMH: 0.65,
+  AVUV_VOO: 0.85,
+  AVUV_VXUS: 0.725,
+  AVUV_SPMO: 0.77,
+  AVUV_SPHQ: 0.8,
+  IBIT_QQQM: 0.25,
+  IBIT_SMH: 0.225,
+  IBIT_VOO: 0.2,
   IBIT_VXUS: 0.2,
-  IBIT_SPMO: 0.3,
-  IBIT_SPHQ: 0.18,
+  IBIT_SPMO: 0.225,
+  IBIT_SPHQ: 0.2,
   QQQM_SMH: 0.9,
-  QQQM_VOO: 0.8,
-  QQQM_VXUS: 0.5,
-  QQQM_SPMO: 0.82,
-  QQQM_SPHQ: 0.6,
-  SMH_VOO: 0.7,
-  SMH_VXUS: 0.4,
-  SMH_SPMO: 0.78,
-  SMH_SPHQ: 0.55,
-  VOO_VXUS: 0.6,
-  VOO_SPMO: 0.75,
-  VOO_SPHQ: 0.83,
-  VXUS_SPMO: 0.42,
-  VXUS_SPHQ: 0.5,
-  SPMO_SPHQ: 0.7,
-};
+  QQQM_VOO: 0.9,
+  QQQM_VXUS: 0.725,
+  QQQM_SPMO: 0.915,
+  QQQM_SPHQ: 0.815,
+  SMH_VOO: 0.85,
+  SMH_VXUS: 0.725,
+  SMH_SPMO: 0.885,
+  SMH_SPHQ: 0.775,
+  VOO_VXUS: 0.8,
+  VOO_SPMO: 0.93,
+  VOO_SPHQ: 0.95,
+  VXUS_SPMO: 0.8,
+  VXUS_SPHQ: 0.825,
+  SPMO_SPHQ: 0.92,
+});
+
+let correlations = { ...DEFAULT_CORRELATIONS };
+if (typeof window !== 'undefined') {
+  window.correlations = correlations;
+}
+
+const CORRELATION_LOOKBACK_DAYS = 90;
+const CORRELATION_CACHE_KEY = 'portfolioCorrelationMatrix';
+const CORRELATION_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
+const VOLATILITY_CACHE_KEY = 'portfolioVolatilityMap';
+const VOLATILITY_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
+const TRADING_DAYS_PER_YEAR = 252;
+const SERIES_CACHE_PREFIX = 'alphaSeries_';
+const SERIES_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
+const ALPHA_VANTAGE_RATE_LIMIT_MS = 12000;
+const ALPHA_VANTAGE_MAX_RETRIES = 3;
+
+let lastAlphaVantageCallTs = 0;
+const memorySeriesCache = {};
+const returnSeriesCache = {};
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function safeParseJSON(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    return null;
+  }
+}
+
+function getCachedItem(key, ttlMs) {
+  if (typeof localStorage === 'undefined') {
+    return null;
+  }
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) {
+      return null;
+    }
+    const parsed = safeParseJSON(raw);
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+    const { timestamp, value } = parsed;
+    const stamp = Number(timestamp);
+    if (!Number.isFinite(stamp) || Date.now() - stamp > ttlMs) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return value;
+  } catch (error) {
+    console.warn('Failed to access localStorage cache for', key, error);
+    return null;
+  }
+}
+
+function setCachedItem(key, value) {
+  if (typeof localStorage === 'undefined') {
+    return;
+  }
+  try {
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        timestamp: Date.now(),
+        value,
+      })
+    );
+  } catch (error) {
+    console.warn('Failed to persist localStorage cache for', key, error);
+  }
+}
+
+async function fetchAlphaVantageJson(url, attempt = 0) {
+  const now = Date.now();
+  const waitMs = Math.max(0, ALPHA_VANTAGE_RATE_LIMIT_MS - (now - lastAlphaVantageCallTs));
+  if (waitMs > 0) {
+    await sleep(waitMs);
+  }
+
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (networkError) {
+    if (attempt < ALPHA_VANTAGE_MAX_RETRIES) {
+      await sleep(ALPHA_VANTAGE_RATE_LIMIT_MS);
+      return fetchAlphaVantageJson(url, attempt + 1);
+    }
+    throw networkError;
+  } finally {
+    lastAlphaVantageCallTs = Date.now();
+  }
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (parseError) {
+    if (attempt < ALPHA_VANTAGE_MAX_RETRIES) {
+      await sleep(ALPHA_VANTAGE_RATE_LIMIT_MS);
+      return fetchAlphaVantageJson(url, attempt + 1);
+    }
+    throw parseError;
+  }
+
+  if (data && typeof data === 'object' && data.Note && attempt < ALPHA_VANTAGE_MAX_RETRIES) {
+    await sleep(ALPHA_VANTAGE_RATE_LIMIT_MS);
+    return fetchAlphaVantageJson(url, attempt + 1);
+  }
+
+  return data;
+}
+
+async function fetchDailyAdjustedSeries(symbol, options = {}) {
+  const allowCacheRead = options?.useCache !== false;
+  const allowCacheWrite = options?.cacheResult !== false;
+  const cacheKey = `${SERIES_CACHE_PREFIX}${symbol}`;
+  if (allowCacheRead && Array.isArray(memorySeriesCache[symbol]) && memorySeriesCache[symbol].length) {
+    return memorySeriesCache[symbol];
+  }
+  if (allowCacheRead) {
+    const cachedSeries = getCachedItem(cacheKey, SERIES_CACHE_TTL_MS);
+    if (Array.isArray(cachedSeries) && cachedSeries.length) {
+      memorySeriesCache[symbol] = cachedSeries;
+      return cachedSeries;
+    }
+  }
+
+  const url = `${ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}&outputsize=compact`;
+  const json = await fetchAlphaVantageJson(url);
+  const series = json && json['Time Series (Daily)'];
+  if (!series || typeof series !== 'object') {
+    return [];
+  }
+
+  const entries = Object.entries(series)
+    .map(([date, values]) => ({
+      date,
+      price: Number.parseFloat(values['5. adjusted close']),
+    }))
+    .filter((point) => Number.isFinite(point.price))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (entries.length) {
+    memorySeriesCache[symbol] = entries;
+    if (allowCacheWrite) {
+      setCachedItem(cacheKey, entries);
+    }
+  }
+
+  return entries;
+}
+
+async function getReturnSeriesForSymbol(symbol, options = {}) {
+  const allowCacheRead = options?.useCache !== false;
+  const allowCacheWrite = options?.cacheResult !== false;
+  if (allowCacheRead && Array.isArray(returnSeriesCache[symbol]) && returnSeriesCache[symbol].length) {
+    return returnSeriesCache[symbol];
+  }
+  const priceSeries = await fetchDailyAdjustedSeries(symbol, {
+    useCache: allowCacheRead,
+    cacheResult: allowCacheWrite,
+  });
+  const returns = toLogReturns(priceSeries);
+  if (allowCacheWrite && returns.length) {
+    returnSeriesCache[symbol] = returns;
+  }
+  return returns;
+}
+
+function toLogReturns(series, lookbackDays = CORRELATION_LOOKBACK_DAYS) {
+  if (!Array.isArray(series) || series.length < 2) {
+    return [];
+  }
+  const windowSize = Math.max(lookbackDays + 1, 2);
+  const selected =
+    series.length > windowSize ? series.slice(series.length - windowSize) : series.slice();
+  const returns = [];
+  for (let i = 1; i < selected.length; i += 1) {
+    const prev = selected[i - 1];
+    const current = selected[i];
+    if (prev.price > 0 && current.price > 0) {
+      returns.push({
+        date: current.date,
+        value: Math.log(current.price / prev.price),
+      });
+    }
+  }
+  return returns;
+}
+
+function alignReturnSeries(returnsA, returnsB) {
+  if (!Array.isArray(returnsA) || !Array.isArray(returnsB)) {
+    return [[], []];
+  }
+  const mapB = new Map(returnsB.map((entry) => [entry.date, entry.value]));
+  const alignedA = [];
+  const alignedB = [];
+  returnsA.forEach((entry) => {
+    if (mapB.has(entry.date)) {
+      alignedA.push(entry.value);
+      alignedB.push(mapB.get(entry.date));
+    }
+  });
+  return [alignedA, alignedB];
+}
+
+function pearsonCorrelation(valuesA, valuesB) {
+  const length = Math.min(valuesA.length, valuesB.length);
+  if (length < 2) {
+    return null;
+  }
+
+  let sumA = 0;
+  let sumB = 0;
+  for (let i = 0; i < length; i += 1) {
+    sumA += valuesA[i];
+    sumB += valuesB[i];
+  }
+  const meanA = sumA / length;
+  const meanB = sumB / length;
+
+  let covariance = 0;
+  let varianceA = 0;
+  let varianceB = 0;
+  for (let i = 0; i < length; i += 1) {
+    const da = valuesA[i] - meanA;
+    const db = valuesB[i] - meanB;
+    covariance += da * db;
+    varianceA += da * da;
+    varianceB += db * db;
+  }
+  if (varianceA <= 0 || varianceB <= 0) {
+    return null;
+  }
+  return covariance / Math.sqrt(varianceA * varianceB);
+}
+
+function sampleStandardDeviation(values) {
+  const length = Array.isArray(values) ? values.length : 0;
+  if (length < 2) {
+    return null;
+  }
+  let sum = 0;
+  for (let i = 0; i < length; i += 1) {
+    sum += values[i];
+  }
+  const mean = sum / length;
+  let variance = 0;
+  for (let i = 0; i < length; i += 1) {
+    const diff = values[i] - mean;
+    variance += diff * diff;
+  }
+  variance /= length - 1;
+  if (variance <= 0) {
+    return null;
+  }
+  return Math.sqrt(variance);
+}
+
+async function buildCorrelationMatrixFromAlphaVantage(symbols, options = {}) {
+  const useCache = options?.useCache !== false;
+  const forceRefresh = options?.forceRefresh === true;
+  const returnsBySymbol = {};
+
+  for (let i = 0; i < symbols.length; i += 1) {
+    const symbol = symbols[i];
+    returnsBySymbol[symbol] = await getReturnSeriesForSymbol(symbol, {
+      useCache: useCache && !forceRefresh,
+      cacheResult: !forceRefresh,
+    });
+  }
+
+  const matrix = {};
+  for (let i = 0; i < symbols.length; i += 1) {
+    for (let j = i + 1; j < symbols.length; j += 1) {
+      const [alignedA, alignedB] = alignReturnSeries(
+        returnsBySymbol[symbols[i]],
+        returnsBySymbol[symbols[j]]
+      );
+      const corr = pearsonCorrelation(alignedA, alignedB);
+      if (Number.isFinite(corr)) {
+        const key =
+          symbols[i] < symbols[j]
+            ? `${symbols[i]}_${symbols[j]}`
+            : `${symbols[j]}_${symbols[i]}`;
+        matrix[key] = corr;
+      }
+    }
+  }
+
+  return matrix;
+}
+
+async function loadCorrelationsFromAlphaVantage(options = {}) {
+  const symbols = Array.isArray(assetKeys) ? assetKeys : null;
+  if (!symbols || !symbols.length) {
+    return correlations;
+  }
+
+  const useCache = options?.useCache !== false;
+  const forceRefresh = options?.forceRefresh === true;
+
+  if (useCache && !forceRefresh) {
+    const cachedMatrix = getCachedItem(CORRELATION_CACHE_KEY, CORRELATION_CACHE_TTL_MS);
+    if (cachedMatrix && typeof cachedMatrix === 'object') {
+      correlations = { ...DEFAULT_CORRELATIONS, ...cachedMatrix };
+      window.correlations = correlations;
+      window.correlationsLastUpdated = Date.now();
+      return correlations;
+    }
+  }
+
+  const matrix = await buildCorrelationMatrixFromAlphaVantage(symbols, {
+    useCache,
+    forceRefresh,
+  });
+  if (Object.keys(matrix).length) {
+    correlations = { ...DEFAULT_CORRELATIONS, ...matrix };
+    if (useCache) {
+      setCachedItem(CORRELATION_CACHE_KEY, matrix);
+    }
+  } else {
+    correlations = { ...DEFAULT_CORRELATIONS };
+  }
+  window.correlations = correlations;
+  window.correlationsLastUpdated = Date.now();
+  return correlations;
+}
+
+window.loadCorrelationsFromAlphaVantage = loadCorrelationsFromAlphaVantage;
+
+async function buildVolatilityMapFromAlphaVantage(symbols, options = {}) {
+  const useCache = options?.useCache !== false;
+  const forceRefresh = options?.forceRefresh === true;
+  const results = {};
+
+  for (let i = 0; i < symbols.length; i += 1) {
+    const symbol = symbols[i];
+    const returnSeries = await getReturnSeriesForSymbol(symbol, {
+      useCache: useCache && !forceRefresh,
+      cacheResult: !forceRefresh,
+    });
+
+    const values = Array.isArray(returnSeries)
+      ? returnSeries.map((point) => point.value).filter((value) => Number.isFinite(value))
+      : [];
+    const dailyStd = sampleStandardDeviation(values);
+    if (Number.isFinite(dailyStd) && dailyStd > 0) {
+      results[symbol] = dailyStd * Math.sqrt(TRADING_DAYS_PER_YEAR);
+    }
+  }
+
+  return results;
+}
+
+async function loadVolatilitiesFromAlphaVantage(options = {}) {
+  const symbols = Array.isArray(assetKeys) ? assetKeys : null;
+  if (!symbols || !symbols.length) {
+    return volatilities;
+  }
+
+  const useCache = options?.useCache !== false;
+  const forceRefresh = options?.forceRefresh === true;
+
+  if (useCache && !forceRefresh) {
+    const cachedMap = getCachedItem(VOLATILITY_CACHE_KEY, VOLATILITY_CACHE_TTL_MS);
+    if (cachedMap && typeof cachedMap === 'object') {
+      volatilities = { ...STATIC_DEFAULT_VOLATILITIES, ...cachedMap };
+      if (typeof window !== 'undefined') {
+        window.volatilities = volatilities;
+        window.volatilitiesLastUpdated = Date.now();
+      }
+      return volatilities;
+    }
+  }
+
+  const volatilityMap = await buildVolatilityMapFromAlphaVantage(symbols, {
+    useCache,
+    forceRefresh,
+  });
+  if (Object.keys(volatilityMap).length) {
+    volatilities = { ...STATIC_DEFAULT_VOLATILITIES, ...volatilityMap };
+    if (useCache) {
+      setCachedItem(VOLATILITY_CACHE_KEY, volatilityMap);
+    }
+  } else {
+    volatilities = { ...STATIC_DEFAULT_VOLATILITIES };
+  }
+
+  if (typeof window !== 'undefined') {
+    window.volatilities = volatilities;
+    window.volatilitiesLastUpdated = Date.now();
+  }
+
+  return volatilities;
+}
+
+window.loadVolatilitiesFromAlphaVantage = loadVolatilitiesFromAlphaVantage;
 
 const portfolioDefaults = Object.freeze({
   riskFreeRate: RISK_FREE_RATE,
@@ -464,4 +898,3 @@ const stockDetailsContent = {
     cons: "Extreme price volatility and regulatory uncertainty. Short trading history leaves drawdown behavior unpredictable.",
   },
 };
-
