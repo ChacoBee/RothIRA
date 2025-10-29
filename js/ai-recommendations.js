@@ -46,6 +46,25 @@ const aiPortfolioDefaults =
     ? window.portfolioDefaults
     : {};
 
+const RISK_SCORE_PARAMS =
+  aiPortfolioDefaults && typeof aiPortfolioDefaults.riskScoreParams === "object"
+    ? aiPortfolioDefaults.riskScoreParams
+    : {};
+
+const aiCorrelationMatrix =
+  (typeof aiPortfolioDefaults === "object" &&
+    aiPortfolioDefaults !== null &&
+    typeof aiPortfolioDefaults.correlations === "object"
+      ? aiPortfolioDefaults.correlations
+      : null) ||
+  (typeof window !== "undefined" &&
+    typeof window.correlations === "object"
+      ? window.correlations
+      : null) ||
+  (typeof correlations !== "undefined" && typeof correlations === "object"
+      ? correlations
+      : {});
+
 const PHS_WEIGHTS = {
   allocation: 0.2,
   diversification: 0.15,
@@ -65,6 +84,20 @@ const PHS_RISK_TOLERANCE =
   typeof aiPortfolioDefaults.riskToleranceRatio === "number"
     ? aiPortfolioDefaults.riskToleranceRatio
     : 0.2;
+
+const RISK_IN_BAND_FLOOR = clamp(
+  safeNumber(RISK_SCORE_PARAMS.inBandFloor, 60),
+  0,
+  95
+);
+const RISK_IN_BAND_POWER = Math.max(
+  1,
+  safeNumber(RISK_SCORE_PARAMS.inBandPower, 1.6)
+);
+const RISK_OUT_OF_BAND_DECAY = Math.max(
+  0.5,
+  safeNumber(RISK_SCORE_PARAMS.outOfBandDecay, 3.2)
+);
 
 const PHS_COST_CAP =
   typeof aiPortfolioDefaults.costCap === "number"
@@ -199,6 +232,33 @@ function weightedAverage(weights, valuesMap, fallback = 0) {
   return total;
 }
 
+function getAssetVolatility(asset, volMap, fallback = 0.2) {
+  if (volMap && Number.isFinite(volMap[asset]) && volMap[asset] > 0) {
+    return Number(volMap[asset]);
+  }
+  if (
+    DEFAULT_VOLATILITIES &&
+    Number.isFinite(DEFAULT_VOLATILITIES[asset]) &&
+    DEFAULT_VOLATILITIES[asset] > 0
+  ) {
+    return Number(DEFAULT_VOLATILITIES[asset]);
+  }
+  return fallback;
+}
+
+function getCorrelationEstimate(assetA, assetB) {
+  if (assetA === assetB) {
+    return 1;
+  }
+  const matrix =
+    typeof aiCorrelationMatrix === "object" && aiCorrelationMatrix !== null
+      ? aiCorrelationMatrix
+      : {};
+  const key = assetA < assetB ? `${assetA}_${assetB}` : `${assetB}_${assetA}`;
+  const estimated = safeNumber(matrix[key], 0);
+  return clamp(estimated, -1, 1);
+}
+
 function calculatePortfolioMetrics(
   assetList,
   targetPercents,
@@ -254,11 +314,40 @@ function calculatePortfolioMetrics(
   );
   const beta = weightedAverage(targetFractions, betaMap || {}, 1);
 
-  const variance = assetList.reduce((acc, asset) => {
-    const weight = safeNumber(targetFractions[asset]);
-    const vol = safeNumber(volMap && volMap[asset], 0.2);
-    return acc + weight * weight * vol * vol;
-  }, 0);
+  const weightVector = assetList.map((asset) =>
+    Math.max(0, safeNumber(targetFractions[asset]))
+  );
+  const volatilityVector = assetList.map((asset) =>
+    getAssetVolatility(asset, volMap)
+  );
+
+  let variance = 0;
+  for (let i = 0; i < assetList.length; i += 1) {
+    const weightI = weightVector[i];
+    const sigmaI = volatilityVector[i];
+    if (
+      !Number.isFinite(weightI) ||
+      weightI <= 0 ||
+      !Number.isFinite(sigmaI) ||
+      sigmaI <= 0
+    ) {
+      continue;
+    }
+    for (let j = 0; j < assetList.length; j += 1) {
+      const weightJ = weightVector[j];
+      const sigmaJ = volatilityVector[j];
+      if (
+        !Number.isFinite(weightJ) ||
+        weightJ <= 0 ||
+        !Number.isFinite(sigmaJ) ||
+        sigmaJ <= 0
+      ) {
+        continue;
+      }
+      const correlation = getCorrelationEstimate(assetList[i], assetList[j]);
+      variance += weightI * weightJ * sigmaI * sigmaJ * correlation;
+    }
+  }
   const volatility = Math.sqrt(Math.max(variance, 0));
 
   const sharpe =
@@ -405,17 +494,18 @@ function computeDiversificationScore(metrics) {
     .sort((a, b) => b - a);
 
   const topHolding = currentWeights[0] || 0;
+  const topTwo = currentWeights.slice(0, 2).reduce((sum, weight) => sum + weight, 0);
   const topThree = currentWeights.slice(0, 3).reduce((sum, weight) => sum + weight, 0);
 
   let penalty = 0;
   if (assetCount < 5) {
     penalty += (5 - assetCount) * 5;
   }
-  if (topHolding > 25) {
-    penalty += Math.min((topHolding - 25) * 1.2, 15);
+  if (topHolding > 30) {
+    penalty += Math.min((topHolding - 30) * 1.2, 15);
   }
-  if (topThree > 60) {
-    penalty += Math.min((topThree - 60) * 0.8, 12);
+  if (topTwo > 60) {
+    penalty += Math.min((topTwo - 60) * 0.8, 12);
   }
 
   const score = clamp(baseScore - penalty, 0, 100);
@@ -424,6 +514,7 @@ function computeDiversificationScore(metrics) {
     score,
     effectivePositions,
     topHolding,
+    topTwo,
     topThree,
     assetCount,
   };
@@ -457,21 +548,68 @@ function computeCostScore(metrics) {
 
 function computeRiskBudgetScore(metrics) {
   if (!metrics) {
-    return { score: 0, targetVol: PHS_RISK_TARGET_VOL, tolerance: PHS_RISK_TOLERANCE, deviationRatio: 1 };
+    return {
+      score: 0,
+      targetVol: PHS_RISK_TARGET_VOL,
+      tolerance: PHS_RISK_TOLERANCE,
+      deviationRatio: 1,
+      gap: 0,
+      guardrailBandwidth: PHS_RISK_TARGET_VOL * PHS_RISK_TOLERANCE,
+      utilization: 1,
+      withinGuardrail: false,
+    };
   }
 
-  const portfolioVol = Math.max(0, safeNumber(metrics.volatility));
+  let portfolioVol = Math.max(0, safeNumber(metrics.volatility));
+  if (
+    portfolioVol <= 0 &&
+    typeof window !== "undefined" &&
+    window.lastVolatilitySnapshot &&
+    Number.isFinite(window.lastVolatilitySnapshot.volatility)
+  ) {
+    portfolioVol = Math.max(0, window.lastVolatilitySnapshot.volatility);
+  }
   const targetVol = Math.max(0.01, PHS_RISK_TARGET_VOL);
   const tolerance = Math.max(0.05, PHS_RISK_TOLERANCE);
 
-  const deviationRatio = Math.abs(portfolioVol - targetVol) / (tolerance * targetVol);
-  const score = clamp((1 - Math.min(deviationRatio, 1)) * 100, 0, 100);
+  const gap = Math.abs(portfolioVol - targetVol);
+  const normalizedGap = gap / targetVol;
+  const guardrailBandwidth = tolerance * targetVol;
+  const deviationRatio =
+    guardrailBandwidth > 0 ? normalizedGap / tolerance : normalizedGap;
+  const withinGuardrail = normalizedGap <= tolerance + 1e-8;
+  const bandUtilization =
+    guardrailBandwidth > 0 ? gap / guardrailBandwidth : null;
+
+  let score;
+  if (withinGuardrail) {
+    const falloff = Math.pow(
+      clamp(bandUtilization ?? 0, 0, 1),
+      RISK_IN_BAND_POWER
+    );
+    score = 100 - (100 - RISK_IN_BAND_FLOOR) * falloff;
+  } else {
+    const overrun =
+      guardrailBandwidth > 0 ? (gap - guardrailBandwidth) / guardrailBandwidth : gap;
+    const decay = Math.exp(-RISK_OUT_OF_BAND_DECAY * Math.max(overrun, 0));
+    score = RISK_IN_BAND_FLOOR * decay;
+  }
+
+  const utilizationRatio = Number.isFinite(bandUtilization)
+    ? clamp(bandUtilization, 0, 1)
+    : 1;
 
   return {
-    score,
+    score: clamp(score, 0, 100),
     targetVol,
     tolerance,
     deviationRatio,
+    gap,
+    normalizedGap,
+    guardrailBandwidth,
+    utilization: utilizationRatio,
+    bandUtilization,
+    withinGuardrail,
   };
 }
 
@@ -557,12 +695,12 @@ function buildPortfolioHealth(metrics, actions) {
   const guardrails = [];
 
   const topHolding = diversification.topHolding;
-  const topThree = diversification.topThree;
-  if (topHolding > 25) {
-    guardrails.push(`Top holding ${topHolding.toFixed(1)}% exceeds 25% guardrail.`);
+  const topTwo = diversification.topTwo || diversification.topThree || 0;
+  if (topHolding > 30) {
+    guardrails.push(`Top holding ${topHolding.toFixed(1)}% exceeds 30% guardrail.`);
   }
-  if (topThree > 60) {
-    guardrails.push(`Top 3 holdings ${topThree.toFixed(1)}% exceed 60% guardrail.`);
+  if (topTwo > 60) {
+    guardrails.push(`Top 2 holdings ${topTwo.toFixed(1)}% exceed 60% guardrail.`);
   }
 
   const effectiveContributors = diversification.effectivePositions;
@@ -630,15 +768,31 @@ function buildPortfolioHealth(metrics, actions) {
     );
   }
   if (diversification.score < 70) {
-    watchlist.push(
-      `Concentration risk: top holding ${topHolding.toFixed(1)}%.`
-    );
+    const concentrationNote =
+      topTwo > 0
+        ? `Concentration risk: top 2 holdings ${topTwo.toFixed(1)}%.`
+        : `Concentration risk: top holding ${topHolding.toFixed(1)}%.`;
+    watchlist.push(concentrationNote);
   }
   if (risk.score < 75) {
+    const direction = portfolioVol >= risk.targetVol ? "above" : "below";
+    const gapNote = Number.isFinite(risk.gap)
+      ? `${(risk.gap * 100).toFixed(1)} pts ${direction}`
+      : direction;
+    const rawUtilization =
+      Number.isFinite(risk.bandUtilization) && risk.bandUtilization >= 0
+        ? risk.bandUtilization * 100
+        : Number.isFinite(risk.utilization)
+          ? risk.utilization * 100
+          : null;
+    const utilizationNote =
+      rawUtilization !== null
+        ? `band usage ${rawUtilization.toFixed(rawUtilization >= 100 ? 0 : 1)}%.`
+        : "band usage n/a.";
     watchlist.push(
       `Vol ${(portfolioVol * 100).toFixed(1)}% vs ${(risk.targetVol * 100).toFixed(
         1
-      )}% target.`
+      )}% target (${gapNote}, ${utilizationNote})`
     );
   }
   if (liquidity.singleWeight > 0.15) {
