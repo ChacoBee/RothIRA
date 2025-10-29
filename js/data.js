@@ -140,6 +140,9 @@ const REBALANCE_THRESHOLD = 5.0; // Deviation threshold
 
 // Core market assumptions used across analytics modules
 const RISK_FREE_RATE = 0.045; // 4.5% annual risk-free rate
+const BENCHMARK_EXPECTED_RETURN = 0.1; // 10% assumed long-run market return
+const EQUITY_RISK_PREMIUM = Math.max(0, BENCHMARK_EXPECTED_RETURN - RISK_FREE_RATE);
+
 const assetBetas = {
   VOO: 1.0,
   QQQM: 1.2,
@@ -153,15 +156,15 @@ const assetBetas = {
 const BASE_ASSET_BETAS = Object.freeze({ ...assetBetas });
 
 // Analytics Data: Expected Returns (annual), Volatilities (annual), and Correlations
-const expectedReturns = {
-  VOO: 0.08, // 8%
-  QQQM: 0.12, // 12%
-  SMH: 0.15, // 15%
-  VXUS: 0.07, // 7%
-  AVUV: 0.11, // 11%
-  IBIT: 0.20, // 20%
-  AMZN: 0.18, // 18%
-};
+function deriveCapmExpectedReturn(betaEstimate) {
+  const beta = Number.isFinite(betaEstimate) ? betaEstimate : 1;
+  return RISK_FREE_RATE + beta * EQUITY_RISK_PREMIUM;
+}
+
+const expectedReturns = assetKeys.reduce((acc, key) => {
+  acc[key] = deriveCapmExpectedReturn(assetBetas[key]);
+  return acc;
+}, {});
 
 const BASE_EXPECTED_RETURNS = Object.freeze({ ...expectedReturns });
 
@@ -186,8 +189,6 @@ const expenseRatios = {
   IBIT: 0.0025, // 0.25%
   AMZN: 0.0, // Direct equity, no fund expense
 };
-
-const BENCHMARK_EXPECTED_RETURN = 0.1; // 10% assumed long-run market return
 
 const correlations = {
   AMZN_AVUV: 0.6,
@@ -215,6 +216,8 @@ const correlations = {
 
 const portfolioDefaults = Object.freeze({
   riskFreeRate: RISK_FREE_RATE,
+  marketReturn: BENCHMARK_EXPECTED_RETURN,
+  equityRiskPremium: EQUITY_RISK_PREMIUM,
   expectedReturns: BASE_EXPECTED_RETURNS,
   volatilities: BASE_VOLATILITIES,
   assetBetas: BASE_ASSET_BETAS,

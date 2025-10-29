@@ -32,6 +32,14 @@ const DEFAULT_BENCHMARK_RETURN =
   typeof BENCHMARK_EXPECTED_RETURN === 'number'
     ? BENCHMARK_EXPECTED_RETURN
     : 0.085;
+const DEFAULT_EQUITY_RISK_PREMIUM = Math.max(
+  0,
+  DEFAULT_BENCHMARK_RETURN - DEFAULT_RISK_FREE_RATE
+);
+const capmExpectedReturnFn =
+  typeof deriveCapmExpectedReturn === 'function'
+    ? deriveCapmExpectedReturn
+    : null;
 
 let analyticsCharts = {}; // Store chart instances
 
@@ -47,6 +55,12 @@ if (!CONTRIBUTION_MODES.includes(assetContributionMode)) {
 
 let contributionSnapshots = loadContributionSnapshots();
 let stressTestBaseline = null;
+let lastVolatilitySnapshot = null;
+let lastBetaSnapshot = null;
+let lastDiversitySnapshot = null;
+let lastSortinoSnapshot = null;
+let lastDrawdownSnapshot = null;
+let lastExpenseSnapshot = null;
 
 // Function to get current target percentages from rebalance section
 function getCurrentTargets() {
@@ -160,11 +174,35 @@ function scoreDiversity(index) {
   return 4;
 }
 
-// Calculate portfolio expected return using normalized weights
+function computeCapmExpectedReturn(betaEstimate) {
+  if (capmExpectedReturnFn) {
+    return capmExpectedReturnFn(betaEstimate);
+  }
+  const beta = Number.isFinite(betaEstimate) ? betaEstimate : 1;
+  return DEFAULT_RISK_FREE_RATE + beta * DEFAULT_EQUITY_RISK_PREMIUM;
+}
+
+function getAssetExpectedReturnValue(key) {
+  const overrides =
+    typeof expectedReturns === 'object' && expectedReturns !== null
+      ? expectedReturns
+      : null;
+  const overrideValue = overrides ? overrides[key] : undefined;
+  if (Number.isFinite(overrideValue)) {
+    return overrideValue;
+  }
+  const betaEstimate =
+    typeof portfolioAssetBetas === 'object' && portfolioAssetBetas !== null
+      ? portfolioAssetBetas[key]
+      : undefined;
+  return computeCapmExpectedReturn(betaEstimate);
+}
+
+// Calculate portfolio expected return (CAPM baseline with per-asset overrides) using normalized weights
 function calculateExpectedReturn(targets) {
   const weights = normalizeWeights(targets);
   return assetKeys.reduce((sum, key) => {
-    const assetReturn = expectedReturns[key] ?? 0;
+    const assetReturn = getAssetExpectedReturnValue(key);
     return sum + (weights[key] || 0) * assetReturn;
   }, 0);
 }
@@ -172,25 +210,37 @@ function calculateExpectedReturn(targets) {
 // Calculate portfolio volatility (standard deviation)
 function calculateVolatility(targets) {
   const weights = normalizeWeights(targets);
-  let variance = 0;
+  const covarianceMatrix = buildCovarianceMatrix();
+  const weightVector = assetKeys.map((key) => weights[key] || 0);
 
-  for (let i = 0; i < assetKeys.length; i += 1) {
-    const assetI = assetKeys[i];
-    const weightI = weights[assetI] || 0;
-    const sigmaI = volatilities[assetI] ?? 0;
-    variance += weightI * weightI * sigmaI * sigmaI;
+  const variance = weightVector.reduce((sum, weightI, i) => {
+    if (!Number.isFinite(weightI) || weightI === 0) return sum;
+    const row = covarianceMatrix[i] || [];
+    const contribution = weightVector.reduce((inner, weightJ, j) => {
+      if (!Number.isFinite(weightJ) || weightJ === 0) return inner;
+      const covariance = row[j] ?? 0;
+      return inner + covariance * weightJ;
+    }, 0);
+    return sum + weightI * contribution;
+  }, 0);
 
-    for (let j = i + 1; j < assetKeys.length; j += 1) {
-      const assetJ = assetKeys[j];
-      const weightJ = weights[assetJ] || 0;
-      if (weightJ <= 0) continue;
-      const sigmaJ = volatilities[assetJ] ?? 0;
-      const correlation = getCorrelation(assetI, assetJ);
-      variance += 2 * weightI * weightJ * sigmaI * sigmaJ * correlation;
-    }
-  }
+  const clampedVariance = Math.max(variance, 0);
+  const volatility = Math.sqrt(clampedVariance);
+  const weightSum = weightVector.reduce(
+    (acc, weight) => acc + (Number.isFinite(weight) ? weight : 0),
+    0
+  );
 
-  return Math.sqrt(Math.max(variance, 0));
+  lastVolatilitySnapshot = {
+    normalizedWeights: { ...weights },
+    weightVector: [...weightVector],
+    covarianceMatrix,
+    variance: clampedVariance,
+    volatility,
+    weightSum,
+  };
+
+  return volatility;
 }
 
 // Calculate Sharpe Ratio with configurable risk-free rate
@@ -231,8 +281,25 @@ function calculateSortinoRatio(expectedReturn, riskFreeRate, volatility) {
     volatility,
     riskFreeRate
   );
-  if (!Number.isFinite(downsideDeviation) || downsideDeviation <= 0) return 0;
-  return (expectedReturn - riskFreeRate) / downsideDeviation;
+  const sanitizedDeviation = Number.isFinite(downsideDeviation) ? Math.max(downsideDeviation, 0) : null;
+  const meanExcess = expectedReturn - riskFreeRate;
+  if (!Number.isFinite(downsideDeviation) || downsideDeviation <= 0) {
+    lastSortinoSnapshot = {
+      target: riskFreeRate,
+      downsideDeviation: sanitizedDeviation,
+      meanExcess,
+      ratio: 0,
+    };
+    return 0;
+  }
+  const ratio = meanExcess / downsideDeviation;
+  lastSortinoSnapshot = {
+    target: riskFreeRate,
+    downsideDeviation,
+    meanExcess,
+    ratio,
+  };
+  return ratio;
 }
 
 function createDeterministicRandom(seed = 1234567) {
@@ -266,21 +333,64 @@ function createNormalSampler(rng) {
   };
 }
 
-function computeDrawdownFromSeries(series) {
+function computeDrawdownFromSeries(
+  series,
+  options = {}
+) {
+  const {
+    stepMonths = 1,
+    stepTradingDays = null,
+    stepCalendarDays = null,
+  } = options || {};
+
+  const multiplyIfFinite = (steps, multiplier) => {
+    if (
+      !Number.isFinite(steps) ||
+      steps === null ||
+      !Number.isFinite(multiplier) ||
+      multiplier <= 0
+    ) {
+      return null;
+    }
+    return steps * multiplier;
+  };
+
   if (!Array.isArray(series) || series.length === 0) {
-    return { maxDrawdown: 0, recoveryMonths: null };
+    return {
+      maxDrawdown: 0,
+      recoveryMonths: null,
+      recoveryTradingDays: null,
+      recoveryCalendarDays: null,
+      recoverySteps: null,
+      timeUnderWaterMonths: null,
+      timeUnderWaterTradingDays: null,
+      timeUnderWaterSteps: null,
+      peakIndex: 0,
+      troughIndex: 0,
+      peakValue: 0,
+      troughValue: 0,
+      durationMonths: 0,
+      durationTradingDays: null,
+      durationCalendarDays: null,
+      durationSteps: 0,
+    };
   }
+
   let peak = series[0];
   let peakIndex = 0;
+  let peakValue = series[0];
   let maxDrawdown = 0;
   let maxDrawdownPeakIndex = 0;
   let maxDrawdownTroughIndex = 0;
+  let maxDrawdownPeakValue = series[0];
+  let maxDrawdownTroughValue = series[0];
 
   for (let i = 1; i < series.length; i += 1) {
     const value = series[i];
     if (value > peak) {
       peak = value;
       peakIndex = i;
+      peakValue = value;
       continue;
     }
     const drawdown = peak > 0 ? (peak - value) / peak : 0;
@@ -288,29 +398,120 @@ function computeDrawdownFromSeries(series) {
       maxDrawdown = drawdown;
       maxDrawdownPeakIndex = peakIndex;
       maxDrawdownTroughIndex = i;
+      maxDrawdownPeakValue = peak;
+      maxDrawdownTroughValue = value;
     }
   }
 
   if (maxDrawdown === 0) {
-    return { maxDrawdown: 0, recoveryMonths: 0 };
+    return {
+      maxDrawdown: 0,
+      recoveryMonths: 0,
+      recoveryTradingDays: stepTradingDays ? 0 : null,
+      recoveryCalendarDays: stepCalendarDays ? 0 : null,
+      recoverySteps: 0,
+      timeUnderWaterMonths: 0,
+      timeUnderWaterTradingDays: stepTradingDays ? 0 : null,
+      timeUnderWaterSteps: 0,
+      peakIndex: 0,
+      troughIndex: 0,
+      peakValue: series[0],
+      troughValue: series[0],
+      durationMonths: 0,
+      durationTradingDays: stepTradingDays ? 0 : null,
+      durationCalendarDays: stepCalendarDays ? 0 : null,
+      durationSteps: 0,
+    };
   }
 
   const recoveryTarget = series[maxDrawdownPeakIndex];
-  let recoveryMonths = null;
+  let recoveryStepCount = null;
+  let timeUnderWaterStepCount = null;
   for (let i = maxDrawdownTroughIndex + 1; i < series.length; i += 1) {
     if (series[i] >= recoveryTarget) {
-      recoveryMonths = i - maxDrawdownPeakIndex;
+      recoveryStepCount = i - maxDrawdownTroughIndex;
+      timeUnderWaterStepCount = i - maxDrawdownPeakIndex;
       break;
     }
   }
 
-  return { maxDrawdown, recoveryMonths };
+  const durationSteps = Math.max(
+    0,
+    maxDrawdownTroughIndex - maxDrawdownPeakIndex
+  );
+
+  const recoveryMonths = multiplyIfFinite(
+    recoveryStepCount,
+    stepMonths
+  );
+  const recoveryTradingDays = multiplyIfFinite(
+    recoveryStepCount,
+    stepTradingDays
+  );
+  const recoveryCalendarDays = multiplyIfFinite(
+    recoveryStepCount,
+    stepCalendarDays
+  );
+
+  const timeUnderWaterMonths = multiplyIfFinite(
+    timeUnderWaterStepCount,
+    stepMonths
+  );
+  const timeUnderWaterTradingDays = multiplyIfFinite(
+    timeUnderWaterStepCount,
+    stepTradingDays
+  );
+
+  const durationMonths = multiplyIfFinite(durationSteps, stepMonths);
+  const durationTradingDays = multiplyIfFinite(
+    durationSteps,
+    stepTradingDays
+  );
+  const durationCalendarDays = multiplyIfFinite(
+    durationSteps,
+    stepCalendarDays
+  );
+
+  return {
+    maxDrawdown,
+    recoveryMonths,
+    recoveryTradingDays,
+    recoveryCalendarDays,
+    recoverySteps: recoveryStepCount,
+    timeUnderWaterMonths,
+    timeUnderWaterTradingDays,
+    timeUnderWaterSteps: timeUnderWaterStepCount,
+    peakIndex: maxDrawdownPeakIndex,
+    troughIndex: maxDrawdownTroughIndex,
+    peakValue: maxDrawdownPeakValue,
+    troughValue: maxDrawdownTroughValue,
+    durationMonths,
+    durationTradingDays,
+    durationCalendarDays,
+    durationSteps,
+  };
 }
 
 function simulateDrawdownMetrics(expectedReturn, volatility, simulations = 60) {
   if (!Number.isFinite(expectedReturn)) expectedReturn = 0;
   if (!Number.isFinite(volatility) || volatility <= 0) {
-    return { maxDrawdown: 0, recoveryMonths: 0 };
+    lastDrawdownSnapshot = {
+      averageDrawdown: 0,
+      averageRecoveryMonths: 0,
+      averageRecoveryTradingDays: 0,
+      averageRecoveryCalendarDays: 0,
+      horizonMonths: 0,
+      simulations: 0,
+      monthlyReturn: 0,
+      monthlyVolatility: 0,
+      worstCase: null,
+    };
+    return {
+      maxDrawdown: 0,
+      recoveryMonths: 0,
+      recoveryTradingDays: 0,
+      recoveryCalendarDays: 0,
+    };
   }
 
   const rng = createDeterministicRandom();
@@ -318,10 +519,19 @@ function simulateDrawdownMetrics(expectedReturn, volatility, simulations = 60) {
   const periods = 120; // monthly over 10 years
   const monthlyReturn = Math.pow(1 + expectedReturn, 1 / 12) - 1;
   const monthlyVol = volatility / Math.sqrt(12);
+  const stepOptions = {
+    stepMonths: 1,
+    stepTradingDays: 252 / 12,
+    stepCalendarDays: 365 / 12,
+  };
 
   let maxDrawdownSum = 0;
-  let recoverySum = 0;
-  let recoveryCount = 0;
+  let recoveryMonthSum = 0;
+  let recoveryTradingDaySum = 0;
+  let recoveryCalendarDaySum = 0;
+  let recoveryMonthCount = 0;
+  let worstDrawdown = -Infinity;
+  let worstDetails = null;
 
   for (let sim = 0; sim < simulations; sim += 1) {
     const path = [1];
@@ -332,39 +542,133 @@ function simulateDrawdownMetrics(expectedReturn, volatility, simulations = 60) {
       path.push(nextValue);
     }
 
-    const { maxDrawdown, recoveryMonths } = computeDrawdownFromSeries(path);
+    const drawdownMetrics = computeDrawdownFromSeries(path, stepOptions);
+    const {
+      maxDrawdown,
+      recoveryMonths,
+      recoveryTradingDays,
+      recoveryCalendarDays,
+    } = drawdownMetrics;
     maxDrawdownSum += maxDrawdown;
     if (Number.isFinite(recoveryMonths) && recoveryMonths !== null) {
-      recoverySum += recoveryMonths;
-      recoveryCount += 1;
+      recoveryMonthSum += recoveryMonths;
+      recoveryMonthCount += 1;
+    }
+    if (Number.isFinite(recoveryTradingDays) && recoveryTradingDays !== null) {
+      recoveryTradingDaySum += recoveryTradingDays;
+    }
+    if (
+      Number.isFinite(recoveryCalendarDays) &&
+      recoveryCalendarDays !== null
+    ) {
+      recoveryCalendarDaySum += recoveryCalendarDays;
+    }
+    if (maxDrawdown > worstDrawdown) {
+      worstDrawdown = maxDrawdown;
+      worstDetails = {
+        maxDrawdown,
+        recoveryMonths,
+        recoveryTradingDays,
+        recoveryCalendarDays,
+        peakIndex: drawdownMetrics.peakIndex,
+        troughIndex: drawdownMetrics.troughIndex,
+        peakValue: drawdownMetrics.peakValue,
+        troughValue: drawdownMetrics.troughValue,
+        durationMonths: drawdownMetrics.durationMonths,
+        durationTradingDays: drawdownMetrics.durationTradingDays,
+        durationCalendarDays: drawdownMetrics.durationCalendarDays,
+        recoverySteps: drawdownMetrics.recoverySteps,
+        timeUnderWaterMonths: drawdownMetrics.timeUnderWaterMonths,
+        timeUnderWaterTradingDays: drawdownMetrics.timeUnderWaterTradingDays,
+        timeUnderWaterSteps: drawdownMetrics.timeUnderWaterSteps,
+      };
     }
   }
 
   const avgDrawdown = Math.max(maxDrawdownSum / simulations, 0);
-  const avgRecovery =
-    recoveryCount > 0 ? recoverySum / recoveryCount : periods / 2;
+  const avgRecoveryMonths =
+    recoveryMonthCount > 0 ? recoveryMonthSum / recoveryMonthCount : null;
+  const avgRecoveryTradingDays =
+    recoveryMonthCount > 0
+      ? recoveryTradingDaySum / recoveryMonthCount
+      : null;
+  const avgRecoveryCalendarDays =
+    recoveryMonthCount > 0
+      ? recoveryCalendarDaySum / recoveryMonthCount
+      : null;
+
+  lastDrawdownSnapshot = {
+    averageDrawdown: avgDrawdown,
+    averageRecoveryMonths: avgRecoveryMonths,
+    averageRecoveryTradingDays: avgRecoveryTradingDays,
+    averageRecoveryCalendarDays: avgRecoveryCalendarDays,
+    horizonMonths: periods,
+    simulations,
+    monthlyReturn,
+    monthlyVolatility: monthlyVol,
+    worstCase: worstDetails,
+  };
 
   return {
     maxDrawdown: Math.min(avgDrawdown, 0.95),
-    recoveryMonths: avgRecovery,
+    recoveryMonths: avgRecoveryMonths,
+    recoveryTradingDays: avgRecoveryTradingDays,
+    recoveryCalendarDays: avgRecoveryCalendarDays,
   };
 }
 
 // Calculate Portfolio Beta (weighted average of asset betas)
 function calculatePortfolioBeta(targets) {
   const weights = normalizeWeights(targets);
-  return assetKeys.reduce((sum, key) => {
+  const betaContributions = {};
+  let portfolioBeta = 0;
+
+  assetKeys.forEach((key) => {
+    const weight = weights[key] || 0;
+    if (!Number.isFinite(weight) || weight === 0) {
+      betaContributions[key] = 0;
+      return;
+    }
     const assetBeta = portfolioAssetBetas[key] ?? 1;
-    return sum + (weights[key] || 0) * assetBeta;
-  }, 0);
+    const contribution = weight * assetBeta;
+    betaContributions[key] = contribution;
+    portfolioBeta += contribution;
+  });
+
+  lastBetaSnapshot = {
+    normalizedWeights: { ...weights },
+    contributions: { ...betaContributions },
+    assetBetas: { ...portfolioAssetBetas },
+    portfolioBeta,
+  };
+
+  return portfolioBeta;
 }
 
 function calculateWeightedExpenseRatio(targets) {
   const weights = normalizeWeights(targets);
-  return assetKeys.reduce((sum, key) => {
+  const contributions = {};
+  let total = 0;
+
+  assetKeys.forEach((key) => {
+    const weight = weights[key] || 0;
+    if (!Number.isFinite(weight) || weight <= 0) {
+      contributions[key] = 0;
+      return;
+    }
     const ratio = portfolioExpenseRatios[key] ?? 0;
-    return sum + (weights[key] || 0) * ratio;
-  }, 0);
+    const contribution = weight * ratio;
+    contributions[key] = contribution;
+    total += contribution;
+  });
+
+  lastExpenseSnapshot = {
+    normalizedWeights: { ...weights },
+    contributions,
+    total,
+  };
+
+  return total;
 }
 
 function calculateAlpha(expectedReturn, beta) {
@@ -406,16 +710,103 @@ function calculatePortfolioScore({ sharpeRatio, volatility, beta, diversityIndex
 
 // Function to calculate Diversity Score
 function calculateDiversityScore(targets) {
-  const weights = Object.values(normalizeWeights(targets));
-  if (!weights.length) {
-    return { index: 0, score: 0 };
+  const normalizedWeights = normalizeWeights(targets);
+  const weights = assetKeys
+    .map((key) => normalizedWeights[key] || 0)
+    .filter((weight) => Number.isFinite(weight) && weight > 0);
+  const assetCount = weights.length;
+
+  if (!assetCount) {
+    lastDiversitySnapshot = null;
+    return { index: 0, score: 0, details: null };
   }
 
   const hhi = weights.reduce((sum, weight) => sum + weight * weight, 0);
-  const diversityIndex = Math.max(0, Math.min(1, 1 - hhi));
+  const effectiveHoldings = hhi > 0 ? 1 / hhi : 0;
+  let diversityQuick = 0;
+  if (assetCount > 1) {
+    const denominator = 1 - 1 / assetCount;
+    diversityQuick = denominator > 0 ? (1 - hhi) / denominator : 0;
+  }
+  diversityQuick = Math.max(0, Math.min(1, diversityQuick));
+
+  const covarianceMatrix = buildCovarianceMatrix();
+  const fullWeightVector = assetKeys.map((key) => normalizedWeights[key] || 0);
+  const variance = fullWeightVector.reduce((sum, weightI, i) => {
+    if (!Number.isFinite(weightI) || weightI === 0) return sum;
+    const row = covarianceMatrix[i] || [];
+    const contribution = fullWeightVector.reduce((inner, weightJ, j) => {
+      if (!Number.isFinite(weightJ) || weightJ === 0) return inner;
+      const covariance = row[j] ?? 0;
+      return inner + covariance * weightJ;
+    }, 0);
+    return sum + weightI * contribution;
+  }, 0);
+
+  let diversityCorr = Number.isFinite(diversityQuick) ? diversityQuick : 0;
+  const riskShares = {};
+
+  if (Number.isFinite(variance) && variance > 0) {
+    let sumSquares = 0;
+    assetKeys.forEach((key, i) => {
+      const weight = fullWeightVector[i];
+      if (!Number.isFinite(weight) || weight === 0) {
+        riskShares[key] = 0;
+        return;
+      }
+      const row = covarianceMatrix[i] || [];
+      const contribution = fullWeightVector.reduce((inner, weightJ, j) => {
+        if (!Number.isFinite(weightJ) || weightJ === 0) return inner;
+        const covariance = row[j] ?? 0;
+        return inner + covariance * weightJ;
+      }, 0);
+      const riskShare = contribution > 0 ? (weight * contribution) / variance : 0;
+      riskShares[key] = riskShare;
+      sumSquares += riskShare * riskShare;
+    });
+
+    if (sumSquares > 0) {
+      const effectiveRiskContributors = 1 / sumSquares;
+      if (assetCount > 1) {
+        const denominator = assetCount - 1;
+        const numerator = effectiveRiskContributors - 1;
+        diversityCorr = Math.max(
+          0,
+          Math.min(1, numerator / (denominator > 0 ? denominator : 1))
+        );
+      } else {
+        diversityCorr = 0;
+      }
+    }
+  }
+
+  const diversityIndex = Number.isFinite(diversityCorr) ? diversityCorr : diversityQuick;
   const diversityScore = scoreDiversity(diversityIndex);
 
-  return { index: diversityIndex, score: diversityScore };
+  lastDiversitySnapshot = {
+    weights: { ...normalizedWeights },
+    weightOnlyHHI: hhi,
+    weightOnlyEffectiveHoldings: effectiveHoldings,
+    diversityQuick,
+    diversityCorr,
+    variance,
+    riskShares,
+    assetCount,
+  };
+
+  return {
+    index: diversityIndex,
+    score: diversityScore,
+    details: {
+      hhi,
+      effectiveHoldings,
+      diversityQuick,
+      diversityCorr,
+      variance,
+      riskShares,
+      assetCount,
+    },
+  };
 }
 
 function loadContributionSnapshots() {
@@ -581,7 +972,7 @@ function calculateSharpeMetrics(normalizedWeights) {
   let totalWeightedSharpe = 0;
 
   assetKeys.forEach((key) => {
-    const assetReturn = expectedReturns[key] ?? 0;
+    const assetReturn = getAssetExpectedReturnValue(key);
     const assetVol = volatilities[key] ?? 0;
     let sharpe = 0;
     if (Number.isFinite(assetVol) && assetVol > 0) {
@@ -753,6 +1144,7 @@ function populateAssetContributionTable(targets) {
 
     let signalValue;
     let contributionValue;
+    let assetExpectedReturn = null;
 
     if (currentMode === 'risk' && riskMetrics) {
       signalValue = riskMetrics.marginalRisk[key] ?? 0;
@@ -761,8 +1153,12 @@ function populateAssetContributionTable(targets) {
       signalValue = sharpeMetrics.sharpeValues[key] ?? 0;
       contributionValue = (weight || 0) * signalValue;
     } else {
-      signalValue = (expectedReturns[key] ?? 0) * 100;
-      contributionValue = (expectedReturns[key] ?? 0) * weight;
+      assetExpectedReturn = getAssetExpectedReturnValue(key);
+      const sanitizedReturn = Number.isFinite(assetExpectedReturn)
+        ? assetExpectedReturn
+        : 0;
+      signalValue = sanitizedReturn * 100;
+      contributionValue = sanitizedReturn * weight;
     }
 
     newSnapshotValues[key] = contributionValue;
@@ -790,7 +1186,11 @@ function populateAssetContributionTable(targets) {
     if (currentMode === 'return') {
       const expectedReturnInput = document.createElement('input');
       expectedReturnInput.type = 'number';
-      expectedReturnInput.value = ((expectedReturns[key] ?? 0) * 100).toFixed(1);
+      const displayReturn = Number.isFinite(assetExpectedReturn)
+        ? assetExpectedReturn
+        : getAssetExpectedReturnValue(key);
+      const inputValue = Number.isFinite(displayReturn) ? displayReturn : 0;
+      expectedReturnInput.value = (inputValue * 100).toFixed(1);
       expectedReturnInput.step = '0.1';
       expectedReturnInput.min = '0';
       expectedReturnInput.max = '50';
@@ -919,18 +1319,63 @@ function populateAssetContributionTable(targets) {
   );
 }
 
-function formatRecoveryLabel(months) {
-  if (!Number.isFinite(months) || months <= 0) return ' - ';
-  const rounded = Math.round(months);
-  if (rounded < 12) {
-    return `${rounded} mo`;
+function formatRecoveryLabel(input) {
+  let months = null;
+  let tradingDays = null;
+  let calendarDays = null;
+
+  if (input && typeof input === 'object') {
+    months = Number.isFinite(input.months) ? input.months : null;
+    tradingDays = Number.isFinite(input.tradingDays)
+      ? input.tradingDays
+      : null;
+    calendarDays = Number.isFinite(input.calendarDays)
+      ? input.calendarDays
+      : null;
+  } else if (Number.isFinite(input)) {
+    months = input;
   }
-  const years = Math.floor(rounded / 12);
-  const remainingMonths = rounded % 12;
-  if (remainingMonths === 0) {
-    return `${years} yr${years > 1 ? 's' : ''}`;
+
+  const formatMonthsDisplay = (value, { approx = false } = {}) => {
+    if (!Number.isFinite(value) || value <= 0) return null;
+    const prefix = approx ? '~' : '';
+    if (value < 12) {
+      const rounded =
+        value >= 10 ? Math.round(value) : Math.round(value * 10) / 10;
+      return `${prefix}${rounded}${rounded === 1 ? ' mo' : ' mo'}`;
+    }
+    const years = value / 12;
+    const displayYears =
+      years >= 5 ? Math.round(years) : Math.round(years * 10) / 10;
+    return `${prefix}${displayYears}${displayYears === 1 ? ' yr' : ' yrs'}`;
+  };
+
+  const tradingLabel =
+    Number.isFinite(tradingDays) && tradingDays > 0
+      ? `${Math.round(tradingDays)} trading days`
+      : null;
+  const monthsLabel = formatMonthsDisplay(months, {
+    approx: Boolean(tradingLabel),
+  });
+  const calendarLabel =
+    Number.isFinite(calendarDays) && calendarDays > 0
+      ? `~${Math.round(calendarDays)} calendar days`
+      : null;
+
+  if (tradingLabel) {
+    const extras = [monthsLabel, calendarLabel].filter(Boolean);
+    if (extras.length) {
+      return `${tradingLabel} (${extras.join(' / ')})`;
+    }
+    return tradingLabel;
   }
-  return `${years}y ${remainingMonths}m`;
+
+  if (monthsLabel) return monthsLabel;
+  if (calendarLabel) return calendarLabel.replace('~', '');
+  if (Number.isFinite(tradingDays) && tradingDays === 0) return '0 trading days';
+  if (Number.isFinite(months) && months === 0) return '0 mo';
+  if (Number.isFinite(calendarDays) && calendarDays === 0) return '0 calendar days';
+  return ' - ';
 }
 
 function describeReturnQuality({ expectedReturn, sortinoRatio, calmarRatio, volatility }) {
@@ -950,20 +1395,89 @@ function describeReturnQuality({ expectedReturn, sortinoRatio, calmarRatio, vola
   return `Downside-adjusted efficiency needs work: Sortino ${sortinoLabel} and Calmar ${calmarLabel} suggest the ${expectedLabel} target relies on elevated volatility (${volLabel}).`;
 }
 
-function describeResilience({ maxDrawdown, recoveryMonths }) {
+function describeResilience({ maxDrawdown, recoveryMonths, drawdownDetails }) {
   if (!Number.isFinite(maxDrawdown)) {
     return 'No drawdown simulation available to evaluate crash resilience.';
   }
   const drawdownLabel = formatPercent(Math.abs(maxDrawdown) * 100);
-  const recoveryLabel = formatRecoveryLabel(recoveryMonths);
+  const recoveryLabel = formatRecoveryLabel({
+    months: recoveryMonths,
+    tradingDays: drawdownDetails?.averageRecoveryTradingDays,
+    calendarDays: drawdownDetails?.averageRecoveryCalendarDays,
+  });
+  const hasRecoveryLabel = recoveryLabel && recoveryLabel !== ' - ';
+  const cadencePhrase = hasRecoveryLabel
+    ? `recovery cadence of ${recoveryLabel}`
+    : 'recovery cadence data unavailable';
+  let detailNote = '';
+
+  if (drawdownDetails && typeof drawdownDetails === 'object') {
+    const { worstCase, horizonMonths, averageRecoveryMonths } = drawdownDetails;
+    const horizonYears =
+      Number.isFinite(horizonMonths) && horizonMonths > 0
+        ? (horizonMonths / 12).toFixed(1)
+        : null;
+    if (worstCase && typeof worstCase === 'object') {
+      const worstDrop = Number.isFinite(worstCase.maxDrawdown)
+        ? formatPercent(Math.abs(worstCase.maxDrawdown) * 100)
+        : null;
+      const worstDuration =
+        Number.isFinite(worstCase.durationMonths) && worstCase.durationMonths > 0
+          ? `${worstCase.durationMonths} mo to trough`
+          : null;
+      const worstRecovery =
+        (Number.isFinite(worstCase.recoveryMonths) &&
+          worstCase.recoveryMonths > 0) ||
+        (Number.isFinite(worstCase.recoveryTradingDays) &&
+          worstCase.recoveryTradingDays > 0) ||
+        (Number.isFinite(worstCase.recoveryCalendarDays) &&
+          worstCase.recoveryCalendarDays > 0)
+          ? formatRecoveryLabel({
+              months: worstCase.recoveryMonths,
+              tradingDays: worstCase.recoveryTradingDays,
+              calendarDays: worstCase.recoveryCalendarDays,
+            })
+          : null;
+      const pieces = [];
+      if (worstDrop) pieces.push(`worst path fell ${worstDrop}`);
+      if (worstDuration) pieces.push(`over ~${worstDuration}`);
+      if (worstRecovery && worstRecovery !== ' - ') {
+        pieces.push(`and needed ${worstRecovery} to recover`);
+      }
+      if (pieces.length) {
+        detailNote += ` ${pieces.join(', ')}.`;
+      }
+    } else if (
+      Number.isFinite(averageRecoveryMonths) &&
+      averageRecoveryMonths > 0
+    ) {
+        const avgRecoveryLabel = formatRecoveryLabel({
+          months: averageRecoveryMonths,
+          tradingDays: drawdownDetails.averageRecoveryTradingDays,
+          calendarDays: drawdownDetails.averageRecoveryCalendarDays,
+        });
+      if (avgRecoveryLabel && avgRecoveryLabel !== ' - ') {
+        detailNote += ` Average recovery across simulations is ~${avgRecoveryLabel}.`;
+      }
+    }
+    if (horizonYears) {
+      detailNote += ` Horizon assumes ${horizonYears} years of monthly observations.`;
+    }
+  }
+
+  const recoveryWindow = hasRecoveryLabel ? recoveryLabel : null;
 
   if (maxDrawdown <= 0.2) {
-    return `Simulated max drawdown holds to ${drawdownLabel}; recovery cadence of ~${recoveryLabel} keeps capital resilient.`;
+    return `Simulated max drawdown holds to ${drawdownLabel}; ${cadencePhrase} keeps capital resilient.${detailNote}`;
   }
   if (maxDrawdown <= 0.35) {
-    return `Expect about ${drawdownLabel} drawdowns with a ${recoveryLabel} recovery window - maintain cash buffers for that stress.`;
+    return hasRecoveryLabel
+      ? `Expect about ${drawdownLabel} drawdowns with ${recoveryWindow} recovery window - maintain cash buffers for that stress.${detailNote}`
+      : `Expect about ${drawdownLabel} drawdowns; recovery timing data is unavailable - maintain cash buffers for that stress.${detailNote}`;
   }
-  return `Drawdowns could reach ${drawdownLabel} and stay underwater for roughly ${recoveryLabel}; consider rebalancing or hedges to boost resilience.`;
+  return hasRecoveryLabel
+    ? `Drawdowns could reach ${drawdownLabel} and stay underwater for roughly ${recoveryWindow}; consider rebalancing or hedges to boost resilience.${detailNote}`
+    : `Drawdowns could reach ${drawdownLabel}; recovery timing is unclear, so consider rebalancing or hedges to boost resilience.${detailNote}`;
 }
 
 function describeEfficiency({ alpha, expenseRatio }) {
@@ -1022,77 +1536,208 @@ function updateMetricBreakdown(metrics) {
       id: 'expectedReturnDiagnostic',
       value: (m) => m.expectedReturn,
       format: (v) => (Number.isFinite(v) ? formatPercent(v * 100) : '--'),
-      evaluate: (v, _metrics, formatted) => {
+      evaluate: (v, metrics, formatted) => {
         if (!Number.isFinite(v)) {
           return { status: 'Data missing', tone: 'neutral', message: 'Provide expected returns for each asset.' };
         }
+        const riskFreeRate =
+          metrics && Number.isFinite(metrics.riskFreeRate)
+            ? metrics.riskFreeRate
+            : DEFAULT_RISK_FREE_RATE;
+        const marketReturn =
+          metrics && Number.isFinite(metrics.marketReturn)
+            ? metrics.marketReturn
+            : DEFAULT_BENCHMARK_RETURN;
+        const equityPremium =
+          metrics && Number.isFinite(metrics.equityRiskPremium)
+            ? metrics.equityRiskPremium
+            : Math.max(0, marketReturn - riskFreeRate);
+        const riskFreeLabel = Number.isFinite(riskFreeRate)
+          ? formatPercent(riskFreeRate * 100)
+          : '--';
+        const equityPremiumLabel = Number.isFinite(equityPremium)
+          ? formatPercent(equityPremium * 100)
+          : '--';
+        const capmNote =
+          riskFreeLabel !== '--' && equityPremiumLabel !== '--'
+            ? `CAPM baseline uses ${riskFreeLabel} + beta * ${equityPremiumLabel}.`
+            : 'CAPM baseline applied to align return assumptions with market risk.';
         if (v >= 0.12) {
-          return { status: 'High growth', tone: 'excellent', message: formatted + ' suits an aggressive growth strategy with a long runway.' };
+          return {
+            status: 'High growth',
+            tone: 'excellent',
+            message: `${formatted} suits an aggressive growth strategy with a long runway. ${capmNote}`,
+          };
         }
         if (v >= 0.08) {
-          return { status: 'On track', tone: 'strong', message: formatted + ' aligns with the balanced growth objective for this Roth IRA.' };
+          return {
+            status: 'On track',
+            tone: 'strong',
+            message: `${formatted} aligns with the balanced growth objective for this Roth IRA. ${capmNote}`,
+          };
         }
         if (v >= 0.06) {
-          return { status: 'Stable', tone: 'balanced', message: formatted + ' steady, but consider adding more growth tilt if expectations are higher.' };
+          return {
+            status: 'Stable',
+            tone: 'balanced',
+            message: `${formatted} is steady, but consider adding more growth tilt if expectations are higher. ${capmNote}`,
+          };
         }
-        return { status: 'Below goal', tone: 'negative', message: formatted + ' may undershoot long-term goals; revisit assumptions and allocation.' };
+        return {
+          status: 'Below goal',
+          tone: 'negative',
+          message: `${formatted} may undershoot long-term goals; revisit assumptions and allocation. ${capmNote}`,
+        };
       },
     },
     {
       id: 'volatilityDiagnostic',
       value: (m) => m.volatility,
       format: (v) => (Number.isFinite(v) ? formatPercent(v * 100) : '--'),
-      evaluate: (v, _metrics, formatted) => {
+      evaluate: (v, metrics, formatted) => {
         if (!Number.isFinite(v)) {
           return { status: 'Data missing', tone: 'neutral', message: 'Provide volatility data for each asset.' };
         }
+        const weightSum =
+          metrics && Number.isFinite(metrics.weightSum)
+            ? metrics.weightSum.toFixed(2)
+            : null;
+        const matrixNote = `Sigma computed as sqrt(w^T Sigma w) with the normalized weight vector${
+          weightSum ? ` (sum ~ ${weightSum})` : ''
+        } and the annualized covariance matrix.`;
         if (v <= 0.15) {
-          return { status: 'Low', tone: 'excellent', message: formatted + ' keeps drawdown risk in a comfortable range.' };
+          return {
+            status: 'Low',
+            tone: 'excellent',
+            message: `${formatted} keeps drawdown risk in a comfortable range. ${matrixNote}`,
+          };
         }
         if (v <= 0.22) {
-          return { status: 'Moderate', tone: 'balanced', message: formatted + ' suits the target balance between growth and defense.' };
+          return {
+            status: 'Moderate',
+            tone: 'balanced',
+            message: `${formatted} suits the target balance between growth and defense. ${matrixNote}`,
+          };
         }
-        return { status: 'Elevated', tone: 'watch', message: formatted + ' signals larger swings; make sure return assumptions justify the risk.' };
+        return {
+          status: 'Elevated',
+          tone: 'watch',
+          message: `${formatted} signals larger swings; make sure return assumptions justify the risk and the covariance inputs use a consistent frequency. ${matrixNote}`,
+        };
       },
     },
     {
       id: 'sharpeDiagnostic',
       value: (m) => m.sharpeRatio,
       format: (v) => (Number.isFinite(v) ? v.toFixed(2) : '--'),
-      evaluate: (v, _metrics, formatted) => {
+      evaluate: (v, metrics, formatted) => {
         if (!Number.isFinite(v)) {
           return { status: 'Data missing', tone: 'neutral', message: 'Need expected returns and volatility to compute Sharpe.' };
         }
+        const rfLabel =
+          metrics && Number.isFinite(metrics.riskFreeRate)
+            ? formatPercent(metrics.riskFreeRate * 100)
+            : '--';
+        const excessLabel =
+          metrics && Number.isFinite(metrics.excessReturn)
+            ? formatPercent(metrics.excessReturn * 100)
+            : null;
+        const baseNote = excessLabel
+          ? `Sharpe uses (E[R] - Rf) / sigma with excess return ${excessLabel} vs risk-free ${rfLabel}.`
+          : `Sharpe uses (E[R] - Rf) / sigma with Rf ${rfLabel}; keep return and risk inputs on the same frequency.`;
         if (v >= 1.2) {
-          return { status: 'Highly efficient', tone: 'excellent', message: 'Sharpe ' + formatted + ' shows the portfolio is well compensated after accounting for risk.' };
+          return {
+            status: 'Highly efficient',
+            tone: 'excellent',
+            message: `Sharpe ${formatted} shows the portfolio is well compensated after accounting for risk. ${baseNote}`,
+          };
         }
         if (v >= 0.8) {
-          return { status: 'Efficient', tone: 'strong', message: 'Sharpe ' + formatted + ' suits a diversified equity portfolio.' };
+          return {
+            status: 'Efficient',
+            tone: 'strong',
+            message: `Sharpe ${formatted} suits a diversified equity portfolio. ${baseNote}`,
+          };
         }
         if (v >= 0.35) {
-          return { status: 'Fair', tone: 'balanced', message: 'Sharpe ' + formatted + ' shows return versus risk remains acceptable.' };
+          return {
+            status: 'Fair',
+            tone: 'balanced',
+            message: `Sharpe ${formatted} shows return versus risk remains acceptable. ${baseNote}`,
+          };
         }
-        return { status: 'Needs improvement', tone: 'watch', message: 'Sharpe ' + formatted + ' is low; rebalance the trade-off between growth and stability.' };
+        return {
+          status: 'Needs improvement',
+          tone: 'watch',
+          message: `Sharpe ${formatted} is low; rebalance the trade-off between growth and stability or verify the risk-free rate frequency. ${baseNote}`,
+        };
       },
     },
     {
       id: 'betaDiagnostic',
       value: (m) => m.beta,
       format: (v) => (Number.isFinite(v) ? v.toFixed(2) : '--'),
-      evaluate: (v, _metrics, formatted) => {
+      evaluate: (v, metrics, formatted) => {
         if (!Number.isFinite(v)) {
           return { status: 'Data missing', tone: 'neutral', message: 'Assign market beta estimates to each asset.' };
         }
+        const contributions =
+          metrics && typeof metrics.betaContributions === 'object'
+            ? metrics.betaContributions
+            : null;
+        const weightsForBeta =
+          metrics && typeof metrics.betaWeights === 'object'
+            ? metrics.betaWeights
+            : null;
+        let driverNote = 'Beta blends each sleeve\'s beta via the weighted sum Σ w_i β_i against the policy benchmark.';
+        if (contributions) {
+          const topDriver = Object.entries(contributions).reduce(
+            (best, [key, value]) => {
+              const magnitude = Math.abs(Number(value) || 0);
+              if (!best || magnitude > best.magnitude) {
+                return { key, value: Number(value) || 0, magnitude };
+              }
+              return best;
+            },
+            null
+          );
+          if (topDriver && topDriver.magnitude > 0) {
+            const weight = weightsForBeta ? weightsForBeta[topDriver.key] || 0 : 0;
+            const assetBeta = portfolioAssetBetas[topDriver.key] ?? null;
+            const weightLabel = formatPercent((weight || 0) * 100);
+            const assetBetaLabel = Number.isFinite(assetBeta)
+              ? assetBeta.toFixed(2)
+              : '--';
+            const contributionLabel = topDriver.value.toFixed(2);
+            driverNote = `Dominant driver: ${topDriver.key} contributes ${contributionLabel} to portfolio beta (weight ${weightLabel}, beta ${assetBetaLabel}).`;
+          }
+        }
         if (v < 0.9) {
-          return { status: 'Defensive', tone: 'excellent', message: 'Beta ' + formatted + ' helps dampen market volatility for the portfolio.' };
+          return {
+            status: 'Defensive',
+            tone: 'excellent',
+            message: `Beta ${formatted} helps dampen market volatility for the portfolio. ${driverNote}`,
+          };
         }
         if (v <= 1.1) {
-          return { status: 'Market-like', tone: 'strong', message: 'Beta ' + formatted + ' keeps the portfolio moving with the benchmark.' };
+          return {
+            status: 'Market-like',
+            tone: 'strong',
+            message: `Beta ${formatted} keeps the portfolio moving with the benchmark. ${driverNote}`,
+          };
         }
         if (v <= 1.3) {
-          return { status: 'Somewhat aggressive', tone: 'watch', message: 'Beta ' + formatted + ' makes the portfolio more sensitive than the market; only maintain if you accept higher risk.' };
+          return {
+            status: 'Somewhat aggressive',
+            tone: 'watch',
+            message: `Beta ${formatted} makes the portfolio more sensitive than the market; only maintain if you accept higher risk. ${driverNote}`,
+          };
         }
-        return { status: 'Highly sensitive', tone: 'negative', message: 'Beta ' + formatted + ' is too high; reassess high-beta allocations.' };
+        return {
+          status: 'Highly sensitive',
+          tone: 'negative',
+          message: `Beta ${formatted} is too high; reassess high-beta allocations or trim the biggest contributors. ${driverNote}`,
+        };
       },
     },
     {
@@ -1119,123 +1764,417 @@ function updateMetricBreakdown(metrics) {
       id: 'diversityDiagnostic',
       value: (m) => m.diversityIndex,
       format: (v) => (Number.isFinite(v) ? formatPercent(v * 100) : '--'),
-      evaluate: (v, _metrics, formatted) => {
+      evaluate: (v, metrics, formatted) => {
         if (!Number.isFinite(v)) {
           return { status: 'Data missing', tone: 'neutral', message: 'Define target weights to assess diversification.' };
         }
+        const details =
+          metrics && metrics.diversityDetails && typeof metrics.diversityDetails === 'object'
+            ? metrics.diversityDetails
+            : null;
+        const effectiveHoldings = details && Number.isFinite(details.effectiveHoldings)
+          ? details.effectiveHoldings
+          : null;
+        const diversityQuick = details && Number.isFinite(details.diversityQuick)
+          ? details.diversityQuick
+          : null;
+        const corrScore = details && Number.isFinite(details.diversityCorr)
+          ? details.diversityCorr
+          : null;
+        const assetCount = details && Number.isFinite(details.assetCount) ? details.assetCount : null;
+
+        const holdingsLabel = effectiveHoldings
+          ? `${effectiveHoldings.toFixed(1)} effective positions`
+          : null;
+        const quickLabel =
+          diversityQuick !== null ? `weight-only index ${formatPercent(diversityQuick * 100)}` : null;
+        const corrLabel =
+          corrScore !== null ? `correlation-adjusted index ${formatPercent(corrScore * 100)}` : null;
+
+        const noteParts = [];
+        if (holdingsLabel) noteParts.push(holdingsLabel);
+        if (quickLabel) noteParts.push(quickLabel);
+        if (corrLabel) noteParts.push(corrLabel);
+        const diversityNote = noteParts.length ? ` (${noteParts.join(', ')})` : '';
+
         if (v >= 0.75) {
-          return { status: 'Highly diversified', tone: 'excellent', message: formatted + ' shows allocation is even with low concentration risk.' };
+          return {
+            status: 'Highly diversified',
+            tone: 'excellent',
+            message: `${formatted} shows allocation is even with low concentration risk${diversityNote}.`,
+          };
         }
         if (v >= 0.6) {
-          return { status: 'Balanced', tone: 'strong', message: formatted + ' solid; just monitor sleeves that are overweight.' };
+          return {
+            status: 'Balanced',
+            tone: 'strong',
+            message: `${formatted} is solid; continue monitoring overweight sleeves${diversityNote}.`,
+          };
         }
         if (v >= 0.45) {
-          return { status: 'Some concentration', tone: 'watch', message: formatted + ' shows a few sleeves dominate weight; confirm that is intentional.' };
+          return {
+            status: 'Some concentration',
+            tone: 'watch',
+            message: `${formatted} signals a few sleeves dominate exposure; verify that tilt${diversityNote}.`,
+          };
         }
-        return { status: 'Highly concentrated', tone: 'negative', message: formatted + ' signals concentration risk; broaden exposure with additional sleeves.' };
+        return {
+          status: 'Highly concentrated',
+          tone: 'negative',
+          message: `${formatted} flags concentration risk; broaden the mix or rebalance${diversityNote}.`,
+        };
       },
     },
     {
       id: 'sortinoDiagnostic',
       value: (m) => m.sortinoRatio,
       format: (v) => (Number.isFinite(v) ? v.toFixed(2) : '--'),
-      evaluate: (v, _metrics, formatted) => {
+      evaluate: (v, metrics, formatted) => {
         if (!Number.isFinite(v)) {
           return { status: 'Data missing', tone: 'neutral', message: 'Need expected returns and downside deviation to compute Sortino.' };
         }
+        const riskFreeRate =
+          metrics && Number.isFinite(metrics.riskFreeRate)
+            ? metrics.riskFreeRate
+            : DEFAULT_RISK_FREE_RATE;
+        const downsideDeviation =
+          metrics && metrics.sortinoDetails && Number.isFinite(metrics.sortinoDetails.downsideDeviation)
+            ? metrics.sortinoDetails.downsideDeviation
+            : null;
+        const excessLabel =
+          metrics && Number.isFinite(metrics.excessReturn)
+            ? formatPercent(metrics.excessReturn * 100)
+            : null;
+        const targetLabel = formatPercent(riskFreeRate * 100);
+        const deviationLabel = downsideDeviation !== null ? formatPercent(downsideDeviation * 100) : null;
+        const baseNote = excessLabel
+          ? `Sortino compares excess return ${excessLabel} to downside deviation${deviationLabel ? ` ${deviationLabel}` : ''} using target ${targetLabel}.`
+          : `Sortino compares return to downside deviation${deviationLabel ? ` ${deviationLabel}` : ''} using target ${targetLabel}.`;
         if (v >= 1.3) {
-          return { status: 'Strong protection', tone: 'excellent', message: 'Sortino ' + formatted + ' shows returns more than compensate for downside risk.' };
+          return {
+            status: 'Strong protection',
+            tone: 'excellent',
+            message: `Sortino ${formatted} shows returns more than compensate for downside risk. ${baseNote}`,
+          };
         }
         if (v >= 1.0) {
-          return { status: 'OK', tone: 'strong', message: 'Sortino ' + formatted + ' at a healthy level; losses are compensated appropriately.' };
+          return {
+            status: 'OK',
+            tone: 'strong',
+            message: `Sortino ${formatted} at a healthy level; losses are compensated appropriately. ${baseNote}`,
+          };
         }
         if (v >= 0.7) {
-          return { status: 'Monitor', tone: 'watch', message: 'Sortino ' + formatted + ' acceptable; smooth volatility or add higher-quality sleeves.' };
+          return {
+            status: 'Monitor',
+            tone: 'watch',
+            message: `Sortino ${formatted} acceptable; smooth volatility or add higher-quality sleeves. ${baseNote}`,
+          };
         }
-        return { status: 'Inefficient', tone: 'negative', message: 'Sortino ' + formatted + ' shows downside risk is eroding return efficiency.' };
+        return {
+          status: 'Inefficient',
+          tone: 'negative',
+          message: `Sortino ${formatted} shows downside risk is eroding return efficiency; reduce drawdown exposure or lift target returns. ${baseNote}`,
+        };
       },
     },
     {
       id: 'maxDrawdownDiagnostic',
       value: (m) => m.maxDrawdown,
       format: (v) => (Number.isFinite(v) ? formatPercent(Math.abs(v) * 100) : '--'),
-      evaluate: (v, _metrics, formatted) => {
+      evaluate: (v, metrics, formatted) => {
         if (!Number.isFinite(v)) {
           return { status: 'Data missing', tone: 'neutral', message: 'Need volatility data to simulate drawdown.' };
         }
+        const recoveryLabel = formatRecoveryLabel({
+          months:
+            metrics && Number.isFinite(metrics.recoveryMonths)
+              ? metrics.recoveryMonths
+              : null,
+          tradingDays:
+            metrics && metrics.drawdownDetails
+              ? metrics.drawdownDetails.averageRecoveryTradingDays
+              : null,
+          calendarDays:
+            metrics && metrics.drawdownDetails
+              ? metrics.drawdownDetails.averageRecoveryCalendarDays
+              : null,
+        });
+        const details =
+          metrics && metrics.drawdownDetails && typeof metrics.drawdownDetails === 'object'
+            ? metrics.drawdownDetails
+            : null;
+        let detailNote = '';
+        if (details) {
+          const worst = details.worstCase;
+          if (worst && typeof worst === 'object') {
+            const worstDrop = Number.isFinite(worst.maxDrawdown)
+              ? formatPercent(Math.abs(worst.maxDrawdown) * 100)
+              : null;
+            const duration =
+              Number.isFinite(worst.durationMonths) && worst.durationMonths > 0
+                ? `${worst.durationMonths} mo to trough`
+                : null;
+            const worstRecovery =
+              (Number.isFinite(worst.recoveryMonths) &&
+                worst.recoveryMonths > 0) ||
+              (Number.isFinite(worst.recoveryTradingDays) &&
+                worst.recoveryTradingDays > 0) ||
+              (Number.isFinite(worst.recoveryCalendarDays) &&
+                worst.recoveryCalendarDays > 0)
+                ? formatRecoveryLabel({
+                    months: worst.recoveryMonths,
+                    tradingDays: worst.recoveryTradingDays,
+                    calendarDays: worst.recoveryCalendarDays,
+                  })
+                : null;
+            const parts = [];
+            if (worstDrop) parts.push(`worst path saw ${worstDrop}`);
+            if (duration) parts.push(duration);
+            if (worstRecovery && worstRecovery !== ' - ') {
+              parts.push(`recovery ${worstRecovery}`);
+            }
+            if (parts.length) {
+              detailNote += ` (${parts.join(', ')})`;
+            }
+          } else if (
+            Number.isFinite(details.averageRecoveryMonths) &&
+            details.averageRecoveryMonths > 0
+          ) {
+            detailNote += ` (avg recovery ~${formatRecoveryLabel({
+              months: details.averageRecoveryMonths,
+              tradingDays: details.averageRecoveryTradingDays,
+              calendarDays: details.averageRecoveryCalendarDays,
+            })})`;
+          }
+        }
         if (v <= 0.2) {
-          return { status: 'Very resilient', tone: 'excellent', message: formatted + ' remains within the tolerance of most investors.' };
+          return {
+            status: 'Very resilient',
+            tone: 'excellent',
+            message: `${formatted} remains within the tolerance of most investors${detailNote}.`,
+          };
         }
         if (v <= 0.35) {
-          return { status: 'Acceptable', tone: 'balanced', message: formatted + ' demands discipline; confirm the plan accounts for this scenario.' };
+          return {
+            status: 'Acceptable',
+            tone: 'balanced',
+            message: `${formatted} demands discipline; confirm the plan accounts for this scenario${detailNote}.`,
+          };
         }
-        return { status: 'Very deep', tone: 'negative', message: formatted + ' flags a severe shock; revisit allocation or hedging plans.' };
+        return {
+          status: 'Very deep',
+          tone: 'negative',
+          message: `${formatted} flags a severe shock; revisit allocation or hedging plans${detailNote}.`,
+        };
       },
     },
     {
       id: 'calmarDiagnostic',
       value: (m) => m.calmarRatio,
       format: (v) => (Number.isFinite(v) ? v.toFixed(2) : '--'),
-      evaluate: (v, _metrics, formatted) => {
+      evaluate: (v, metrics, formatted) => {
         if (!Number.isFinite(v)) {
           return { status: 'Data missing', tone: 'neutral', message: 'Calmar requires both expected return and drawdown estimates.' };
         }
+        const expectedReturn =
+          metrics && Number.isFinite(metrics.expectedReturn) ? metrics.expectedReturn : null;
+        const maxDrawdownValue =
+          metrics && Number.isFinite(metrics.maxDrawdown) ? metrics.maxDrawdown : null;
+        const drawdownDetails =
+          metrics && metrics.drawdownDetails && typeof metrics.drawdownDetails === 'object'
+            ? metrics.drawdownDetails
+            : null;
+        const returnLabel = expectedReturn !== null ? formatPercent(expectedReturn * 100) : '--';
+        const drawdownLabel =
+          maxDrawdownValue !== null ? formatPercent(Math.abs(maxDrawdownValue) * 100) : '--';
+        const horizonLabel =
+          drawdownDetails && Number.isFinite(drawdownDetails.horizonMonths) && drawdownDetails.horizonMonths > 0
+            ? `${(drawdownDetails.horizonMonths / 12).toFixed(1)}y`
+            : null;
+        let baseNote = `Calmar divides ${returnLabel} by ${drawdownLabel} using the same simulation window`;
+        if (horizonLabel) {
+          baseNote += ` (~${horizonLabel})`;
+        }
+        baseNote += '.';
+
+        if (maxDrawdownValue !== null && Math.abs(maxDrawdownValue) < 1e-6) {
+          return {
+            status: 'No drawdown',
+            tone: 'excellent',
+            message: `No material drawdown observed; Calmar is effectively unbounded. ${baseNote}`,
+          };
+        }
+
         if (v >= 0.5) {
-          return { status: 'High quality', tone: 'excellent', message: 'Calmar ' + formatted + ' shows each 1% drawdown is backed by at least 0.5% annual return.' };
+          return {
+            status: 'High quality',
+            tone: 'excellent',
+            message: `Calmar ${formatted} shows each 1% drawdown is backed by at least 0.5% annual return. ${baseNote}`,
+          };
         }
         if (v >= 0.3) {
-          return { status: 'Balanced', tone: 'strong', message: 'Calmar ' + formatted + ' reasonable; seek slightly higher returns or lower drawdowns to improve.' };
+          return {
+            status: 'Balanced',
+            tone: 'strong',
+            message: `Calmar ${formatted} is reasonable; seek slightly higher returns or lower drawdowns to improve. ${baseNote}`,
+          };
         }
         if (v >= 0.15) {
-          return { status: 'Monitor', tone: 'watch', message: 'Calmar ' + formatted + ' shows the portfolio is under heavy drawdown; tighten risk controls.' };
+          return {
+            status: 'Monitor',
+            tone: 'watch',
+            message: `Calmar ${formatted} shows the portfolio is under heavy drawdown; tighten risk controls. ${baseNote}`,
+          };
         }
-        return { status: 'Unattractive', tone: 'negative', message: 'Calmar ' + formatted + ' means drawdowns outpace returns; revisit assumptions and hedging.' };
+        return {
+          status: 'Unattractive',
+          tone: 'negative',
+          message: `Calmar ${formatted} means drawdowns outpace returns; revisit assumptions and hedging. ${baseNote}`,
+        };
       },
     },
     {
       id: 'alphaDiagnostic',
       value: (m) => m.alpha,
       format: (v) => (Number.isFinite(v) ? formatPercent(v * 100) : '--'),
-      evaluate: (v, _metrics, formatted) => {
+      evaluate: (v, metrics, formatted) => {
         if (!Number.isFinite(v)) {
           return { status: 'Data missing', tone: 'neutral', message: 'Need return assumptions and beta to compute alpha.' };
         }
+        const expectedReturn =
+          metrics && Number.isFinite(metrics.expectedReturn) ? metrics.expectedReturn : null;
+        const marketReturn =
+          metrics && Number.isFinite(metrics.marketReturn) ? metrics.marketReturn : DEFAULT_BENCHMARK_RETURN;
+        const riskFreeRate =
+          metrics && Number.isFinite(metrics.riskFreeRate) ? metrics.riskFreeRate : DEFAULT_RISK_FREE_RATE;
+        const betaValue =
+          metrics && Number.isFinite(metrics.beta) ? metrics.beta : null;
+        const marketExcess = marketReturn - riskFreeRate;
+        const expectedLabel = expectedReturn !== null ? formatPercent(expectedReturn * 100) : '--';
+        const marketLabel = formatPercent(marketReturn * 100);
+        const rfLabel = formatPercent(riskFreeRate * 100);
+        const betaLabel = betaValue !== null ? betaValue.toFixed(2) : 'β';
+        const baseNote = `Computed as ${expectedLabel} - ${rfLabel} - ${betaLabel} × (${marketLabel} - ${rfLabel}).`;
+
         if (v >= 0.015) {
-          return { status: 'Outperforming', tone: 'excellent', message: 'Alpha ' + formatted + ' shows the portfolio is beating the benchmark after adjusting for risk.' };
+          return {
+            status: 'Outperforming',
+            tone: 'excellent',
+            message: `Alpha ${formatted} shows the portfolio is beating the benchmark after adjusting for risk. ${baseNote}`,
+          };
         }
         if (v >= 0.005) {
-          return { status: 'Positive', tone: 'strong', message: 'Alpha ' + formatted + ' small but still adds value versus the market.' };
+          return {
+            status: 'Positive',
+            tone: 'strong',
+            message: `Alpha ${formatted} is small but still adds value versus the market. ${baseNote}`,
+          };
         }
         if (v >= -0.005) {
-          return { status: 'Inline with market', tone: 'balanced', message: 'Alpha ' + formatted + ' near zero; focus on costs and diversification to improve.' };
+          return {
+            status: 'Inline with market',
+            tone: 'balanced',
+            message: `Alpha ${formatted} sits near zero; focus on costs and diversification to improve. ${baseNote}`,
+          };
         }
-        return { status: 'Lagging the benchmark', tone: 'negative', message: 'Alpha ' + formatted + ' trails the benchmark; review tilts and trading costs.' };
+        return {
+          status: 'Lagging the benchmark',
+          tone: 'negative',
+          message: `Alpha ${formatted} trails the benchmark; review tilts and trading costs. ${baseNote}`,
+        };
       },
     },
     {
       id: 'expenseDiagnostic',
       value: (m) => m.expenseRatio,
       format: (v) => (Number.isFinite(v) ? formatPercent(v * 100) : '--'),
-      evaluate: (v, _metrics, formatted) => {
+      evaluate: (v, metrics, formatted) => {
         if (!Number.isFinite(v)) {
           return { status: 'Data missing', tone: 'neutral', message: 'Provide expense ratios for each holding.' };
         }
+        const details =
+          metrics && metrics.expenseDetails && typeof metrics.expenseDetails === 'object'
+            ? metrics.expenseDetails
+            : null;
+        const weights =
+          details && details.normalizedWeights && typeof details.normalizedWeights === 'object'
+            ? details.normalizedWeights
+            : null;
+        const contributions =
+          details && details.contributions && typeof details.contributions === 'object'
+            ? details.contributions
+            : null;
+        let costNote = 'Weighted expense equals the sum of weight × expense ratio across holdings.';
+        if (contributions) {
+          const top = Object.entries(contributions).reduce(
+            (best, [key, value]) => {
+              const amount = Number(value) || 0;
+              if (!best || amount > best.amount) {
+                return { key, amount };
+              }
+              return best;
+            },
+            null
+          );
+          if (top && top.amount > 0) {
+            const weight = weights && Number.isFinite(weights[top.key]) ? weights[top.key] : null;
+            const ratio = Number.isFinite(portfolioExpenseRatios[top.key])
+              ? portfolioExpenseRatios[top.key]
+              : null;
+            const weightLabel = weight !== null ? formatPercent(weight * 100) : '--';
+            const ratioLabel = ratio !== null ? formatPercent(ratio * 100) : '--';
+            const contributionLabel = formatPercent(top.amount * 100);
+            costNote += ` Top contributor: ${top.key} adds ${contributionLabel} (weight ${weightLabel}, ER ${ratioLabel}).`;
+          }
+        }
         if (v <= 0.002) {
-          return { status: 'Ultra low cost', tone: 'excellent', message: formatted + ' helps compounding, which is ideal for a Roth IRA.' };
+          return {
+            status: 'Ultra low cost',
+            tone: 'excellent',
+            message: `${formatted} helps compounding, which is ideal for a Roth IRA. ${costNote}`,
+          };
         }
         if (v <= 0.004) {
-          return { status: 'Efficient', tone: 'strong', message: formatted + ' still competitive; continue policing active fund fees.' };
+          return {
+            status: 'Efficient',
+            tone: 'strong',
+            message: `${formatted} still competitive; continue policing active fund fees. ${costNote}`,
+          };
         }
         if (v <= 0.006) {
-          return { status: 'Average', tone: 'balanced', message: formatted + ' acceptable, but look for lower-fee products when possible.' };
+          return {
+            status: 'Average',
+            tone: 'balanced',
+            message: `${formatted} acceptable, but look for lower-fee products when possible. ${costNote}`,
+          };
         }
-        return { status: 'High cost', tone: 'negative', message: formatted + ' quite high for a long-term account; consider moving to lower-cost options.' };
+        return {
+          status: 'High cost',
+          tone: 'negative',
+          message: `${formatted} quite high for a long-term account; consider moving to lower-cost options. ${costNote}`,
+        };
       },
     },
     {
       id: 'recoveryDiagnostic',
       value: (m) => m.recoveryMonths,
-      format: (v) => (Number.isFinite(v) ? formatRecoveryLabel(v) : '--'),
+      format: (v, metrics) =>
+        formatRecoveryLabel({
+          months: v,
+          tradingDays:
+            metrics && metrics.drawdownDetails
+              ? metrics.drawdownDetails.averageRecoveryTradingDays
+              : metrics && Number.isFinite(metrics.recoveryTradingDays)
+              ? metrics.recoveryTradingDays
+              : null,
+          calendarDays:
+            metrics && metrics.drawdownDetails
+              ? metrics.drawdownDetails.averageRecoveryCalendarDays
+              : metrics && Number.isFinite(metrics.recoveryCalendarDays)
+              ? metrics.recoveryCalendarDays
+              : null,
+        }),
       evaluate: (v, _metrics, formatted) => {
         if (!Number.isFinite(v)) {
           return { status: 'Data missing', tone: 'neutral', message: 'Need drawdown simulation to estimate recovery time.' };
@@ -1370,16 +2309,39 @@ function updateOperationalHealthGrid(metrics) {
 // Initialize Analytics
 function initializeAnalytics() {
   const targets = getCurrentTargets();
+  const normalizedTargets = normalizeWeights(targets);
   const expectedReturn = calculateExpectedReturn(targets);
   const volatility = calculateVolatility(targets);
+  const excessReturn = expectedReturn - DEFAULT_RISK_FREE_RATE;
   const sharpe = calculateSharpeRatio(expectedReturn, volatility);
   const beta = calculatePortfolioBeta(targets);
   const sortino = calculateSortinoRatio(expectedReturn, DEFAULT_RISK_FREE_RATE, volatility);
-  const { maxDrawdown, recoveryMonths } = simulateDrawdownMetrics(expectedReturn, volatility);
+  const sortinoDetails =
+    typeof lastSortinoSnapshot === 'object' && lastSortinoSnapshot !== null
+      ? lastSortinoSnapshot
+      : null;
+  const drawdownDetails =
+    typeof lastDrawdownSnapshot === 'object' && lastDrawdownSnapshot !== null
+      ? lastDrawdownSnapshot
+      : null;
+  const {
+    maxDrawdown,
+    recoveryMonths,
+    recoveryTradingDays,
+    recoveryCalendarDays,
+  } = simulateDrawdownMetrics(expectedReturn, volatility);
   const calmar = calculateCalmarRatio(expectedReturn, maxDrawdown);
   const alpha = calculateAlpha(expectedReturn, beta);
   const weightedExpenseRatio = calculateWeightedExpenseRatio(targets);
-  const { index: diversityIndex, score: diversityComponentScore } = calculateDiversityScore(targets);
+  const expenseDetails =
+    typeof lastExpenseSnapshot === 'object' && lastExpenseSnapshot !== null
+      ? lastExpenseSnapshot
+      : null;
+  const {
+    index: diversityIndex,
+    score: diversityComponentScore,
+    details: diversityDetails,
+  } = calculateDiversityScore(targets);
   const { score: portfolioScore, components } = calculatePortfolioScore({
     sharpeRatio: sharpe,
     volatility,
@@ -1404,26 +2366,91 @@ function initializeAnalytics() {
   const expenseEl = document.getElementById('expenseRatioValue');
   if (expenseEl) expenseEl.textContent = formatPercent(weightedExpenseRatio * 100);
   const recoveryEl = document.getElementById('recoveryTimeValue');
-  if (recoveryEl) recoveryEl.textContent = formatRecoveryLabel(recoveryMonths);
+  if (recoveryEl) {
+    recoveryEl.textContent = formatRecoveryLabel({
+      months: recoveryMonths,
+      tradingDays: recoveryTradingDays,
+      calendarDays: recoveryCalendarDays,
+    });
+  }
 
   updatePortfolioScoreAndRisk(volatility, sharpe, beta, diversityIndex);
+
+  const volatilitySnapshot = lastVolatilitySnapshot;
+  const fallbackNormalizedWeights = { ...normalizedTargets };
+  const fallbackWeightVector = assetKeys.map((key) => normalizedTargets[key] || 0);
+  const fallbackWeightSum = fallbackWeightVector.reduce(
+    (sum, weight) => sum + (Number.isFinite(weight) ? weight : 0),
+    0
+  );
+  const covarianceMatrix =
+    volatilitySnapshot && Array.isArray(volatilitySnapshot.covarianceMatrix)
+      ? volatilitySnapshot.covarianceMatrix
+      : buildCovarianceMatrix();
+  const variance =
+    volatilitySnapshot && Number.isFinite(volatilitySnapshot.variance)
+      ? volatilitySnapshot.variance
+      : volatility * volatility;
+  const normalizedWeightsForExport =
+    volatilitySnapshot && volatilitySnapshot.normalizedWeights
+      ? { ...volatilitySnapshot.normalizedWeights }
+      : fallbackNormalizedWeights;
+  const weightVectorForExport =
+    volatilitySnapshot && Array.isArray(volatilitySnapshot.weightVector)
+      ? [...volatilitySnapshot.weightVector]
+      : fallbackWeightVector;
+  const weightSumForExport =
+    volatilitySnapshot && Number.isFinite(volatilitySnapshot.weightSum)
+      ? volatilitySnapshot.weightSum
+      : fallbackWeightSum;
+  const betaSnapshot = lastBetaSnapshot;
+  const fallbackBetaContributions = assetKeys.reduce((acc, key) => {
+    const weight = normalizedTargets[key] || 0;
+    const assetBeta = portfolioAssetBetas[key] ?? 1;
+    acc[key] = weight * assetBeta;
+    return acc;
+  }, {});
+  const betaContributionsForExport =
+    betaSnapshot && betaSnapshot.contributions
+      ? { ...betaSnapshot.contributions }
+      : fallbackBetaContributions;
+  const betaWeightsForExport =
+    betaSnapshot && betaSnapshot.normalizedWeights
+      ? { ...betaSnapshot.normalizedWeights }
+      : { ...normalizedTargets };
 
   window.latestAnalyticsScores = {
     expectedReturn,
     volatility,
+    excessReturn,
+    variance,
     sharpeRatio: sharpe,
     beta,
     diversityIndex,
     diversityScore: diversityComponentScore,
+    diversityDetails,
     portfolioScore,
     componentScores: components,
+    sortinoDetails,
+    drawdownDetails,
+    expenseDetails,
+    covarianceMatrix,
+    normalizedWeights: normalizedWeightsForExport,
+    weightVector: weightVectorForExport,
+    weightSum: weightSumForExport,
+    betaContributions: betaContributionsForExport,
+    betaWeights: betaWeightsForExport,
     riskFreeRate: DEFAULT_RISK_FREE_RATE,
+    marketReturn: DEFAULT_BENCHMARK_RETURN,
+    equityRiskPremium: DEFAULT_EQUITY_RISK_PREMIUM,
     sortinoRatio: sortino,
     maxDrawdown,
     calmarRatio: calmar,
     alpha,
     expenseRatio: weightedExpenseRatio,
     recoveryMonths,
+    recoveryTradingDays,
+    recoveryCalendarDays,
   };
 
   populateAssetContributionTable(targets);
@@ -1438,26 +2465,43 @@ function initializeAnalytics() {
   updateAnalyticsNarrative({
     expectedReturn,
     volatility,
+    excessReturn,
     sortinoRatio: sortino,
     calmarRatio: calmar,
     maxDrawdown,
     recoveryMonths,
     alpha,
     expenseRatio: weightedExpenseRatio,
+    drawdownDetails,
   });
   updateMetricBreakdown({
     expectedReturn,
     volatility,
+    excessReturn,
     sharpeRatio: sharpe,
     beta,
     portfolioScore,
     diversityIndex,
+    diversityDetails,
+    sortinoDetails,
+    drawdownDetails,
+    expenseDetails,
     sortinoRatio: sortino,
     maxDrawdown,
     calmarRatio: calmar,
     alpha,
     expenseRatio: weightedExpenseRatio,
     recoveryMonths,
+    covarianceMatrix,
+    variance,
+    normalizedWeights: normalizedWeightsForExport,
+    weightVector: weightVectorForExport,
+    weightSum: weightSumForExport,
+    betaContributions: betaContributionsForExport,
+    betaWeights: betaWeightsForExport,
+    riskFreeRate: DEFAULT_RISK_FREE_RATE,
+    marketReturn: DEFAULT_BENCHMARK_RETURN,
+    equityRiskPremium: DEFAULT_EQUITY_RISK_PREMIUM,
   });
 }
 

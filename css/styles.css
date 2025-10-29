@@ -3069,12 +3069,12 @@ h3,
   letter-spacing: 0.04em;
 }
 
-.hud-card__meta {
+/* .hud-card__meta {
   margin: 0.75rem 0 0;
   font-size: 0.92rem;
   line-height: 1.6;
   color: var(--hud-text-secondary);
-}
+} */
 
 .hud-card__diagnostic {
   margin-top: 0.6rem;
