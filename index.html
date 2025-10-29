@@ -2903,11 +2903,11 @@
                 Portfolio Health Assessment
               </h3>
               <p class="text-sm text-gray-600 dark:text-gray-300">
-                Portfolio Health Score (PHS) = (RRB x 30%) + (DIV x 25%) + (DR x 20%) + (LQ x 10%) + (GA x 15%).
+                Portfolio Health Score (PHS) = Σ (pillar weight × pillar score). Pillar scores run on a 0&ndash;100 scale with weights: Allocation fit 20%, Diversification 15%, Cost efficiency 15%, Risk vs. budget 20%, Performance quality 15%, Liquidity &amp; implementation 10%, Tax efficiency 5%.
               </p>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 max-w-md">
-              PHS uses a 0-10 scale. Higher scores indicate a balanced, well diversified portfolio aligned with long-term hangar objectives.
+              PHS uses a 0&ndash;100 scale. Guardrails (e.g., top holding &gt; 25%, all-in fees &gt; 2%) can cap the composite; higher scores indicate healthier alignment with Roth IRA objectives.
             </p>
           </div>
           <div id="ai-portfolio-health" class="relative">
@@ -2957,7 +2957,7 @@
                   <tr>
                     <th class="px-3 py-2 text-left">Component</th>
                     <th class="px-3 py-2 text-center">Weight</th>
-                    <th class="px-3 py-2 text-center">Score (0-10)</th>
+                    <th class="px-3 py-2 text-center">Score (0-100)</th>
                     <th class="px-3 py-2 text-left">Live context</th>
                   </tr>
                 </thead>
@@ -2965,54 +2965,74 @@
                   id="phs-breakdown-body"
                   class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-700 dark:text-gray-200"
                 >
-                  <tr data-component="rrb">
-                    <td class="px-3 py-3 font-medium">Risk-Return Balance (RRB)</td>
-                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">30%</td>
-                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
-                      <span data-role="score">-</span>
-                    </td>
-                    <td class="px-3 py-3 text-sm" data-role="note">
-                      Focus on Sharpe ratio, volatility and expected return.
-                    </td>
-                  </tr>
-                  <tr data-component="div">
-                    <td class="px-3 py-3 font-medium">Diversification &amp; Correlation (DIV)</td>
-                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">25%</td>
-                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
-                      <span data-role="score">-</span>
-                    </td>
-                    <td class="px-3 py-3 text-sm" data-role="note">
-                      Mix of asset classes, regions and correlation structure.
-                    </td>
-                  </tr>
-                  <tr data-component="dr">
-                    <td class="px-3 py-3 font-medium">Drawdown Resilience (DR)</td>
+                  <tr data-component="allocation">
+                    <td class="px-3 py-3 font-medium">Allocation Fit (A)</td>
                     <td class="px-3 py-3 text-center font-semibold" data-role="weight">20%</td>
                     <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
                       <span data-role="score">-</span>
                     </td>
                     <td class="px-3 py-3 text-sm" data-role="note">
-                      Considers beta, realised volatility and drawdown history.
+                      Measures drift between current weights and long-range policy targets.
                     </td>
                   </tr>
-                  <tr data-component="lq">
-                    <td class="px-3 py-3 font-medium">Liquidity &amp; Simplicity (LQ)</td>
-                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">10%</td>
-                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
-                      <span data-role="score">-</span>
-                    </td>
-                    <td class="px-3 py-3 text-sm" data-role="note">
-                      Looks at ETF coverage versus concentrated or illiquid positions.
-                    </td>
-                  </tr>
-                  <tr data-component="ga">
-                    <td class="px-3 py-3 font-medium">Goal Alignment (GA)</td>
+                  <tr data-component="diversification">
+                    <td class="px-3 py-3 font-medium">Diversification (B)</td>
                     <td class="px-3 py-3 text-center font-semibold" data-role="weight">15%</td>
                     <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
                       <span data-role="score">-</span>
                     </td>
                     <td class="px-3 py-3 text-sm" data-role="note">
-                      Measures how the mix supports long-horizon hangar objectives.
+                      Evaluates concentration, top holdings and effective number of risk contributors.
+                    </td>
+                  </tr>
+                  <tr data-component="cost">
+                    <td class="px-3 py-3 font-medium">Cost Efficiency (C)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">15%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Weighted expense ratio plus any advisory/platform costs versus a 1.5% cap.
+                    </td>
+                  </tr>
+                  <tr data-component="risk">
+                    <td class="px-3 py-3 font-medium">Risk vs. Budget (D)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">20%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Compares realised volatility to the Roth risk target and tolerance band.
+                    </td>
+                  </tr>
+                  <tr data-component="performance">
+                    <td class="px-3 py-3 font-medium">Performance Quality (E)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">15%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Translates Sharpe ratio (or information ratio) into a bounded 0&ndash;100 score.
+                    </td>
+                  </tr>
+                  <tr data-component="liquidity">
+                    <td class="px-3 py-3 font-medium">Liquidity &amp; Implementation (F)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">10%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Rewards ETF coverage and keeps an eye on single-name or thematic exposure.
+                    </td>
+                  </tr>
+                  <tr data-component="tax">
+                    <td class="px-3 py-3 font-medium">Tax Efficiency (G)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">5%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Roth IRA: qualified withdrawals imply 0% tax drag, so this pillar stays at 100.
                     </td>
                   </tr>
                   <tr
@@ -3025,7 +3045,7 @@
                       <span data-role="score">-</span>
                     </td>
                     <td class="px-3 py-3 text-sm" data-role="note">
-                      Weighted blend of the five core pillars.
+                      Weighted blend of the seven pillars; guardrails may cap the composite.
                     </td>
                   </tr>
                 </tbody>

@@ -155,6 +155,49 @@ function normalizeWeights(weightMap) {
   return weights;
 }
 
+function computeDefaultFactorExposureTargets() {
+  try {
+    const defaults =
+      typeof window !== 'undefined' && window.defaultTargetAllocations
+        ? window.defaultTargetAllocations
+        : null;
+    if (!defaults || typeof defaults !== 'object') {
+      return null;
+    }
+    const normalizedDefaults = normalizeWeights(defaults);
+    const exposures = DEFAULT_FACTOR_NAMES.reduce((acc, factor) => {
+      acc[factor] = 0;
+      return acc;
+    }, {});
+
+    assetKeys.forEach((key) => {
+      const weight = Number.isFinite(normalizedDefaults[key])
+        ? normalizedDefaults[key]
+        : 0;
+      if (!weight) {
+        return;
+      }
+      const loadings =
+        typeof ASSET_MULTI_FACTOR_LOADINGS[key] === 'object' &&
+        ASSET_MULTI_FACTOR_LOADINGS[key] !== null
+          ? ASSET_MULTI_FACTOR_LOADINGS[key]
+          : null;
+      DEFAULT_FACTOR_NAMES.forEach((factor) => {
+        const loading =
+          loadings && Number.isFinite(loadings[factor]) ? loadings[factor] : 0;
+        exposures[factor] += weight * loading;
+      });
+    });
+
+    return exposures;
+  } catch (error) {
+    console.warn('Failed to compute default factor exposure targets:', error);
+    return null;
+  }
+}
+
+const DEFAULT_FACTOR_EXPOSURE_TARGETS = computeDefaultFactorExposureTargets();
+
 function getCorrelation(asset1, asset2) {
   if (asset1 === asset2) return 1;
   const corrKey = asset1 < asset2 ? `${asset1}_${asset2}` : `${asset2}_${asset1}`;
@@ -165,6 +208,442 @@ function clampScore(value, min = 0, max = 10) {
   if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(max, value));
 }
+
+function clampToScale(value, min = 0, max = 100) {
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+}
+
+function interpolateScore(value, points) {
+  if (!Number.isFinite(value) || !Array.isArray(points) || !points.length) {
+    return null;
+  }
+  const sorted = points
+    .map((point) => ({
+      value: Number(point.value),
+      score: Number(point.score),
+    }))
+    .filter((point) => Number.isFinite(point.value) && Number.isFinite(point.score))
+    .sort((a, b) => a.value - b.value);
+
+  if (!sorted.length) {
+    return null;
+  }
+
+  if (value <= sorted[0].value) {
+    return sorted[0].score;
+  }
+
+  for (let i = 1; i < sorted.length; i += 1) {
+    const prev = sorted[i - 1];
+    const next = sorted[i];
+    if (value <= next.value) {
+      const span = next.value - prev.value;
+      if (!Number.isFinite(span) || span === 0) {
+        return next.score;
+      }
+      const t = (value - prev.value) / span;
+      return prev.score + t * (next.score - prev.score);
+    }
+  }
+
+  return sorted[sorted.length - 1].score;
+}
+
+function scoreFromAnchors(value, anchors) {
+  const interpolated = interpolateScore(value, anchors);
+  return clampToScale(interpolated);
+}
+
+function scoreTargetOptimal100(value, config) {
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+  const target = Number(config?.target);
+  const band = Number(config?.band);
+  const penalty = Number.isFinite(config?.penalty) ? config.penalty : 1;
+  if (!Number.isFinite(target) || !Number.isFinite(band) || band <= 0) {
+    return null;
+  }
+  const distance = Math.abs(value - target);
+  const normalized = Math.max(
+    0,
+    1 - Math.pow(distance / band, Math.max(0.5, penalty))
+  );
+  return clampToScale(100 * normalized);
+}
+
+function weightedAverageScore(entries) {
+  if (!Array.isArray(entries) || !entries.length) {
+    return null;
+  }
+  let weightedSum = 0;
+  let weightSum = 0;
+  entries.forEach((entry) => {
+    const weight = Number(entry?.weight);
+    const score = entry?.score;
+    if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(score)) {
+      return;
+    }
+    weightedSum += score * weight;
+    weightSum += weight;
+  });
+  if (weightSum <= 0) {
+    return null;
+  }
+  return clampToScale(weightedSum / weightSum);
+}
+
+function computeMultiFactorAlignmentDeviation(metrics) {
+  if (
+    !metrics ||
+    typeof metrics !== 'object' ||
+    !metrics.multiFactorExposures ||
+    !metrics.multiFactorFactorNames ||
+    !Array.isArray(metrics.multiFactorFactorNames) ||
+    !metrics.multiFactorFactorNames.length ||
+    !DEFAULT_FACTOR_EXPOSURE_TARGETS
+  ) {
+    return null;
+  }
+
+  let squaredError = 0;
+  let count = 0;
+  metrics.multiFactorFactorNames.forEach((factor) => {
+    if (!factor) {
+      return;
+    }
+    const target = Number(
+      DEFAULT_FACTOR_EXPOSURE_TARGETS[factor] ?? 0
+    );
+    const actual = Number(metrics.multiFactorExposures[factor]);
+    if (!Number.isFinite(actual)) {
+      return;
+    }
+    const diff = actual - target;
+    squaredError += diff * diff;
+    count += 1;
+  });
+
+  if (count <= 0) {
+    return null;
+  }
+
+  return Math.sqrt(squaredError / count);
+}
+
+function deriveRecoveryMonthsMetric(metrics) {
+  if (!metrics || typeof metrics !== 'object') {
+    return null;
+  }
+  if (Number.isFinite(metrics.recoveryMonths)) {
+    return metrics.recoveryMonths;
+  }
+  if (Number.isFinite(metrics.recoveryTradingDays)) {
+    return metrics.recoveryTradingDays / 21;
+  }
+  if (Number.isFinite(metrics.recoveryCalendarDays)) {
+    return metrics.recoveryCalendarDays / 30.4375;
+  }
+  return null;
+}
+
+const PORTFOLIO_PILLAR_WEIGHTS = Object.freeze({
+  performance: 0.4,
+  risk: 0.3,
+  structure: 0.2,
+  cost: 0.1,
+});
+
+const PORTFOLIO_SCORE_METRICS = Object.freeze({
+  expectedReturn: {
+    label: 'Expected Annual Return',
+    pillar: 'performance',
+    weight: 0.08,
+    mode: 'anchors',
+    anchors: [
+      { value: 0.0, score: 5 },
+      { value: 0.03, score: 35 },
+      { value: 0.05, score: 55 },
+      { value: 0.07, score: 70 },
+      { value: 0.09, score: 85 },
+      { value: 0.12, score: 95 },
+      { value: 0.15, score: 100 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.expectedReturn) ? metrics.expectedReturn : null,
+  },
+  sharpeRatio: {
+    label: 'Sharpe Ratio',
+    pillar: 'performance',
+    weight: 0.08,
+    mode: 'anchors',
+    anchors: [
+      { value: -0.2, score: 5 },
+      { value: 0.0, score: 25 },
+      { value: 0.25, score: 45 },
+      { value: 0.5, score: 65 },
+      { value: 0.75, score: 78 },
+      { value: 1.0, score: 88 },
+      { value: 1.5, score: 97 },
+      { value: 2.0, score: 100 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.sharpeRatio) ? metrics.sharpeRatio : null,
+  },
+  sortinoRatio: {
+    label: 'Sortino Ratio',
+    pillar: 'performance',
+    weight: 0.04,
+    mode: 'anchors',
+    anchors: [
+      { value: 0.0, score: 10 },
+      { value: 0.5, score: 45 },
+      { value: 1.0, score: 68 },
+      { value: 1.5, score: 85 },
+      { value: 2.0, score: 95 },
+      { value: 3.0, score: 100 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.sortinoRatio) ? metrics.sortinoRatio : null,
+  },
+  calmarRatio: {
+    label: 'Calmar Ratio',
+    pillar: 'performance',
+    weight: 0.04,
+    mode: 'anchors',
+    anchors: [
+      { value: 0.0, score: 10 },
+      { value: 0.5, score: 55 },
+      { value: 1.0, score: 78 },
+      { value: 1.5, score: 92 },
+      { value: 2.0, score: 100 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.calmarRatio) ? metrics.calmarRatio : null,
+  },
+  alpha: {
+    label: 'Alpha vs Market',
+    pillar: 'performance',
+    weight: 0.06,
+    mode: 'anchors',
+    anchors: [
+      { value: -0.05, score: 5 },
+      { value: -0.02, score: 25 },
+      { value: 0.0, score: 50 },
+      { value: 0.02, score: 72 },
+      { value: 0.04, score: 92 },
+      { value: 0.06, score: 100 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.alpha) ? metrics.alpha : null,
+  },
+  informationRatio: {
+    label: 'Information Ratio',
+    pillar: 'performance',
+    weight: 0.06,
+    mode: 'anchors',
+    anchors: [
+      { value: -0.5, score: 5 },
+      { value: 0.0, score: 40 },
+      { value: 0.3, score: 65 },
+      { value: 0.5, score: 82 },
+      { value: 0.7, score: 94 },
+      { value: 1.0, score: 100 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.informationRatio) ? metrics.informationRatio : null,
+  },
+  upCaptureRatio: {
+    label: 'Up Capture Ratio',
+    pillar: 'performance',
+    weight: 0.02,
+    mode: 'anchors',
+    anchors: [
+      { value: 0.7, score: 20 },
+      { value: 0.8, score: 35 },
+      { value: 0.9, score: 55 },
+      { value: 1.0, score: 75 },
+      { value: 1.05, score: 88 },
+      { value: 1.1, score: 95 },
+      { value: 1.2, score: 100 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.upCaptureRatio) ? metrics.upCaptureRatio : null,
+  },
+  downCaptureRatio: {
+    label: 'Down Capture Ratio',
+    pillar: 'performance',
+    weight: 0.02,
+    mode: 'anchors',
+    anchors: [
+      { value: 0.6, score: 100 },
+      { value: 0.7, score: 92 },
+      { value: 0.8, score: 78 },
+      { value: 0.9, score: 60 },
+      { value: 1.0, score: 40 },
+      { value: 1.1, score: 20 },
+      { value: 1.2, score: 5 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.downCaptureRatio) ? metrics.downCaptureRatio : null,
+  },
+  volatility: {
+    label: 'Portfolio Volatility',
+    pillar: 'risk',
+    weight: 0.07,
+    mode: 'anchors',
+    anchors: [
+      { value: 0.05, score: 100 },
+      { value: 0.08, score: 92 },
+      { value: 0.10, score: 82 },
+      { value: 0.12, score: 70 },
+      { value: 0.15, score: 55 },
+      { value: 0.2, score: 35 },
+      { value: 0.3, score: 12 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.volatility) ? metrics.volatility : null,
+  },
+  maxDrawdown: {
+    label: 'Max Drawdown',
+    pillar: 'risk',
+    weight: 0.07,
+    mode: 'anchors',
+    anchors: [
+      { value: 0.05, score: 100 },
+      { value: 0.1, score: 88 },
+      { value: 0.15, score: 72 },
+      { value: 0.2, score: 55 },
+      { value: 0.25, score: 40 },
+      { value: 0.3, score: 25 },
+      { value: 0.4, score: 10 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.maxDrawdown) ? Math.abs(metrics.maxDrawdown) : null,
+  },
+  recoveryTime: {
+    label: 'Recovery Time',
+    pillar: 'risk',
+    weight: 0.04,
+    mode: 'anchors',
+    anchors: [
+      { value: 1, score: 100 },
+      { value: 3, score: 85 },
+      { value: 6, score: 70 },
+      { value: 9, score: 55 },
+      { value: 12, score: 45 },
+      { value: 18, score: 25 },
+      { value: 24, score: 10 },
+      { value: 36, score: 5 },
+    ],
+    accessor: (metrics) => deriveRecoveryMonthsMetric(metrics),
+  },
+  cvarLoss: {
+    label: 'CVaR / Expected Shortfall',
+    pillar: 'risk',
+    weight: 0.06,
+    mode: 'anchors',
+    anchors: [
+      { value: 0.02, score: 100 },
+      { value: 0.05, score: 85 },
+      { value: 0.1, score: 68 },
+      { value: 0.15, score: 52 },
+      { value: 0.2, score: 35 },
+      { value: 0.3, score: 18 },
+      { value: 0.4, score: 5 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.cvarLoss) ? Math.abs(metrics.cvarLoss) : null,
+  },
+  beta: {
+    label: 'Portfolio Beta',
+    pillar: 'risk',
+    weight: 0.06,
+    mode: 'target',
+    target: 1,
+    band: 0.15,
+    penalty: 2,
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.beta) ? metrics.beta : null,
+  },
+  diversityIndex: {
+    label: 'Diversity Score',
+    pillar: 'structure',
+    weight: 0.08,
+    mode: 'anchors',
+    anchors: [
+      { value: 0.2, score: 15 },
+      { value: 0.3, score: 32 },
+      { value: 0.4, score: 50 },
+      { value: 0.5, score: 68 },
+      { value: 0.6, score: 82 },
+      { value: 0.7, score: 92 },
+      { value: 0.8, score: 98 },
+      { value: 0.9, score: 100 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.diversityIndex) ? metrics.diversityIndex : null,
+  },
+  multiFactorAlignment: {
+    label: 'Multi-factor Betas',
+    pillar: 'structure',
+    weight: 0.06,
+    mode: 'target',
+    target: 0,
+    band: 0.25,
+    penalty: 1.4,
+    accessor: (metrics) => computeMultiFactorAlignmentDeviation(metrics),
+  },
+  multiFactorRSquared: {
+    label: 'R² vs Factors',
+    pillar: 'structure',
+    weight: 0.03,
+    mode: 'anchors',
+    anchors: [
+      { value: 0.4, score: 25 },
+      { value: 0.55, score: 45 },
+      { value: 0.7, score: 65 },
+      { value: 0.85, score: 82 },
+      { value: 0.92, score: 93 },
+      { value: 0.97, score: 100 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.multiFactorRSquared) ? metrics.multiFactorRSquared : null,
+  },
+  trackingError: {
+    label: 'Tracking Error',
+    pillar: 'structure',
+    weight: 0.03,
+    mode: 'target',
+    target: 0.05,
+    band: 0.03,
+    penalty: 1.5,
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.trackingError) ? metrics.trackingError : null,
+  },
+  expenseRatio: {
+    label: 'Weighted Expense Ratio',
+    pillar: 'cost',
+    weight: 0.1,
+    mode: 'anchors',
+    anchors: [
+      { value: 0.0, score: 100 },
+      { value: 0.001, score: 92 },
+      { value: 0.0025, score: 78 },
+      { value: 0.004, score: 60 },
+      { value: 0.006, score: 40 },
+      { value: 0.01, score: 20 },
+      { value: 0.015, score: 5 },
+    ],
+    accessor: (metrics) =>
+      Number.isFinite(metrics?.expenseRatio) ? metrics.expenseRatio : null,
+  },
+});
 
 function scoreVolatility(volatility) {
   const pct = volatility * 100;
@@ -1125,24 +1604,95 @@ function calculateCalmarRatio(expectedReturn, maxDrawdown) {
   return expectedReturn / risk;
 }
 
-function calculatePortfolioScore({ sharpeRatio, volatility, beta, diversityIndex }) {
-  const sharpeScore = scoreSharpe(sharpeRatio);
-  const volatilityScore = scoreVolatility(volatility);
-  const betaScore = scoreBeta(beta);
-  const diversityScore = scoreDiversity(diversityIndex);
-  const composite =
-    sharpeScore * 0.35 +
-    volatilityScore * 0.25 +
-    betaScore * 0.15 +
-    diversityScore * 0.25;
+function calculatePortfolioScore(metrics) {
+  const metricScores = {};
+  const metricValues = {};
+  let metricWeightTotal = 0;
+  let metricWeightCovered = 0;
+
+  Object.entries(PORTFOLIO_SCORE_METRICS).forEach(([key, config]) => {
+    const rawValue =
+      typeof config.accessor === 'function'
+        ? config.accessor(metrics)
+        : metrics && metrics[key];
+    metricValues[key] = Number.isFinite(rawValue) ? rawValue : null;
+
+    let score = null;
+    if (config.mode === 'target') {
+      score = scoreTargetOptimal100(rawValue, config);
+    } else {
+      score = scoreFromAnchors(rawValue, config.anchors);
+    }
+
+    metricScores[key] = score;
+    const weight = Number(config.weight);
+    if (Number.isFinite(weight) && weight > 0) {
+      metricWeightTotal += weight;
+      if (Number.isFinite(score)) {
+        metricWeightCovered += weight;
+      }
+    }
+  });
+
+  const pillarScores = {};
+  let pillarWeightTotal = 0;
+  let pillarWeightCovered = 0;
+
+  Object.entries(PORTFOLIO_PILLAR_WEIGHTS).forEach(([pillarKey, pillarWeight]) => {
+    const entries = Object.entries(PORTFOLIO_SCORE_METRICS)
+      .filter(([, config]) => config.pillar === pillarKey)
+      .map(([metricKey, config]) => ({
+        weight: config.weight,
+        score: metricScores[metricKey],
+      }));
+    const pillarScore = weightedAverageScore(entries);
+    pillarScores[pillarKey] = pillarScore;
+    if (Number.isFinite(pillarWeight) && pillarWeight > 0) {
+      pillarWeightTotal += pillarWeight;
+      if (Number.isFinite(pillarScore)) {
+        pillarWeightCovered += pillarWeight;
+      }
+    }
+  });
+
+  const overallScore = weightedAverageScore(
+    Object.entries(pillarScores).map(([pillarKey, score]) => ({
+      weight: PORTFOLIO_PILLAR_WEIGHTS[pillarKey] || 0,
+      score,
+    }))
+  );
+
+  const normalizedScore = Number.isFinite(overallScore)
+    ? clampToScale(overallScore)
+    : 0;
+  const score10 = clampScore(normalizedScore / 10);
 
   return {
-    score: clampScore(composite),
+    score: score10,
+    normalizedScore,
     components: {
-      sharpeScore,
-      volatilityScore,
-      betaScore,
-      diversityScore,
+      overall: normalizedScore,
+      pillarScores,
+      metricScores,
+      metricValues,
+      weights: {
+        pillars: { ...PORTFOLIO_PILLAR_WEIGHTS },
+        metrics: Object.fromEntries(
+          Object.entries(PORTFOLIO_SCORE_METRICS).map(([key, config]) => [
+            key,
+            config.weight,
+          ])
+        ),
+      },
+      coverage: {
+        pillars:
+          pillarWeightTotal > 0 ? pillarWeightCovered / pillarWeightTotal : 0,
+        metrics:
+          metricWeightTotal > 0 ? metricWeightCovered / metricWeightTotal : 0,
+      },
+      missingMetrics: Object.entries(metricScores)
+        .filter(([, value]) => !Number.isFinite(value))
+        .map(([name]) => name),
     },
   };
 }
@@ -3222,19 +3772,12 @@ function initializeAnalytics() {
     score: diversityComponentScore,
     details: diversityDetails,
   } = calculateDiversityScore(targets);
-  const { score: portfolioScore, components } = calculatePortfolioScore({
-    sharpeRatio: sharpe,
-    volatility,
-    beta,
-    diversityIndex,
-  });
 
   document.getElementById('expectedReturnValue').textContent = formatPercent(expectedReturn * 100);
   document.getElementById('volatilityValue').textContent = formatPercent(volatility * 100);
   document.getElementById('sharpeValue').textContent = sharpe.toFixed(2);
   document.getElementById('portfolioBetaValue').textContent = beta.toFixed(2);
   document.getElementById('diversityScoreValue').textContent = formatPercent(diversityIndex * 100);
-  document.getElementById('analyticsPortfolioScore').textContent = portfolioScore.toFixed(1);
   const sortinoEl = document.getElementById('sortinoValue');
   if (sortinoEl) sortinoEl.textContent = sortino.toFixed(2);
   const maxDrawdownEl = document.getElementById('maxDrawdownValue');
@@ -3273,7 +3816,6 @@ function initializeAnalytics() {
         ? tailRiskMetrics.confidenceLevel
         : 0.95,
   });
-  updatePortfolioScoreAndRisk(volatility, sharpe, beta, diversityIndex);
 
   const volatilitySnapshot = lastVolatilitySnapshot;
   const fallbackNormalizedWeights = { ...normalizedTargets };
@@ -3359,6 +3901,50 @@ function initializeAnalytics() {
       ? multiFactorMetrics.rSquared
       : null;
 
+  const portfolioScoreInputs = {
+    expectedReturn,
+    volatility,
+    sharpeRatio: sharpe,
+    beta,
+    diversityIndex,
+    sortinoRatio: sortino,
+    maxDrawdown,
+    calmarRatio: calmar,
+    alpha,
+    expenseRatio: weightedExpenseRatio,
+    upCaptureRatio,
+    downCaptureRatio,
+    cvarLoss,
+    trackingError: trackingErrorValue,
+    informationRatio: informationRatioValue,
+    multiFactorRSquared,
+    multiFactorExposures:
+      multiFactorMetrics && multiFactorMetrics.exposures
+        ? { ...multiFactorMetrics.exposures }
+        : null,
+    multiFactorFactorNames:
+      multiFactorMetrics && Array.isArray(multiFactorMetrics.factorNames)
+        ? [...multiFactorMetrics.factorNames]
+        : null,
+    recoveryMonths,
+    recoveryTradingDays,
+    recoveryCalendarDays,
+  };
+
+  const portfolioScoreResult = calculatePortfolioScore(portfolioScoreInputs);
+  const {
+    score: portfolioScore,
+    normalizedScore: portfolioScore100,
+    components,
+  } = portfolioScoreResult;
+
+  const portfolioScoreEl = document.getElementById('analyticsPortfolioScore');
+  if (portfolioScoreEl) {
+    portfolioScoreEl.textContent = portfolioScore.toFixed(1);
+  }
+
+  updatePortfolioScoreAndRisk(portfolioScoreInputs, portfolioScoreResult);
+
   window.latestAnalyticsScores = {
     expectedReturn,
     volatility,
@@ -3370,7 +3956,10 @@ function initializeAnalytics() {
     diversityScore: diversityComponentScore,
     diversityDetails,
     portfolioScore,
+    portfolioScore100,
     componentScores: components,
+    portfolioScoreInputs: { ...portfolioScoreInputs },
+    portfolioScoreDetails: portfolioScoreResult,
     sortinoDetails,
     drawdownDetails,
     expenseDetails,
@@ -3484,21 +4073,33 @@ function initializeAnalytics() {
 }
 
 // Function to update portfolio score and risk level
-function updatePortfolioScoreAndRisk(volatility, sharpe, beta, diversityIndex) {
-  const { score } = calculatePortfolioScore({
-    sharpeRatio: sharpe,
-    volatility,
-    beta,
-    diversityIndex,
-  });
-  let riskLevel = 'Medium';
+function updatePortfolioScoreAndRisk(scoreInputs, cachedResult) {
+  const result =
+    cachedResult && typeof cachedResult === 'object'
+      ? cachedResult
+      : calculatePortfolioScore(scoreInputs || {});
+  const score = Number.isFinite(result?.score) ? result.score : 0;
 
-  // Determine risk level
-  if (volatility > 0.25) riskLevel = 'High';
-  else if (volatility > 0.15) riskLevel = 'Medium';
-  else riskLevel = 'Low';
+  if (typeof window !== 'undefined') {
+    window.latestPortfolioScoreDetails = result;
+  }
 
-  // Update DOM
+  const volatility =
+    scoreInputs && Number.isFinite(scoreInputs.volatility)
+      ? scoreInputs.volatility
+      : null;
+  let riskLevel;
+
+  if (!Number.isFinite(volatility)) {
+    riskLevel = 'Unknown';
+  } else if (volatility > 0.25) {
+    riskLevel = 'High';
+  } else if (volatility > 0.15) {
+    riskLevel = 'Medium';
+  } else {
+    riskLevel = 'Low';
+  }
+
   const scoreEl = document.getElementById('portfolioScore');
   if (scoreEl) {
     scoreEl.textContent = score.toFixed(1);
@@ -3517,7 +4118,6 @@ function updatePortfolioScoreAndRisk(volatility, sharpe, beta, diversityIndex) {
     riskLevelEl.textContent = riskLevel;
   }
 
-  // Update the risk level bar after setting the text
   updateRiskLevelBar();
 }
 

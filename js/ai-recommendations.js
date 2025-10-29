@@ -30,13 +30,71 @@ const DEFAULT_EXPECTED_RETURNS =
 const DEFAULT_VOLATILITIES =
   typeof volatilities === "object" && volatilities ? volatilities : {};
 
+const aiExpenseRatios =
+  typeof portfolioExpenseRatios === "object" && portfolioExpenseRatios
+    ? portfolioExpenseRatios
+    : typeof expenseRatios === "object" && expenseRatios
+      ? expenseRatios
+      : {};
+
+const aiPortfolioDefaults =
+  typeof window !== "undefined" &&
+  window.portfolioDefaults &&
+  typeof window.portfolioDefaults === "object"
+    ? window.portfolioDefaults
+    : {};
+
 const PHS_WEIGHTS = {
-  rrb: 0.3,
-  div: 0.25,
-  dr: 0.2,
-  lq: 0.1,
-  ga: 0.15,
+  allocation: 0.2,
+  diversification: 0.15,
+  cost: 0.15,
+  risk: 0.2,
+  performance: 0.15,
+  liquidity: 0.1,
+  tax: 0.05,
 };
+
+const PHS_RISK_TARGET_VOL =
+  typeof aiPortfolioDefaults.riskTargetVol === "number"
+    ? aiPortfolioDefaults.riskTargetVol
+    : 0.18;
+
+const PHS_RISK_TOLERANCE =
+  typeof aiPortfolioDefaults.riskToleranceRatio === "number"
+    ? aiPortfolioDefaults.riskToleranceRatio
+    : 0.2;
+
+const PHS_COST_CAP =
+  typeof aiPortfolioDefaults.costCap === "number"
+    ? aiPortfolioDefaults.costCap
+    : 0.015;
+
+const PHS_ADVISORY_FEE =
+  typeof aiPortfolioDefaults.advisoryFee === "number"
+    ? aiPortfolioDefaults.advisoryFee
+    : 0;
+
+const PHS_PLATFORM_FEE =
+  typeof aiPortfolioDefaults.platformFee === "number"
+    ? aiPortfolioDefaults.platformFee
+    : 0;
+
+const PHS_FIXED_FEE =
+  typeof aiPortfolioDefaults.fixedFeePerValue === "number"
+    ? aiPortfolioDefaults.fixedFeePerValue
+    : 0;
+
+const PHS_PERFORMANCE_A = 1.5;
+const PHS_PERFORMANCE_B = 0.3;
+const PHS_GUARDRAIL_CAP =
+  typeof aiPortfolioDefaults.guardrailCap === "number"
+    ? aiPortfolioDefaults.guardrailCap
+    : 60;
+const ROTH_TAX_SCORE = 100;
+const DEFAULT_EXPENSE_FALLBACK =
+  typeof aiPortfolioDefaults.defaultExpenseRatio === "number"
+    ? aiPortfolioDefaults.defaultExpenseRatio
+    : 0.0015;
 
 function safeNumber(value, fallback = 0) {
   const num = Number(value);
@@ -299,134 +357,244 @@ function buildImmediateActions(
   return actions;
 }
 
-function estimateLiquidityScore(assetList) {
-  const individualNames = ["AMZN"];
+function computeAllocationFitScore(metrics) {
+  if (!metrics || !Array.isArray(metrics.assetList)) {
+    return { score: 0, totalAbsDeviation: 0, averageDeviation: 0, maxDeviation: 0 };
+  }
+
+  let totalAbsDeviation = 0;
+  metrics.assetList.forEach((asset) => {
+    totalAbsDeviation += Math.abs(safeNumber(metrics.deviations[asset]));
+  });
+
+  const averageDeviation = safeNumber(metrics.averageDeviation);
+  const maxDeviation = safeNumber(metrics.maxDeviation);
+  const normalizedGap = Math.min(totalAbsDeviation / 200, 1);
+  const avgGap = Math.min(averageDeviation / 5, 1);
+  const blendedPenalty = 0.7 * normalizedGap + 0.3 * avgGap;
+  const score = clamp((1 - blendedPenalty) * 100, 0, 100);
+
+  return {
+    score,
+    totalAbsDeviation,
+    averageDeviation,
+    maxDeviation,
+  };
+}
+
+function computeDiversificationScore(metrics) {
+  if (!metrics || !Array.isArray(metrics.assetList)) {
+    return {
+      score: 0,
+      effectivePositions: 0,
+      topHolding: 0,
+      topThree: 0,
+      assetCount: 0,
+    };
+  }
+
+  const hhi = herfindahlIndex(metrics.targetFractions);
+  const effectivePositions = hhi > 0 ? 1 / hhi : 0;
+  const assetCount = metrics.assetList.length;
+  const baseScore = clamp(metrics.diversificationIndex * 100, 0, 100);
+
+  const currentWeights = metrics.assetList
+    .map((asset) => safeNumber(metrics.currentPercents[asset]))
+    .sort((a, b) => b - a);
+
+  const topHolding = currentWeights[0] || 0;
+  const topThree = currentWeights.slice(0, 3).reduce((sum, weight) => sum + weight, 0);
+
+  let penalty = 0;
+  if (assetCount < 5) {
+    penalty += (5 - assetCount) * 5;
+  }
+  if (topHolding > 25) {
+    penalty += Math.min((topHolding - 25) * 1.2, 15);
+  }
+  if (topThree > 60) {
+    penalty += Math.min((topThree - 60) * 0.8, 12);
+  }
+
+  const score = clamp(baseScore - penalty, 0, 100);
+
+  return {
+    score,
+    effectivePositions,
+    topHolding,
+    topThree,
+    assetCount,
+  };
+}
+
+function computeCostScore(metrics) {
+  if (!metrics || !Array.isArray(metrics.assetList)) {
+    return { score: 0, weightedExpense: 0, allInFee: 0 };
+  }
+
+  let weightedExpense = 0;
+  metrics.assetList.forEach((asset) => {
+    const weight = safeNumber(metrics.targetFractions[asset]);
+    const expenseRatio =
+      aiExpenseRatios && aiExpenseRatios[asset] !== undefined
+        ? safeNumber(aiExpenseRatios[asset])
+        : DEFAULT_EXPENSE_FALLBACK;
+    weightedExpense += weight * expenseRatio;
+  });
+
+  const allInFee = weightedExpense + PHS_ADVISORY_FEE + PHS_PLATFORM_FEE + PHS_FIXED_FEE;
+  const normalized = Math.min(allInFee / PHS_COST_CAP, 1);
+  const score = clamp((1 - normalized) * 100, 0, 100);
+
+  return {
+    score,
+    weightedExpense,
+    allInFee,
+  };
+}
+
+function computeRiskBudgetScore(metrics) {
+  if (!metrics) {
+    return { score: 0, targetVol: PHS_RISK_TARGET_VOL, tolerance: PHS_RISK_TOLERANCE, deviationRatio: 1 };
+  }
+
+  const portfolioVol = Math.max(0, safeNumber(metrics.volatility));
+  const targetVol = Math.max(0.01, PHS_RISK_TARGET_VOL);
+  const tolerance = Math.max(0.05, PHS_RISK_TOLERANCE);
+
+  const deviationRatio = Math.abs(portfolioVol - targetVol) / (tolerance * targetVol);
+  const score = clamp((1 - Math.min(deviationRatio, 1)) * 100, 0, 100);
+
+  return {
+    score,
+    targetVol,
+    tolerance,
+    deviationRatio,
+  };
+}
+
+function computePerformanceScore(metrics) {
+  const sharpe = safeNumber(metrics.sharpe);
+  const adjustedSharpe = Number.isFinite(sharpe) ? sharpe : 0;
+  const rawScore =
+    50 + 40 * Math.tanh(PHS_PERFORMANCE_A * adjustedSharpe - PHS_PERFORMANCE_B);
+  const score = clamp(rawScore, 0, 100);
+
+  return {
+    score,
+    sharpe: adjustedSharpe,
+  };
+}
+
+function computeLiquidityScore(metrics) {
+  if (!metrics || !Array.isArray(metrics.assetList)) {
+    return { score: 70, etfWeight: 0, singleWeight: 0, thematicWeight: 0 };
+  }
+
+  const singleNames = ["AMZN"];
   const thematicNames = ["IBIT", "SMH"];
-  let liquidCount = 0;
-  let thematicCount = 0;
-  assetList.forEach((asset) => {
-    if (individualNames.includes(asset)) {
+  let singleWeight = 0;
+  let thematicWeight = 0;
+  let etfWeight = 0;
+
+  metrics.assetList.forEach((asset) => {
+    const weight = safeNumber(metrics.targetFractions[asset]);
+    if (singleNames.includes(asset)) {
+      singleWeight += weight;
       return;
     }
     if (thematicNames.includes(asset)) {
-      thematicCount += 1;
+      thematicWeight += weight;
     }
-    liquidCount += 1;
+    etfWeight += weight;
   });
-  if (assetList.length === 0) return 0.6;
-  const liquidRatio = liquidCount / assetList.length;
-  const thematicPenalty = thematicCount > 1 ? thematicCount * 0.05 : 0;
-  return clamp(liquidRatio - thematicPenalty, 0, 1);
+
+  const baseScore = clamp((1 - singleWeight) * 100, 0, 100);
+  const thematicPenalty =
+    thematicWeight > 0.3 ? Math.min((thematicWeight - 0.3) * 120, 20) : 0;
+  const score = clamp(baseScore - thematicPenalty, 0, 100);
+
+  return {
+    score,
+    etfWeight: clamp(etfWeight, 0, 1),
+    singleWeight: clamp(singleWeight, 0, 1),
+    thematicWeight: clamp(thematicWeight, 0, 1),
+  };
 }
 
-function scoreRiskReturn(metrics) {
-  const sharpeScore = metrics.sharpe >= 0.9
-    ? 9.5
-    : metrics.sharpe >= 0.7
-      ? 8.5
-      : metrics.sharpe >= 0.5
-        ? 7
-        : metrics.sharpe >= 0.3
-          ? 6
-          : metrics.sharpe >= 0.1
-            ? 5
-            : 4;
-
-  const volatilityScore =
-    metrics.volatility <= 0.16
-      ? 9
-      : metrics.volatility <= 0.2
-        ? 8
-        : metrics.volatility <= 0.25
-          ? 6.5
-          : metrics.volatility <= 0.3
-            ? 5
-            : 4.5;
-
-  return clamp(
-    sharpeScore * 0.6 + volatilityScore * 0.4,
-    0,
-    10
-  );
-}
-
-function scoreDiversification(metrics) {
-  const diversificationScore =
-    metrics.diversificationIndex >= 0.8
-      ? 9.5
-      : metrics.diversificationIndex >= 0.7
-        ? 8.5
-        : metrics.diversificationIndex >= 0.6
-          ? 7.5
-          : metrics.diversificationIndex >= 0.5
-            ? 6.5
-            : 5;
-  const deviationPenalty = clamp(metrics.maxDeviation / 4, 0, 3);
-  return clamp(diversificationScore - deviationPenalty, 0, 10);
-}
-
-function scoreDrawdownResilience(metrics) {
-  const volatilityScore =
-    metrics.volatility <= 0.18
-      ? 9
-      : metrics.volatility <= 0.22
-        ? 7.5
-        : metrics.volatility <= 0.28
-          ? 6
-          : 5;
-  const betaScore =
-    metrics.beta <= 0.95
-      ? 8.5
-      : metrics.beta <= 1.05
-        ? 7.5
-        : metrics.beta <= 1.2
-          ? 6
-          : 5;
-  return clamp(volatilityScore * 0.6 + betaScore * 0.4, 0, 10);
-}
-
-function scoreGoalAlignment(metrics) {
-  const growthAssets = ["QQQM", "SMH", "IBIT", "AMZN"];
-  let growthWeight = 0;
-  metrics.assetList.forEach((asset) => {
-    if (growthAssets.includes(asset)) {
-      growthWeight += safeNumber(metrics.targetFractions[asset]);
-    }
-  });
-  const balanceRatio = Math.abs(growthWeight - 0.5);
-  const balanceScore = clamp(10 - balanceRatio * 12, 0, 10);
-  const deviationPenalty = clamp(metrics.averageDeviation / 3, 0, 3);
-  return clamp(balanceScore - deviationPenalty, 0, 10);
+function computeTaxScore() {
+  return {
+    score: ROTH_TAX_SCORE,
+  };
 }
 
 function buildPortfolioHealth(metrics, actions) {
-  const rrbScore = scoreRiskReturn(metrics);
-  const divScore = scoreDiversification(metrics);
-  const drScore = scoreDrawdownResilience(metrics);
-  const lqScore = estimateLiquidityScore(metrics.assetList) * 10;
-  const gaScore = scoreGoalAlignment(metrics);
+  const allocation = computeAllocationFitScore(metrics);
+  const diversification = computeDiversificationScore(metrics);
+  const cost = computeCostScore(metrics);
+  const risk = computeRiskBudgetScore(metrics);
+  const performance = computePerformanceScore(metrics);
+  const liquidity = computeLiquidityScore(metrics);
+  const tax = computeTaxScore();
 
-  const compositeScore = clamp(
-    rrbScore * PHS_WEIGHTS.rrb +
-      divScore * PHS_WEIGHTS.div +
-      drScore * PHS_WEIGHTS.dr +
-      lqScore * PHS_WEIGHTS.lq +
-      gaScore * PHS_WEIGHTS.ga,
-    0,
-    10
-  );
+  const expectedReturn = safeNumber(metrics.expectedReturn);
+  const portfolioVol = Math.max(0, safeNumber(metrics.volatility));
+  const sharpeRatio = safeNumber(metrics.sharpe);
+
+  let compositeScore =
+    allocation.score * PHS_WEIGHTS.allocation +
+    diversification.score * PHS_WEIGHTS.diversification +
+    cost.score * PHS_WEIGHTS.cost +
+    risk.score * PHS_WEIGHTS.risk +
+    performance.score * PHS_WEIGHTS.performance +
+    liquidity.score * PHS_WEIGHTS.liquidity +
+    tax.score * PHS_WEIGHTS.tax;
+
+  compositeScore = clamp(compositeScore, 0, 100);
+
+  const guardrails = [];
+
+  const topHolding = diversification.topHolding;
+  const topThree = diversification.topThree;
+  if (topHolding > 25) {
+    guardrails.push(`Top holding ${topHolding.toFixed(1)}% exceeds 25% guardrail.`);
+  }
+  if (topThree > 60) {
+    guardrails.push(`Top 3 holdings ${topThree.toFixed(1)}% exceed 60% guardrail.`);
+  }
+
+  const effectiveContributors = diversification.effectivePositions;
+  if (effectiveContributors > 0 && effectiveContributors < 2) {
+    guardrails.push(
+      `Effective risk contributors ${effectiveContributors.toFixed(1)} below 2 guardrail.`
+    );
+  }
+
+  if (cost.allInFee > 0.02) {
+    guardrails.push(`All-in fees ${(cost.allInFee * 100).toFixed(2)}% exceed 2% cap.`);
+  }
+
+  const guardrailTriggered = guardrails.length > 0;
+  const finalScore = guardrailTriggered
+    ? Math.min(compositeScore, PHS_GUARDRAIL_CAP)
+    : compositeScore;
 
   let status = "Healthy";
   let color = "green";
   let priorityLevel = "Monitor";
   let priorityColor = "light-green";
 
-  if (compositeScore < 6) {
+  if (guardrailTriggered) {
+    status = "Guardrail";
+    color = "red";
+    priorityLevel = "Critical";
+    priorityColor = "dark-red";
+  } else if (finalScore < 60) {
     status = "Critical";
     color = "red";
     priorityLevel = "Critical";
     priorityColor = "dark-red";
-  } else if (compositeScore < 8) {
+  } else if (finalScore < 80) {
     status = "Watch";
     color = "yellow";
     priorityLevel = "High";
@@ -434,18 +602,18 @@ function buildPortfolioHealth(metrics, actions) {
   }
 
   const leadingAction = actions[0];
-  const driftNote = metrics.maxDeviation >= 4
-    ? `Largest allocation gap is ${metrics.maxDeviation.toFixed(
-        1
-      )}%`
-    : metrics.maxDeviation >= 2
-      ? `Allocation drift peaks at ${metrics.maxDeviation.toFixed(1)}%`
-      : "Allocations remain within guardrails";
+  const driftNote =
+    allocation.maxDeviation >= 4
+      ? `Largest allocation gap is ${allocation.maxDeviation.toFixed(1)}%`
+      : allocation.maxDeviation >= 2
+        ? `Allocation drift peaks at ${allocation.maxDeviation.toFixed(1)}%`
+        : "Allocations remain within guardrails";
 
   const descriptionParts = [
-    `Projected return ${(metrics.expectedReturn * 100).toFixed(1)}%`,
-    `volatility ${(metrics.volatility * 100).toFixed(1)}%`,
-    `Sharpe ${metrics.sharpe.toFixed(2)}`,
+    `Projected return ${(expectedReturn * 100).toFixed(1)}%`,
+    `vol ${(portfolioVol * 100).toFixed(1)}%`,
+    `Sharpe ${sharpeRatio.toFixed(2)}`,
+    `All-in cost ${(cost.allInFee * 100).toFixed(2)}%`,
   ];
 
   const watchlist = [];
@@ -454,15 +622,38 @@ function buildPortfolioHealth(metrics, actions) {
       `${leadingAction.asset} ${leadingAction.actionType.toUpperCase()} ${leadingAction.deviation}%`
     );
   }
-  if (metrics.beta > 1.1) {
-    watchlist.push("Portfolio beta above market");
+  if (allocation.totalAbsDeviation > 20) {
+    watchlist.push(
+      `Total drift ${allocation.totalAbsDeviation.toFixed(1)}% across portfolio.`
+    );
   }
-  if (metrics.diversificationIndex < 0.6) {
-    watchlist.push("Allocation too concentrated");
+  if (diversification.score < 70) {
+    watchlist.push(
+      `Concentration risk: top holding ${topHolding.toFixed(1)}%.`
+    );
+  }
+  if (risk.score < 75) {
+    watchlist.push(
+      `Vol ${(portfolioVol * 100).toFixed(1)}% vs ${(risk.targetVol * 100).toFixed(
+        1
+      )}% target.`
+    );
+  }
+  if (liquidity.singleWeight > 0.15) {
+    watchlist.push(
+      `Single-name exposure ${(liquidity.singleWeight * 100).toFixed(0)}% of portfolio.`
+    );
+  }
+  if (guardrailTriggered) {
+    guardrails.forEach((item) => {
+      if (!watchlist.includes(item)) {
+        watchlist.push(item);
+      }
+    });
   }
 
   return {
-    score: compositeScore,
+    score: finalScore,
     status,
     color,
     priorityLevel,
@@ -470,35 +661,49 @@ function buildPortfolioHealth(metrics, actions) {
     description: `${descriptionParts.join(", ")}. ${driftNote}.`,
     watchlist,
     components: {
-      rrb: {
-        score: rrbScore,
-        note: `Sharpe ${metrics.sharpe.toFixed(
-          2
-        )} with ${(metrics.volatility * 100).toFixed(1)}% volatility.`,
-      },
-      div: {
-        score: divScore,
-        note: `Diversification index ${(metrics.diversificationIndex * 100).toFixed(
-          0
-        )}%. Max drift ${metrics.maxDeviation.toFixed(1)}%.`,
-      },
-      dr: {
-        score: drScore,
-        note: `Beta ${metrics.beta.toFixed(2)}, volatility ${(metrics.volatility * 100).toFixed(
+      allocation: {
+        score: allocation.score,
+        note: `Avg drift ${allocation.averageDeviation.toFixed(
           1
+        )}%, max ${allocation.maxDeviation.toFixed(1)}%.`,
+      },
+      diversification: {
+        score: diversification.score,
+        note: `Effective contributors ${effectiveContributors.toFixed(
+          1
+        )}. Top holding ${topHolding.toFixed(1)}%.`,
+      },
+      cost: {
+        score: cost.score,
+        note: `WER ${(cost.weightedExpense * 100).toFixed(2)}%, all-in ${(cost.allInFee * 100).toFixed(
+          2
         )}%.`,
       },
-      lq: {
-        score: lqScore,
-        note: "ETF coverage keeps liquidity strong. Monitor thematic tilts.",
+      risk: {
+        score: risk.score,
+        note: `Vol ${(portfolioVol * 100).toFixed(1)}% vs ${(risk.targetVol * 100).toFixed(
+          1
+        )}% target (±${Math.round(risk.tolerance * 100)}%).`,
       },
-      ga: {
-        score: gaScore,
-        note: "Growth versus stability mix remains balanced for Roth IRA horizon.",
+      performance: {
+        score: performance.score,
+        note: `Sharpe ${performance.sharpe.toFixed(
+          2
+        )}, expected return ${(expectedReturn * 100).toFixed(1)}%.`,
+      },
+      liquidity: {
+        score: liquidity.score,
+        note: `ETF sleeve ${(liquidity.etfWeight * 100).toFixed(
+          0
+        )}%, single-name ${(liquidity.singleWeight * 100).toFixed(0)}%.`,
+      },
+      tax: {
+        score: tax.score,
+        note: "Roth IRA: qualified withdrawals \u2192 0% tax drag.",
       },
       total: {
-        score: compositeScore,
-        note: status,
+        score: finalScore,
+        note: guardrailTriggered ? guardrails[0] : status,
       },
     },
   };
@@ -835,8 +1040,8 @@ function mapProgressGradient(color) {
 }
 
 function mapScoreVisuals(score) {
-  const safeScore = clamp(safeNumber(score), 0, 10);
-  const ratio = safeScore / 10;
+  const safeScore = clamp(safeNumber(score), 0, 100);
+  const ratio = safeScore / 100;
   const hue = Math.round(ratio * 120);
   const textLightness = 38 + ratio * 20;
   const accentLightness = Math.min(textLightness + 10, 70);
@@ -864,7 +1069,7 @@ function updatePortfolioHealth(health) {
   const statusColor = mapStatusColor(health.color);
   const badgeClasses = mapPriorityBadgeClasses(health.priorityColor);
   const progressGradient = mapProgressGradient(health.color);
-  const scorePercentage = clamp((health.score / 10) * 100, 0, 100);
+  const scorePercentage = clamp(safeNumber(health.score), 0, 100);
   const nextAction =
     health.watchlist && health.watchlist.length
       ? health.watchlist[0]
@@ -916,7 +1121,7 @@ function updatePortfolioHealth(health) {
             </div>
             <div class="mt-2 flex justify-between text-xs font-semibold text-gray-400 dark:text-gray-500">
               <span>0</span>
-              <span>10</span>
+              <span>100</span>
             </div>
           </div>
           <div class="grid gap-3 ${tileColumns}">
