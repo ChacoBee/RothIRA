@@ -24,12 +24,12 @@ const portfolioExpenseRatios =
         VOO: 0.0003,
         QQQM: 0.0015,
         SMH: 0.0035,
-        VXUS: 0.0007,
+        VXUS: 0.0005,
         AVUV: 0.0025,
         SPMO: 0.0013,
-        SPHQ: 0.0029,
+        SPHQ: 0.0021,
         IBIT: 0.0025,
-        AMZN: 0,
+        AMZN: 0.0,
       };
 
 const multiFactorConfigSource =
