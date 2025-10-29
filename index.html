@@ -214,7 +214,7 @@
                 </svg>
               </div>
               <div>
-                <p class="stat-card__label">Portfolio health</p>
+                <p class="stat-card__label">Portfolio score</p>
                 <div class="stat-card__value">
                   <span id="portfolioScore">9.0</span>
                   <span class="stat-card__unit">/10</span>
@@ -2369,11 +2369,186 @@
               </div>
             </article>
 
-            <article class="hud-card hud-card--compact hud-card--recovery">
+            <article class="hud-card hud-card--compact hud-card--multifactor">
               <div class="hud-card__halo" aria-hidden="true"></div>
               <div class="hud-card__inner">
                 <header class="hud-card__header">
                   <span class="hud-card__eyebrow">Signal 12</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 17l4-5 4 3 4-6 4 8"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Multi-Factor Profile</h3>
+                <div class="hud-card__stat-split">
+                  <div>
+                    <p class="hud-card__metric-label">R²</p>
+                    <p id="multiFactorR2" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                  <div>
+                    <p class="hud-card__metric-label">Factor Betas</p>
+                    <div id="multiFactorBetaList" class="hud-card__factor-grid"></div>
+                  </div>
+                </div>
+                <p id="multiFactorDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Regression Fit</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--capture">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 13</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M7 15l5-5 5 5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M7 9l5 5 5-5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Up/Down Capture</h3>
+                <div class="hud-card__capture-grid">
+                  <div>
+                    <p class="hud-card__metric-label">Up Capture</p>
+                    <p id="upCaptureValue" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                  <div>
+                    <p class="hud-card__metric-label">Down Capture</p>
+                    <p id="downCaptureValue" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                </div>
+                <p id="captureDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Asymmetry Gauge</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--cvar">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 14</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 15.5l6-7 4 4 6-7"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M4 19h16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Tail Risk (CVaR)</h3>
+                <div class="hud-card__stat-split">
+                  <div>
+                    <p class="hud-card__metric-label">CVaR 95%</p>
+                    <p id="cvarValue" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                  <div>
+                    <p class="hud-card__metric-label">VaR 95%</p>
+                    <p id="varValue" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                </div>
+                <p id="cvarDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Expected Shortfall</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--tracking">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 15</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 18l4-5 4 4 4-6 4 3"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Active Risk Profile</h3>
+                <div class="hud-card__stat-split">
+                  <div>
+                    <p class="hud-card__metric-label">Tracking Error</p>
+                    <p id="trackingErrorValue" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                  <div>
+                    <p class="hud-card__metric-label">Information Ratio</p>
+                    <p id="informationRatioValue" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                </div>
+                <p id="trackingErrorDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Benchmark Alignment</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--recovery">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 16</span>
                   <svg
                     class="hud-card__glyph"
                     viewBox="0 0 24 24"
@@ -2457,60 +2632,26 @@
                   <span class="ops-column__eyebrow">Telemetry Feed</span>
                   <h4 class="ops-column__title">Core Signals</h4>
                 </header>
-                <div class="ops-stack">
-                  <article class="ops-card ops-card--telemetry">
-                    <div class="ops-card__rail" aria-hidden="true"></div>
-                    <div>
-                      <p class="ops-card__label">Diversification</p>
-                      <p id="diversificationLevel" class="ops-card__value">-</p>
-                    </div>
-                    <span class="ops-card__meta">Spread index across sleeves</span>
+                <div class="ops-kpi-grid">
+                  <article class="ops-kpi-card">
+                    <p class="ops-kpi-label">Diversification</p>
+                    <p id="diversificationLevel" class="ops-kpi-value">-</p>
+                    <span class="ops-kpi-meta">Spread index across sleeves</span>
                   </article>
-                  <article class="ops-card ops-card--telemetry">
-                    <div class="ops-card__rail" aria-hidden="true"></div>
-                    <div>
-                      <p class="ops-card__label">Risk-Adjusted Return</p>
-                      <p id="riskAdjustedReturn" class="ops-card__value">-</p>
-                    </div>
-                    <span class="ops-card__meta">Sharpe sync from analytics</span>
+                  <article class="ops-kpi-card">
+                    <p class="ops-kpi-label">Risk-Adjusted Return</p>
+                    <p id="riskAdjustedReturn" class="ops-kpi-value">-</p>
+                    <span class="ops-kpi-meta">Sharpe sync from analytics</span>
                   </article>
-                  <article class="ops-card ops-card--telemetry">
-                    <div class="ops-card__rail" aria-hidden="true"></div>
-                    <div>
-                      <p class="ops-card__label">Growth Potential</p>
-                      <p id="growthPotential" class="ops-card__value">-</p>
-                    </div>
-                    <span class="ops-card__meta">Trajectory versus targets</span>
+                  <article class="ops-kpi-card">
+                    <p class="ops-kpi-label">Growth Potential</p>
+                    <p id="growthPotential" class="ops-kpi-value">-</p>
+                    <span class="ops-kpi-meta">Trajectory versus targets</span>
                   </article>
-                </div>
-              </section>
-
-              <section class="ops-column ops-column--orders">
-                <header class="ops-column__header">
-                  <span class="ops-column__eyebrow">AI Orders</span>
-                  <h4 class="ops-column__title">Command Queue</h4>
-                </header>
-                <div class="ops-orders">
-                  <article class="ops-order">
-                    <span class="ops-order__tag ops-order__tag--defense">DEF</span>
-                    <div class="ops-order__body">
-                        Dial back positions in high-volatility assets to keep the risk budget stable.
-                      <span class="ops-order__timestamp">Issued T-12s</span>
-                    </div>
-                  </article>
-                  <article class="ops-order">
-                    <span class="ops-order__tag ops-order__tag--attack">ATK</span>
-                    <div class="ops-order__body">
-                        Add steadier sleeves such as broad ETFs or short-duration treasuries.
-                      <span class="ops-order__timestamp">Issued T-9s</span>
-                    </div>
-                  </article>
-                  <article class="ops-order">
-                    <span class="ops-order__tag ops-order__tag--support">SUP</span>
-                    <div class="ops-order__body">
-                        Watch volatility swings and rebalance for better risk-adjusted returns.
-                      <span class="ops-order__timestamp">Queue T-4s</span>
-                    </div>
+                  <article class="ops-kpi-card">
+                    <p class="ops-kpi-label">Active Drift</p>
+                    <p id="activeDriftValue" class="ops-kpi-value">-</p>
+                    <span class="ops-kpi-meta">Tracking error & IR snapshot</span>
                   </article>
                 </div>
               </section>

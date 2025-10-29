@@ -155,6 +155,55 @@ const assetBetas = {
 
 const BASE_ASSET_BETAS = Object.freeze({ ...assetBetas });
 
+const factorNames = ['MKT', 'SMB', 'HML', 'MOM'];
+
+const multiFactorLoadings = {
+  VOO: { MKT: 1.0, SMB: -0.1, HML: 0.0, MOM: 0.12 },
+  QQQM: { MKT: 1.15, SMB: -0.25, HML: -0.35, MOM: 0.3 },
+  SMH: { MKT: 1.25, SMB: -0.3, HML: -0.2, MOM: 0.45 },
+  VXUS: { MKT: 0.95, SMB: 0.05, HML: 0.12, MOM: 0.08 },
+  AVUV: { MKT: 1.05, SMB: 0.7, HML: 0.4, MOM: -0.05 },
+  IBIT: { MKT: 1.6, SMB: 0.35, HML: -0.45, MOM: 0.85 },
+  AMZN: { MKT: 1.3, SMB: -0.2, HML: -0.3, MOM: 0.52 },
+};
+
+const factorCovariances = {
+  MKT: { MKT: 0.042, SMB: 0.011, HML: 0.009, MOM: 0.007 },
+  SMB: { MKT: 0.011, SMB: 0.028, HML: 0.006, MOM: 0.0025 },
+  HML: { MKT: 0.009, SMB: 0.006, HML: 0.025, MOM: 0.002 },
+  MOM: { MKT: 0.007, SMB: 0.0025, HML: 0.002, MOM: 0.03 },
+};
+
+const assetResidualVols = {
+  VOO: 0.08,
+  QQQM: 0.12,
+  SMH: 0.18,
+  VXUS: 0.1,
+  AVUV: 0.14,
+  IBIT: 0.35,
+  AMZN: 0.2,
+};
+
+const BASE_MULTI_FACTOR_LOADINGS = Object.freeze(
+  Object.fromEntries(
+    Object.entries(multiFactorLoadings).map(([key, value]) => [
+      key,
+      Object.freeze({ ...value }),
+    ])
+  )
+);
+
+const BASE_FACTOR_COVARIANCES = Object.freeze(
+  Object.fromEntries(
+    Object.entries(factorCovariances).map(([rowKey, row]) => [
+      rowKey,
+      Object.freeze({ ...row }),
+    ])
+  )
+);
+
+const BASE_ASSET_RESIDUAL_VOLS = Object.freeze({ ...assetResidualVols });
+
 // Analytics Data: Expected Returns (annual), Volatilities (annual), and Correlations
 function deriveCapmExpectedReturn(betaEstimate) {
   const beta = Number.isFinite(betaEstimate) ? betaEstimate : 1;
@@ -221,9 +270,19 @@ const portfolioDefaults = Object.freeze({
   expectedReturns: BASE_EXPECTED_RETURNS,
   volatilities: BASE_VOLATILITIES,
   assetBetas: BASE_ASSET_BETAS,
+  factorNames: Object.freeze([...factorNames]),
+  multiFactorLoadings: BASE_MULTI_FACTOR_LOADINGS,
+  factorCovariances: BASE_FACTOR_COVARIANCES,
+  residualVols: BASE_ASSET_RESIDUAL_VOLS,
 });
 
 window.portfolioDefaults = portfolioDefaults;
+window.multiFactorDefaults = Object.freeze({
+  factorNames: Object.freeze([...factorNames]),
+  loadings: BASE_MULTI_FACTOR_LOADINGS,
+  covariance: BASE_FACTOR_COVARIANCES,
+  residualVols: BASE_ASSET_RESIDUAL_VOLS,
+});
 
 function applyDefaultsToMap(targetMap, defaultsMap) {
   if (!targetMap || !defaultsMap) {

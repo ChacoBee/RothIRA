@@ -28,6 +28,46 @@ const portfolioExpenseRatios =
         AMZN: 0,
       };
 
+const multiFactorConfigSource =
+  typeof window !== 'undefined' &&
+  window.multiFactorDefaults &&
+  typeof window.multiFactorDefaults === 'object'
+    ? window.multiFactorDefaults
+    : typeof window !== 'undefined' &&
+      window.portfolioDefaults &&
+      typeof window.portfolioDefaults === 'object'
+    ? {
+        factorNames: window.portfolioDefaults.factorNames || ['MKT', 'SMB', 'HML', 'MOM'],
+        loadings: window.portfolioDefaults.multiFactorLoadings || {},
+        covariance: window.portfolioDefaults.factorCovariances || {},
+        residualVols: window.portfolioDefaults.residualVols || {},
+      }
+    : {
+        factorNames: ['MKT', 'SMB', 'HML', 'MOM'],
+        loadings: {},
+        covariance: {},
+        residualVols: {},
+      };
+
+const DEFAULT_FACTOR_NAMES = Array.isArray(multiFactorConfigSource.factorNames)
+  ? [...multiFactorConfigSource.factorNames]
+  : ['MKT', 'SMB', 'HML', 'MOM'];
+const ASSET_MULTI_FACTOR_LOADINGS =
+  typeof multiFactorConfigSource.loadings === 'object' &&
+  multiFactorConfigSource.loadings !== null
+    ? multiFactorConfigSource.loadings
+    : {};
+const FACTOR_COVARIANCES =
+  typeof multiFactorConfigSource.covariance === 'object' &&
+  multiFactorConfigSource.covariance !== null
+    ? multiFactorConfigSource.covariance
+    : {};
+const ASSET_RESIDUAL_VOLS =
+  typeof multiFactorConfigSource.residualVols === 'object' &&
+  multiFactorConfigSource.residualVols !== null
+    ? multiFactorConfigSource.residualVols
+    : {};
+
 const DEFAULT_BENCHMARK_RETURN =
   typeof BENCHMARK_EXPECTED_RETURN === 'number'
     ? BENCHMARK_EXPECTED_RETURN
@@ -36,6 +76,14 @@ const DEFAULT_EQUITY_RISK_PREMIUM = Math.max(
   0,
   DEFAULT_BENCHMARK_RETURN - DEFAULT_RISK_FREE_RATE
 );
+const DEFAULT_BENCHMARK_VOLATILITY =
+  typeof BENCHMARK_VOLATILITY === 'number'
+    ? BENCHMARK_VOLATILITY
+    : typeof volatilities === 'object' &&
+      volatilities !== null &&
+      Number.isFinite(volatilities.VOO)
+    ? volatilities.VOO
+    : 0.16;
 const capmExpectedReturnFn =
   typeof deriveCapmExpectedReturn === 'function'
     ? deriveCapmExpectedReturn
@@ -61,6 +109,10 @@ let lastDiversitySnapshot = null;
 let lastSortinoSnapshot = null;
 let lastDrawdownSnapshot = null;
 let lastExpenseSnapshot = null;
+let lastCaptureSnapshot = null;
+let lastMultiFactorSnapshot = null;
+let lastTailRiskSnapshot = null;
+let lastTrackingSnapshot = null;
 
 // Function to get current target percentages from rebalance section
 function getCurrentTargets() {
@@ -614,6 +666,393 @@ function simulateDrawdownMetrics(expectedReturn, volatility, simulations = 60) {
     recoveryMonths: avgRecoveryMonths,
     recoveryTradingDays: avgRecoveryTradingDays,
     recoveryCalendarDays: avgRecoveryCalendarDays,
+  };
+}
+
+function calculateUpDownCaptureRatios({
+  expectedReturn,
+  volatility,
+  beta,
+  benchmarkReturn = DEFAULT_BENCHMARK_RETURN,
+  benchmarkVolatility = DEFAULT_BENCHMARK_VOLATILITY,
+  periods = 120,
+} = {}) {
+  const sanitizedExpected =
+    Number.isFinite(expectedReturn) && expectedReturn !== null ? expectedReturn : null;
+  const sanitizedVolatility =
+    Number.isFinite(volatility) && volatility > 0 ? volatility : null;
+  const sanitizedBenchmarkReturn = Number.isFinite(benchmarkReturn)
+    ? benchmarkReturn
+    : DEFAULT_BENCHMARK_RETURN;
+  const sanitizedBenchmarkVolatility =
+    Number.isFinite(benchmarkVolatility) && benchmarkVolatility > 0
+      ? benchmarkVolatility
+      : sanitizedVolatility !== null
+      ? sanitizedVolatility
+      : DEFAULT_BENCHMARK_VOLATILITY;
+  const sanitizedBeta = Number.isFinite(beta) ? beta : 1;
+
+  if (sanitizedExpected === null || sanitizedVolatility === null || sanitizedBenchmarkVolatility <= 0) {
+    lastCaptureSnapshot = {
+      upCapture: null,
+      downCapture: null,
+      upGeometricMean: null,
+      benchmarkUpGeometricMean: null,
+      downGeometricMean: null,
+      benchmarkDownGeometricMean: null,
+      upPeriods: 0,
+      downPeriods: 0,
+      monthlyPortfolioMean: null,
+      monthlyPortfolioVol: null,
+      monthlyBenchmarkMean: null,
+      monthlyBenchmarkVol: null,
+      beta: sanitizedBeta,
+      residualVolatility: null,
+      systematicVolatility: null,
+      periods: 0,
+      expectedReturn: sanitizedExpected,
+      portfolioVolatility: sanitizedVolatility,
+      benchmarkReturn: sanitizedBenchmarkReturn,
+      benchmarkVolatility: sanitizedBenchmarkVolatility,
+    };
+    return {
+      upCaptureRatio: null,
+      downCaptureRatio: null,
+      details: lastCaptureSnapshot,
+    };
+  }
+
+  const rng = createDeterministicRandom(908172635);
+  const normalSample = createNormalSampler(rng);
+  const monthlyPortfolioMean = Math.pow(1 + sanitizedExpected, 1 / 12) - 1;
+  const monthlyPortfolioVol = sanitizedVolatility / Math.sqrt(12);
+  const monthlyBenchmarkMean = Math.pow(1 + sanitizedBenchmarkReturn, 1 / 12) - 1;
+  const monthlyBenchmarkVol = sanitizedBenchmarkVolatility / Math.sqrt(12);
+  const systematicVol = Math.abs(sanitizedBeta) * monthlyBenchmarkVol;
+  const residualVariance = Math.max(
+    monthlyPortfolioVol * monthlyPortfolioVol - systematicVol * systematicVol,
+    0
+  );
+  const residualVol = Math.sqrt(residualVariance);
+
+  const benchmarkReturns = [];
+  const portfolioReturns = [];
+
+  for (let i = 0; i < periods; i += 1) {
+    const marketShock = normalSample();
+    const benchReturn = monthlyBenchmarkMean + monthlyBenchmarkVol * marketShock;
+    let residualShock = 0;
+    if (residualVol > 0) {
+      residualShock = normalSample() * residualVol;
+    }
+    const portfolioReturn =
+      monthlyPortfolioMean +
+      sanitizedBeta * monthlyBenchmarkVol * marketShock +
+      residualShock;
+
+    benchmarkReturns.push(benchReturn);
+    portfolioReturns.push(portfolioReturn);
+  }
+
+  const computeCapture = (indices) => {
+    if (!indices.length) {
+      return {
+        ratio: null,
+        geometricBenchmark: null,
+        geometricPortfolio: null,
+        count: 0,
+      };
+    }
+    let portfolioProduct = 1;
+    let benchmarkProduct = 1;
+    indices.forEach((idx) => {
+      const benchFactor = 1 + benchmarkReturns[idx];
+      const portFactor = 1 + portfolioReturns[idx];
+      const safeBench = benchFactor > 0 ? benchFactor : 0.01;
+      const safePort = portFactor > 0 ? portFactor : 0.01;
+      benchmarkProduct *= safeBench;
+      portfolioProduct *= safePort;
+    });
+    const geometricBenchmark = Math.pow(benchmarkProduct, 1 / indices.length) - 1;
+    const geometricPortfolio = Math.pow(portfolioProduct, 1 / indices.length) - 1;
+    const ratio =
+      Number.isFinite(geometricBenchmark) && Math.abs(geometricBenchmark) > 1e-6
+        ? geometricPortfolio / geometricBenchmark
+        : null;
+    return {
+      ratio,
+      geometricBenchmark,
+      geometricPortfolio,
+      count: indices.length,
+    };
+  };
+
+  const upIndices = [];
+  const downIndices = [];
+  benchmarkReturns.forEach((value, idx) => {
+    if (value > 0) upIndices.push(idx);
+    else if (value < 0) downIndices.push(idx);
+  });
+
+  const upMetrics = computeCapture(upIndices);
+  const downMetrics = computeCapture(downIndices);
+
+  lastCaptureSnapshot = {
+    upCapture: upMetrics.ratio,
+    downCapture: downMetrics.ratio,
+    upGeometricMean: upMetrics.geometricPortfolio,
+    benchmarkUpGeometricMean: upMetrics.geometricBenchmark,
+    downGeometricMean: downMetrics.geometricPortfolio,
+    benchmarkDownGeometricMean: downMetrics.geometricBenchmark,
+    upPeriods: upMetrics.count,
+    downPeriods: downMetrics.count,
+    monthlyPortfolioMean,
+    monthlyPortfolioVol,
+    monthlyBenchmarkMean,
+    monthlyBenchmarkVol,
+    beta: sanitizedBeta,
+    residualVolatility: residualVol,
+    systematicVolatility: systematicVol,
+    periods,
+    expectedReturn: sanitizedExpected,
+    portfolioVolatility: sanitizedVolatility,
+    benchmarkReturn: sanitizedBenchmarkReturn,
+    benchmarkVolatility: sanitizedBenchmarkVolatility,
+  };
+
+  return {
+    upCaptureRatio: upMetrics.ratio,
+    downCaptureRatio: downMetrics.ratio,
+    details: lastCaptureSnapshot,
+  };
+}
+
+function computeMultiFactorMetrics({ weights, variance }) {
+  const factorList =
+    Array.isArray(DEFAULT_FACTOR_NAMES) && DEFAULT_FACTOR_NAMES.length
+      ? DEFAULT_FACTOR_NAMES
+      : [];
+  if (!factorList.length) {
+    lastMultiFactorSnapshot = {
+      exposures: {},
+      factorNames: [],
+      covarianceMatrix: [],
+      explainedVariance: 0,
+      residualVariance: 0,
+      totalVariance: Number.isFinite(variance) ? variance : 0,
+      rSquared: null,
+      weights: weights ? { ...weights } : {},
+    };
+    return {
+      exposures: {},
+      factorNames: [],
+      covarianceMatrix: [],
+      explainedVariance: 0,
+      residualVariance: 0,
+      totalVariance: Number.isFinite(variance) ? variance : 0,
+      rSquared: null,
+    };
+  }
+
+  const exposures = factorList.reduce((acc, factor) => {
+    acc[factor] = 0;
+    return acc;
+  }, {});
+
+  assetKeys.forEach((key) => {
+    const weight = weights && Number.isFinite(weights[key]) ? weights[key] : 0;
+    if (!weight) {
+      return;
+    }
+    const loadings =
+      typeof ASSET_MULTI_FACTOR_LOADINGS[key] === 'object' &&
+      ASSET_MULTI_FACTOR_LOADINGS[key] !== null
+        ? ASSET_MULTI_FACTOR_LOADINGS[key]
+        : null;
+    factorList.forEach((factor) => {
+      const loading =
+        loadings && Number.isFinite(loadings[factor]) ? loadings[factor] : 0;
+      exposures[factor] += weight * loading;
+    });
+  });
+
+  const covarianceMatrix = factorList.map((rowFactor) =>
+    factorList.map((colFactor) => {
+      const row =
+        typeof FACTOR_COVARIANCES[rowFactor] === 'object' &&
+        FACTOR_COVARIANCES[rowFactor] !== null
+          ? FACTOR_COVARIANCES[rowFactor]
+          : null;
+      const value =
+        row && Number.isFinite(row[colFactor]) ? row[colFactor] : 0;
+      return value;
+    })
+  );
+
+  const exposureVector = factorList.map((factor) =>
+    Number.isFinite(exposures[factor]) ? exposures[factor] : 0
+  );
+
+  let explainedVariance = 0;
+  for (let i = 0; i < factorList.length; i += 1) {
+    for (let j = 0; j < factorList.length; j += 1) {
+      explainedVariance +=
+        exposureVector[i] * covarianceMatrix[i][j] * exposureVector[j];
+    }
+  }
+  explainedVariance = Math.max(explainedVariance, 0);
+
+  let residualVarianceEstimate = 0;
+  assetKeys.forEach((key) => {
+    const weight = weights && Number.isFinite(weights[key]) ? weights[key] : 0;
+    if (!weight) {
+      return;
+    }
+    const residualVol = Number.isFinite(ASSET_RESIDUAL_VOLS[key])
+      ? ASSET_RESIDUAL_VOLS[key]
+      : 0;
+    residualVarianceEstimate += weight * weight * residualVol * residualVol;
+  });
+
+  let totalVariance =
+    Number.isFinite(variance) && variance > 0 ? variance : null;
+  if (!Number.isFinite(totalVariance) || totalVariance === null) {
+    totalVariance = explainedVariance + residualVarianceEstimate;
+  } else if (explainedVariance > totalVariance) {
+    totalVariance = explainedVariance + residualVarianceEstimate;
+  }
+
+  const residualVariance =
+    totalVariance > explainedVariance
+      ? totalVariance - explainedVariance
+      : Math.max(residualVarianceEstimate, 0);
+
+  const rSquared =
+    totalVariance > 0
+      ? Math.max(0, Math.min(1, explainedVariance / totalVariance))
+      : null;
+
+  lastMultiFactorSnapshot = {
+    exposures: { ...exposures },
+    factorNames: [...factorList],
+    covarianceMatrix,
+    explainedVariance,
+    residualVariance,
+    residualVarianceEstimate,
+    totalVariance,
+    rSquared,
+    weights: weights ? { ...weights } : {},
+  };
+
+  return {
+    exposures,
+    factorNames: factorList,
+    covarianceMatrix,
+    explainedVariance,
+    residualVariance,
+    totalVariance,
+    rSquared,
+  };
+}
+
+function calculateTailRiskMetrics({
+  expectedReturn,
+  volatility,
+  periods = 120,
+  confidenceLevel = 0.95,
+} = {}) {
+  if (!Number.isFinite(expectedReturn)) expectedReturn = 0;
+  if (!Number.isFinite(volatility) || volatility <= 0) {
+    lastTailRiskSnapshot = {
+      cvar: null,
+      var: null,
+      confidenceLevel,
+      tailProbability: 1 - confidenceLevel,
+      simulatedReturns: [],
+      losses: [],
+    };
+    return { cvar: null, var: null, confidenceLevel };
+  }
+
+  const rng = createDeterministicRandom(710274);
+  const normalSample = createNormalSampler(rng);
+  const monthlyReturn = Math.pow(1 + expectedReturn, 1 / 12) - 1;
+  const monthlyVol = volatility / Math.sqrt(12);
+  const returns = [];
+  for (let i = 0; i < periods; i += 1) {
+    const z = normalSample();
+    returns.push(monthlyReturn + monthlyVol * z);
+  }
+  const losses = returns.map((r) => -r);
+  const sortedLosses = [...losses].sort((a, b) => b - a);
+  const tailProbability = 1 - confidenceLevel;
+  const tailCount = Math.max(1, Math.floor(sortedLosses.length * tailProbability));
+  const varIndex = Math.min(sortedLosses.length - 1, tailCount - 1);
+  const varLoss = sortedLosses[varIndex];
+  let cvarLoss = null;
+  if (tailCount > 0) {
+    const tailSlice = sortedLosses.slice(0, tailCount);
+    const sum = tailSlice.reduce((acc, value) => acc + value, 0);
+    cvarLoss = sum / tailSlice.length;
+  }
+  lastTailRiskSnapshot = {
+    cvar: cvarLoss,
+    var: varLoss,
+    confidenceLevel,
+    tailProbability,
+    simulatedReturns: returns,
+    losses,
+    sortedLosses,
+  };
+  return { cvar: cvarLoss, var: varLoss, confidenceLevel };
+}
+
+function calculateTrackingErrorMetrics({
+  expectedReturn,
+  variance,
+  beta,
+  benchmarkReturn = DEFAULT_BENCHMARK_RETURN,
+  benchmarkVolatility = DEFAULT_BENCHMARK_VOLATILITY,
+} = {}) {
+  const activeReturn = Number.isFinite(expectedReturn) ? expectedReturn - benchmarkReturn : null;
+  const portfolioVariance = Number.isFinite(variance) ? variance : null;
+  const benchmarkSigma = Number.isFinite(benchmarkVolatility) ? benchmarkVolatility : null;
+  const betaValue = Number.isFinite(beta) ? beta : null;
+
+  let trackingError = null;
+  if (
+    portfolioVariance !== null &&
+    benchmarkSigma !== null &&
+    betaValue !== null &&
+    portfolioVariance >= 0 &&
+    benchmarkSigma >= 0
+  ) {
+    const varPortfolio = portfolioVariance;
+    const varBenchmark = benchmarkSigma * benchmarkSigma;
+    const covar = betaValue * varBenchmark;
+    const activeVariance = varPortfolio + varBenchmark - 2 * covar;
+    trackingError = Math.sqrt(Math.max(activeVariance, 0));
+  }
+
+  const informationRatio =
+    trackingError && trackingError > 0 && Number.isFinite(activeReturn)
+      ? activeReturn / trackingError
+      : null;
+
+  lastTrackingSnapshot = {
+    trackingError,
+    informationRatio,
+    activeReturn,
+    benchmarkReturn,
+    benchmarkVolatility,
+  };
+
+  return {
+    trackingError,
+    informationRatio,
+    activeReturn,
+    benchmarkReturn,
+    benchmarkVolatility,
   };
 }
 
@@ -1359,7 +1798,7 @@ function formatRecoveryLabel(input) {
   });
   const calendarLabel =
     Number.isFinite(calendarDays) && calendarDays > 0
-      ? `~${Math.round(calendarDays)} calendar days`
+      ? `${Math.round(calendarDays)} cal days`
       : null;
 
   if (tradingLabel) {
@@ -1395,7 +1834,14 @@ function describeReturnQuality({ expectedReturn, sortinoRatio, calmarRatio, vola
   return `Downside-adjusted efficiency needs work: Sortino ${sortinoLabel} and Calmar ${calmarLabel} suggest the ${expectedLabel} target relies on elevated volatility (${volLabel}).`;
 }
 
-function describeResilience({ maxDrawdown, recoveryMonths, drawdownDetails }) {
+function describeResilience({
+  maxDrawdown,
+  recoveryMonths,
+  drawdownDetails,
+  cvarLoss,
+  varLoss,
+  tailRiskDetails,
+}) {
   if (!Number.isFinite(maxDrawdown)) {
     return 'No drawdown simulation available to evaluate crash resilience.';
   }
@@ -1466,34 +1912,99 @@ function describeResilience({ maxDrawdown, recoveryMonths, drawdownDetails }) {
   }
 
   const recoveryWindow = hasRecoveryLabel ? recoveryLabel : null;
+  const confidenceLevel =
+    tailRiskDetails && Number.isFinite(tailRiskDetails.confidenceLevel)
+      ? tailRiskDetails.confidenceLevel
+      : 0.95;
+  const cvarLabel = Number.isFinite(cvarLoss)
+    ? formatPercent(Math.abs(cvarLoss) * 100)
+    : null;
+  const varLabel = Number.isFinite(varLoss)
+    ? formatPercent(Math.abs(varLoss) * 100)
+    : null;
+  const tailConfidenceLabel = `${Math.round(confidenceLevel * 100)}%`;
+  const tailNote =
+    cvarLabel && varLabel
+      ? ` Tail risk at ${tailConfidenceLabel}: CVaR ${cvarLabel}, VaR ${varLabel}.`
+      : cvarLabel
+      ? ` Tail risk at ${tailConfidenceLabel}: CVaR ${cvarLabel}.`
+      : '';
 
   if (maxDrawdown <= 0.2) {
-    return `Simulated max drawdown holds to ${drawdownLabel}; ${cadencePhrase} keeps capital resilient.${detailNote}`;
+    return `Simulated max drawdown holds to ${drawdownLabel}; ${cadencePhrase} keeps capital resilient.${tailNote}${detailNote}`;
   }
   if (maxDrawdown <= 0.35) {
     return hasRecoveryLabel
-      ? `Expect about ${drawdownLabel} drawdowns with ${recoveryWindow} recovery window - maintain cash buffers for that stress.${detailNote}`
-      : `Expect about ${drawdownLabel} drawdowns; recovery timing data is unavailable - maintain cash buffers for that stress.${detailNote}`;
+      ? `Expect about ${drawdownLabel} drawdowns with ${recoveryWindow} recovery window - maintain cash buffers for that stress.${tailNote}${detailNote}`
+      : `Expect about ${drawdownLabel} drawdowns; recovery timing data is unavailable - maintain cash buffers for that stress.${tailNote}${detailNote}`;
   }
   return hasRecoveryLabel
-    ? `Drawdowns could reach ${drawdownLabel} and stay underwater for roughly ${recoveryWindow}; consider rebalancing or hedges to boost resilience.${detailNote}`
-    : `Drawdowns could reach ${drawdownLabel}; recovery timing is unclear, so consider rebalancing or hedges to boost resilience.${detailNote}`;
+    ? `Drawdowns could reach ${drawdownLabel} and stay underwater for roughly ${recoveryWindow}; consider rebalancing or hedges to boost resilience.${tailNote}${detailNote}`
+    : `Drawdowns could reach ${drawdownLabel}; recovery timing is unclear, so consider rebalancing or hedges to boost resilience.${tailNote}${detailNote}`;
 }
 
-function describeEfficiency({ alpha, expenseRatio }) {
+function describeEfficiency({
+  alpha,
+  expenseRatio,
+  upCaptureRatio,
+  downCaptureRatio,
+  trackingError,
+  informationRatio,
+  activeReturn,
+}) {
   const expenseLabel = Number.isFinite(expenseRatio) ? formatPercent(expenseRatio * 100) : ' - ';
   const alphaPercent = Number.isFinite(alpha) ? alpha * 100 : null;
+  let notes = '';
+  if (Number.isFinite(upCaptureRatio) && Number.isFinite(downCaptureRatio)) {
+    const upLabel = formatPercent(upCaptureRatio * 100);
+    const downLabel = formatPercent(downCaptureRatio * 100);
+    const spread = (upCaptureRatio - downCaptureRatio) * 100;
+    const spreadLabel = Number.isFinite(spread) ? `${spread.toFixed(1)} pts` : null;
+    if (spread >= 15) {
+      notes += ` Capture asymmetry (${upLabel} up / ${downLabel} down${spreadLabel ? `, spread ${spreadLabel}` : ''}) shows rallies are compounding faster than selloffs.`;
+    } else if (spread >= 0) {
+      notes += ` Capture mix (${upLabel} up / ${downLabel} down${spreadLabel ? `, spread ${spreadLabel}` : ''}) leans positive; keep the edge intact.`;
+    } else {
+      notes += ` Capture mix (${upLabel} up / ${downLabel} down${spreadLabel ? `, spread ${spreadLabel}` : ''}) now skews defensive; confirm that tilt is intentional.`;
+    }
+  }
+  if (Number.isFinite(trackingError)) {
+    const tePct = formatPercent(trackingError * 100);
+    if (trackingError <= 0.04) {
+      notes += ` Tracking error ${tePct} keeps active risk tight versus the benchmark.`;
+    } else if (trackingError <= 0.08) {
+      notes += ` Tracking error ${tePct} sits in a balanced range; ensure it matches mandate.`;
+    } else {
+      notes += ` Tracking error ${tePct} is elevated; verify active bets justify the risk.`;
+    }
+  }
+  if (Number.isFinite(informationRatio)) {
+    const irLabel = informationRatio.toFixed(2);
+    if (informationRatio >= 0.75) {
+      notes += ` IR ${irLabel} signals strong skill per unit of active risk.`;
+    } else if (informationRatio >= 0.4) {
+      notes += ` IR ${irLabel} is competitive; keep compounding the edge.`;
+    } else if (informationRatio >= 0) {
+      notes += ` IR ${irLabel} is modest; tighten execution or reduce noise.`;
+    } else {
+      notes += ` IR ${irLabel} negative; active bets are not paying off.`;
+    }
+  }
+  if (Number.isFinite(activeReturn)) {
+    const diffLabel = formatPercent(activeReturn * 100);
+    notes += ` Active return ${diffLabel} annualised.`;
+  }
 
   if (alphaPercent !== null && alphaPercent > 1 && Number.isFinite(expenseRatio) && expenseRatio <= 0.003) {
-    return `Cost discipline (${expenseLabel}) plus ${alphaPercent.toFixed(1)}% alpha indicates the portfolio is compounding efficiently versus the benchmark.`;
+    return `Cost discipline (${expenseLabel}) plus ${alphaPercent.toFixed(1)}% alpha indicates the portfolio is compounding efficiently versus the benchmark.${notes}`;
   }
   if (alphaPercent !== null && alphaPercent >= 0 && Number.isFinite(expenseRatio) && expenseRatio <= 0.004) {
-    return `Fees stay moderate at ${expenseLabel}; keep nudging alpha above zero (${alphaPercent.toFixed(1)}%) to justify the risk budget.`;
+    return `Fees stay moderate at ${expenseLabel}; keep nudging alpha above zero (${alphaPercent.toFixed(1)}%) to justify the risk budget.${notes}`;
   }
   if (alphaPercent !== null && alphaPercent < 0) {
-    return `Current alpha of ${alphaPercent.toFixed(1)}% trails the market; review sleeve tilts or execution costs (fees at ${expenseLabel}) to close the gap.`;
+    return `Current alpha of ${alphaPercent.toFixed(1)}% trails the market; review sleeve tilts or execution costs (fees at ${expenseLabel}) to close the gap.${notes}`;
   }
-  return `Monitor cost drag (${expenseLabel}) and risk-adjusted skill to confirm the strategy stays competitive.`;
+  return `Monitor cost drag (${expenseLabel}) and risk-adjusted skill to confirm the strategy stays competitive.${notes}`;
 }
 
 function updateAnalyticsNarrative(metrics) {
@@ -2086,6 +2597,277 @@ function updateMetricBreakdown(metrics) {
       },
     },
     {
+      id: 'captureDiagnostic',
+      value: (m) => ({
+        up: Number.isFinite(m.upCaptureRatio) ? m.upCaptureRatio : null,
+        down: Number.isFinite(m.downCaptureRatio) ? m.downCaptureRatio : null,
+        details:
+          m && m.captureDetails && typeof m.captureDetails === 'object'
+            ? m.captureDetails
+            : null,
+      }),
+      format: (data) => {
+        if (!data || data.up === null || data.down === null) {
+          return '--';
+        }
+        const upLabel = formatPercent(data.up * 100);
+        const downLabel = formatPercent(data.down * 100);
+        return `${upLabel} / ${downLabel}`;
+      },
+      evaluate: (data, metrics, formatted) => {
+        const details =
+          (data && data.details) ||
+          (metrics &&
+            metrics.captureDetails &&
+            typeof metrics.captureDetails === 'object'
+              ? metrics.captureDetails
+              : null);
+        if (!data || data.up === null || data.down === null) {
+          return {
+            status: 'Data missing',
+            tone: 'neutral',
+            message:
+              'Need portfolio and benchmark return assumptions to estimate capture ratios.',
+          };
+        }
+        const upPct = data.up * 100;
+        const downPct = data.down * 100;
+        const spread = upPct - downPct;
+        const spreadLabel = Number.isFinite(spread) ? `${spread.toFixed(1)} pts` : null;
+        const spreadText = spreadLabel ? `spread ${spreadLabel}` : 'spread n/a';
+        const sampleNote =
+          details &&
+          Number.isFinite(details.upPeriods) &&
+          Number.isFinite(details.downPeriods)
+            ? ` (samples: up ${details.upPeriods}, down ${details.downPeriods})`
+            : '';
+        if (upPct >= 115 && downPct <= 85) {
+          return {
+            status: 'Asymmetry favors you',
+            tone: 'excellent',
+            message: `${formatted} capture with ${spreadText} shows rallies contribute far more than selloffs${sampleNote}.`,
+          };
+        }
+        if (upPct >= 105 && downPct <= 95) {
+          return {
+            status: 'Favorable balance',
+            tone: 'strong',
+            message: `${formatted} capture keeps upside ahead of downside (${spreadText})${sampleNote}.`,
+          };
+        }
+        if (upPct >= 95 && downPct <= 105) {
+          return {
+            status: 'Neutral symmetry',
+            tone: 'balanced',
+            message: `${formatted} capture is roughly market-like (${spreadText}); fine-tune tilts to build an edge${sampleNote}.`,
+          };
+        }
+        if (upPct < 90 && downPct > 110) {
+          return {
+            status: 'Unfavorable asymmetry',
+            tone: 'negative',
+            message: `${formatted} capture reverses the edge (${spreadText}); losses are outrunning gains${sampleNote}.`,
+          };
+        }
+        return {
+          status: 'Watch asymmetry',
+          tone: 'watch',
+          message: `${formatted} capture mix is drifting (${spreadText}); recalibrate sleeve weights to regain a positive spread${sampleNote}.`,
+        };
+      },
+    },
+    {
+      id: 'multiFactorDiagnostic',
+      value: (m) => ({
+        rSquared: Number.isFinite(m.multiFactorRSquared) ? m.multiFactorRSquared : null,
+        exposures:
+          m && m.multiFactorExposures && typeof m.multiFactorExposures === 'object'
+            ? m.multiFactorExposures
+            : null,
+        factorNames:
+          m && Array.isArray(m.multiFactorFactorNames) ? m.multiFactorFactorNames : null,
+      }),
+      format: (data) =>
+        data && Number.isFinite(data.rSquared) ? formatPercent(data.rSquared * 100) : '--',
+      evaluate: (data, _metrics, formatted) => {
+        if (!data || !Number.isFinite(data.rSquared)) {
+          return {
+            status: 'Data missing',
+            tone: 'neutral',
+            message: 'Need factor exposures and covariance estimates to compute regression fit.',
+          };
+        }
+        const factorNames = Array.isArray(data.factorNames) ? data.factorNames : [];
+        const exposures = data.exposures && typeof data.exposures === 'object' ? data.exposures : {};
+        let topFactor = null;
+        factorNames.forEach((factor) => {
+          const value = exposures && Number.isFinite(exposures[factor]) ? exposures[factor] : null;
+          if (value === null) return;
+          const magnitude = Math.abs(value);
+          if (!topFactor || magnitude > topFactor.magnitude) {
+            topFactor = { factor, value, magnitude };
+          }
+        });
+        if (!topFactor) {
+          const entries = Object.entries(exposures || {});
+          entries.forEach(([factor, value]) => {
+            if (!Number.isFinite(value)) return;
+            const magnitude = Math.abs(value);
+            if (!topFactor || magnitude > topFactor.magnitude) {
+              topFactor = { factor, value, magnitude };
+            }
+          });
+        }
+        const driverNote =
+          topFactor && Number.isFinite(topFactor.value)
+            ? ` Primary driver: ${topFactor.factor} β ${topFactor.value.toFixed(2)}.`
+            : '';
+        const rSquared = data.rSquared;
+        if (rSquared >= 0.7) {
+          return {
+            status: 'Well explained',
+            tone: 'excellent',
+            message: `R² ${formatted} shows factor exposures capture most portfolio variance.${driverNote}`,
+          };
+        }
+        if (rSquared >= 0.5) {
+          return {
+            status: 'Aligned',
+            tone: 'strong',
+            message: `R² ${formatted} indicates a solid factor model fit.${driverNote}`,
+          };
+        }
+        if (rSquared >= 0.3) {
+          return {
+            status: 'Partial fit',
+            tone: 'watch',
+            message: `R² ${formatted} leaves notable idiosyncratic risk; consider additional factors or shorter windows.${driverNote}`,
+          };
+        }
+        return {
+          status: 'Weak fit',
+          tone: 'negative',
+          message: `R² ${formatted} suggests factors explain little of the variance; reassess exposures or factor mix.${driverNote}`,
+        };
+      },
+    },
+    {
+      id: 'trackingErrorDiagnostic',
+      value: (m) => ({
+        trackingError: Number.isFinite(m.trackingError) ? m.trackingError : null,
+        informationRatio: Number.isFinite(m.informationRatio) ? m.informationRatio : null,
+        activeReturn: Number.isFinite(m.activeReturn) ? m.activeReturn : null,
+      }),
+      format: (data) =>
+        data && Number.isFinite(data.trackingError)
+          ? formatPercent(data.trackingError * 100)
+          : '--',
+      evaluate: (data, _metrics, formatted) => {
+        if (!data || !Number.isFinite(data.trackingError)) {
+          return {
+            status: 'Data missing',
+            tone: 'neutral',
+            message: 'Need portfolio variance, beta, and benchmark volatility to estimate tracking error.',
+          };
+        }
+        const ir = Number.isFinite(data.informationRatio) ? data.informationRatio : null;
+        const activeReturn = Number.isFinite(data.activeReturn) ? data.activeReturn : null;
+        let tone = 'strong';
+        let status = 'Active risk aligned';
+        let message = `Tracking error ${formatted} keeps risk relative to the benchmark in check.`;
+        if (data.trackingError <= 0.04) {
+          tone = 'excellent';
+          status = 'Tightly managed';
+          message = `Tracking error ${formatted} indicates a benchmark-hugging sleeve.`;
+        } else if (data.trackingError <= 0.08) {
+          tone = 'balanced';
+          status = 'Moderate drift';
+          message = `Tracking error ${formatted} reflects meaningful but controlled active bets.`;
+        } else if (data.trackingError <= 0.12) {
+          tone = 'watch';
+          status = 'High drift';
+          message = `Tracking error ${formatted} is elevated; confirm mandate allows this active risk.`;
+        } else {
+          tone = 'negative';
+          status = 'Extreme drift';
+          message = `Tracking error ${formatted} far exceeds typical mandates; review exposures.`;
+        }
+        if (ir !== null) {
+          const irLabel = ir.toFixed(2);
+          const irNote =
+            ir >= 0.75
+              ? ` IR ${irLabel} shows strong skill per unit of tracking error.`
+              : ir >= 0.4
+              ? ` IR ${irLabel} is solid; maintain discipline.`
+              : ir >= 0
+              ? ` IR ${irLabel} is modest; sharpen active positions.`
+              : ` IR ${irLabel} negative; active bets are lagging.`;
+          message += irNote;
+        }
+        if (activeReturn !== null) {
+          message += ` Active return ${formatPercent(activeReturn * 100)}.`;
+        }
+        return { status, tone, message };
+      },
+    },
+    {
+      id: 'cvarDiagnostic',
+      value: (m) => ({
+        cvar: Number.isFinite(m.cvarLoss) ? m.cvarLoss : null,
+        var: Number.isFinite(m.varLoss) ? m.varLoss : null,
+        tailRiskDetails:
+          m && typeof m.tailRiskDetails === 'object' ? m.tailRiskDetails : null,
+      }),
+      format: (data) =>
+        data && Number.isFinite(data.cvar)
+          ? formatPercent(Math.abs(data.cvar) * 100)
+          : '--',
+      evaluate: (data) => {
+        if (!data || !Number.isFinite(data.cvar)) {
+          return {
+            status: 'Data missing',
+            tone: 'neutral',
+            message: 'Need volatility assumptions to simulate CVaR.',
+          };
+        }
+        const confidence =
+          data.tailRiskDetails && Number.isFinite(data.tailRiskDetails.confidenceLevel)
+            ? data.tailRiskDetails.confidenceLevel
+            : 0.95;
+        const confidenceLabel = `${Math.round(confidence * 100)}%`;
+        const cvarPct = Math.abs(data.cvar) * 100;
+        const varPct = Number.isFinite(data.var) ? Math.abs(data.var) * 100 : null;
+        const varNote =
+          varPct !== null ? ` VaR ${formatPercent(varPct)} accompanies this tail estimate.` : '';
+        if (cvarPct <= 6) {
+          return {
+            status: 'Contained tail risk',
+            tone: 'excellent',
+            message: `CVaR(${confidenceLabel}) ${formatPercent(cvarPct)} keeps worst-case losses manageable.${varNote}`,
+          };
+        }
+        if (cvarPct <= 10) {
+          return {
+            status: 'Moderate tail risk',
+            tone: 'balanced',
+            message: `CVaR(${confidenceLabel}) ${formatPercent(cvarPct)} is acceptable; monitor leverage and hedges.${varNote}`,
+          };
+        }
+        if (cvarPct <= 15) {
+          return {
+            status: 'Elevated tail risk',
+            tone: 'watch',
+            message: `CVaR(${confidenceLabel}) ${formatPercent(cvarPct)} signals heavy downside; tighten risk controls.${varNote}`,
+          };
+        }
+        return {
+          status: 'Extreme tail risk',
+          tone: 'negative',
+          message: `CVaR(${confidenceLabel}) ${formatPercent(cvarPct)} implies large tail losses; reassess allocation and stress hedges.${varNote}`,
+        };
+      },
+    },
+    {
       id: 'expenseDiagnostic',
       value: (m) => m.expenseRatio,
       format: (v) => (Number.isFinite(v) ? formatPercent(v * 100) : '--'),
@@ -2306,6 +3088,77 @@ function updateOperationalHealthGrid(metrics) {
   growthBar.setAttribute('aria-valuenow', String(growthPercent));
   growthValue.textContent = `${growthPercent}%`;
 }
+
+function updateMultiFactorCard(metrics) {
+  const r2El = document.getElementById('multiFactorR2');
+  if (r2El) {
+    if (metrics && Number.isFinite(metrics.rSquared)) {
+      r2El.textContent = formatPercent(metrics.rSquared * 100);
+    } else {
+      r2El.textContent = '--';
+    }
+  }
+
+  const listEl = document.getElementById('multiFactorBetaList');
+  if (!listEl) {
+    return;
+  }
+
+  if (
+    !metrics ||
+    !Array.isArray(metrics.factorNames) ||
+    !metrics.factorNames.length
+  ) {
+    listEl.innerHTML =
+      '<span class="hud-card__factor-pill"><span>--</span></span>';
+    return;
+  }
+
+  const exposures = metrics.exposures || {};
+  listEl.innerHTML = metrics.factorNames
+    .map((factor) => {
+      const display = Number.isFinite(exposures[factor])
+        ? exposures[factor].toFixed(2)
+        : '--';
+      return `<span class="hud-card__factor-pill"><span>${factor}</span><span class="hud-card__factor-pill-value">${display}</span></span>`;
+    })
+    .join('');
+}
+
+function updateTailRiskCard(metrics) {
+  const cvarEl = document.getElementById('cvarValue');
+  const varEl = document.getElementById('varValue');
+  if (cvarEl) {
+    cvarEl.textContent =
+      metrics && Number.isFinite(metrics.cvar)
+        ? formatPercent(Math.abs(metrics.cvar) * 100)
+        : '--';
+  }
+  if (varEl) {
+    varEl.textContent =
+      metrics && Number.isFinite(metrics.var)
+        ? formatPercent(Math.abs(metrics.var) * 100)
+        : '--';
+  }
+}
+
+function updateTrackingCard(metrics) {
+  const teEl = document.getElementById('trackingErrorValue');
+  if (teEl) {
+    teEl.textContent =
+      metrics && Number.isFinite(metrics.trackingError)
+        ? formatPercent(metrics.trackingError * 100)
+        : '--';
+  }
+
+  const irEl = document.getElementById('informationRatioValue');
+  if (irEl) {
+    irEl.textContent =
+      metrics && Number.isFinite(metrics.informationRatio)
+        ? metrics.informationRatio.toFixed(2)
+        : '--';
+  }
+}
 // Initialize Analytics
 function initializeAnalytics() {
   const targets = getCurrentTargets();
@@ -2337,6 +3190,33 @@ function initializeAnalytics() {
     typeof lastExpenseSnapshot === 'object' && lastExpenseSnapshot !== null
       ? lastExpenseSnapshot
       : null;
+  const captureMetrics = calculateUpDownCaptureRatios({
+    expectedReturn,
+    volatility,
+    beta,
+  });
+  const upCaptureRatio =
+    captureMetrics && Number.isFinite(captureMetrics.upCaptureRatio)
+      ? captureMetrics.upCaptureRatio
+      : null;
+  const downCaptureRatio =
+    captureMetrics && Number.isFinite(captureMetrics.downCaptureRatio)
+      ? captureMetrics.downCaptureRatio
+      : null;
+  const captureDetails =
+    captureMetrics && captureMetrics.details ? captureMetrics.details : null;
+  const tailRiskMetrics = calculateTailRiskMetrics({
+    expectedReturn,
+    volatility,
+  });
+  const cvarLoss =
+    tailRiskMetrics && Number.isFinite(tailRiskMetrics.cvar)
+      ? tailRiskMetrics.cvar
+      : null;
+  const varLoss =
+    tailRiskMetrics && Number.isFinite(tailRiskMetrics.var)
+      ? tailRiskMetrics.var
+      : null;
   const {
     index: diversityIndex,
     score: diversityComponentScore,
@@ -2365,6 +3245,18 @@ function initializeAnalytics() {
   if (alphaEl) alphaEl.textContent = formatPercent(alpha * 100);
   const expenseEl = document.getElementById('expenseRatioValue');
   if (expenseEl) expenseEl.textContent = formatPercent(weightedExpenseRatio * 100);
+  const upCaptureEl = document.getElementById('upCaptureValue');
+  if (upCaptureEl) {
+    upCaptureEl.textContent = Number.isFinite(upCaptureRatio)
+      ? formatPercent(upCaptureRatio * 100)
+      : '--';
+  }
+  const downCaptureEl = document.getElementById('downCaptureValue');
+  if (downCaptureEl) {
+    downCaptureEl.textContent = Number.isFinite(downCaptureRatio)
+      ? formatPercent(downCaptureRatio * 100)
+      : '--';
+  }
   const recoveryEl = document.getElementById('recoveryTimeValue');
   if (recoveryEl) {
     recoveryEl.textContent = formatRecoveryLabel({
@@ -2373,7 +3265,14 @@ function initializeAnalytics() {
       calendarDays: recoveryCalendarDays,
     });
   }
-
+  updateTailRiskCard({
+    cvar: cvarLoss,
+    var: varLoss,
+    confidenceLevel:
+      tailRiskMetrics && Number.isFinite(tailRiskMetrics.confidenceLevel)
+        ? tailRiskMetrics.confidenceLevel
+        : 0.95,
+  });
   updatePortfolioScoreAndRisk(volatility, sharpe, beta, diversityIndex);
 
   const volatilitySnapshot = lastVolatilitySnapshot;
@@ -2391,6 +3290,38 @@ function initializeAnalytics() {
     volatilitySnapshot && Number.isFinite(volatilitySnapshot.variance)
       ? volatilitySnapshot.variance
       : volatility * volatility;
+  const trackingMetrics = calculateTrackingErrorMetrics({
+    expectedReturn,
+    variance,
+    beta,
+  });
+  const trackingErrorValue =
+    trackingMetrics && Number.isFinite(trackingMetrics.trackingError)
+      ? trackingMetrics.trackingError
+      : null;
+  const informationRatioValue =
+    trackingMetrics && Number.isFinite(trackingMetrics.informationRatio)
+      ? trackingMetrics.informationRatio
+      : null;
+  const activeReturnValue =
+    trackingMetrics && Number.isFinite(trackingMetrics.activeReturn)
+      ? trackingMetrics.activeReturn
+      : null;
+  updateTrackingCard({
+    trackingError: trackingErrorValue,
+    informationRatio: informationRatioValue,
+  });
+  const activeDriftEl = document.getElementById('activeDriftValue');
+  if (activeDriftEl) {
+    if (Number.isFinite(trackingErrorValue) && Number.isFinite(informationRatioValue)) {
+      const teLabel = formatPercent(trackingErrorValue * 100);
+      activeDriftEl.textContent = `${teLabel} | IR ${informationRatioValue.toFixed(2)}`;
+    } else if (Number.isFinite(trackingErrorValue)) {
+      activeDriftEl.textContent = formatPercent(trackingErrorValue * 100);
+    } else {
+      activeDriftEl.textContent = '--';
+    }
+  }
   const normalizedWeightsForExport =
     volatilitySnapshot && volatilitySnapshot.normalizedWeights
       ? { ...volatilitySnapshot.normalizedWeights }
@@ -2418,6 +3349,15 @@ function initializeAnalytics() {
     betaSnapshot && betaSnapshot.normalizedWeights
       ? { ...betaSnapshot.normalizedWeights }
       : { ...normalizedTargets };
+  const multiFactorMetrics = computeMultiFactorMetrics({
+    weights: normalizedTargets,
+    variance,
+  });
+  updateMultiFactorCard(multiFactorMetrics);
+  const multiFactorRSquared =
+    multiFactorMetrics && Number.isFinite(multiFactorMetrics.rSquared)
+      ? multiFactorMetrics.rSquared
+      : null;
 
   window.latestAnalyticsScores = {
     expectedReturn,
@@ -2451,6 +3391,21 @@ function initializeAnalytics() {
     recoveryMonths,
     recoveryTradingDays,
     recoveryCalendarDays,
+    upCaptureRatio,
+    downCaptureRatio,
+    captureDetails,
+    cvarLoss,
+    varLoss,
+    tailRiskDetails: tailRiskMetrics,
+    trackingError: trackingErrorValue,
+    informationRatio: informationRatioValue,
+    activeReturn: activeReturnValue,
+    multiFactorRSquared,
+    multiFactorExposures: multiFactorMetrics ? { ...multiFactorMetrics.exposures } : null,
+    multiFactorFactorNames: multiFactorMetrics ? [...multiFactorMetrics.factorNames] : [],
+    multiFactorExplainedVariance: multiFactorMetrics ? multiFactorMetrics.explainedVariance : null,
+    multiFactorResidualVariance: multiFactorMetrics ? multiFactorMetrics.residualVariance : null,
+    multiFactorCovariance: multiFactorMetrics ? multiFactorMetrics.covarianceMatrix : null,
   };
 
   populateAssetContributionTable(targets);
@@ -2472,6 +3427,17 @@ function initializeAnalytics() {
     recoveryMonths,
     alpha,
     expenseRatio: weightedExpenseRatio,
+    upCaptureRatio,
+    multiFactorRSquared,
+    multiFactorExposures: multiFactorMetrics ? multiFactorMetrics.exposures : null,
+    multiFactorFactorNames: multiFactorMetrics ? multiFactorMetrics.factorNames : null,
+    cvarLoss,
+    varLoss,
+    tailRiskDetails: tailRiskMetrics,
+    trackingError: trackingErrorValue,
+    informationRatio: informationRatioValue,
+    activeReturn: activeReturnValue,
+    downCaptureRatio,
     drawdownDetails,
   });
   updateMetricBreakdown({
@@ -2491,6 +3457,18 @@ function initializeAnalytics() {
     calmarRatio: calmar,
     alpha,
     expenseRatio: weightedExpenseRatio,
+    upCaptureRatio,
+    downCaptureRatio,
+    captureDetails,
+    cvarLoss,
+    varLoss,
+    tailRiskDetails: tailRiskMetrics,
+    trackingError: trackingErrorValue,
+    informationRatio: informationRatioValue,
+    activeReturn: activeReturnValue,
+    multiFactorRSquared,
+    multiFactorExposures: multiFactorMetrics ? multiFactorMetrics.exposures : null,
+    multiFactorFactorNames: multiFactorMetrics ? multiFactorMetrics.factorNames : null,
     recoveryMonths,
     covarianceMatrix,
     variance,
