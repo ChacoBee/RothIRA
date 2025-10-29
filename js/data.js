@@ -203,35 +203,53 @@ const BASE_ASSET_BETAS = Object.freeze({ ...assetBetas });
 
 const factorNames = ['MKT', 'SMB', 'HML', 'MOM'];
 
+// const multiFactorLoadings = {
+//   VOO: { MKT: 1.0, SMB: -0.1, HML: 0.0, MOM: 0.12 },
+//   QQQM: { MKT: 1.15, SMB: -0.25, HML: -0.35, MOM: 0.3 },
+//   SMH: { MKT: 1.25, SMB: -0.3, HML: -0.2, MOM: 0.45 },
+//   VXUS: { MKT: 0.95, SMB: 0.05, HML: 0.12, MOM: 0.08 },
+//   AVUV: { MKT: 1.05, SMB: 0.7, HML: 0.4, MOM: -0.05 },
+//   SPMO: { MKT: 1.08, SMB: -0.25, HML: -0.2, MOM: 0.7 },
+//   SPHQ: { MKT: 0.9, SMB: -0.2, HML: 0.1, MOM: 0.15 },
+//   IBIT: { MKT: 1.6, SMB: 0.35, HML: -0.45, MOM: 0.85 },
+//   AMZN: { MKT: 1.3, SMB: -0.2, HML: -0.3, MOM: 0.52 },
+// };
 const multiFactorLoadings = {
-  VOO: { MKT: 1.0, SMB: -0.1, HML: 0.0, MOM: 0.12 },
-  QQQM: { MKT: 1.15, SMB: -0.25, HML: -0.35, MOM: 0.3 },
-  SMH: { MKT: 1.25, SMB: -0.3, HML: -0.2, MOM: 0.45 },
-  VXUS: { MKT: 0.95, SMB: 0.05, HML: 0.12, MOM: 0.08 },
-  AVUV: { MKT: 1.05, SMB: 0.7, HML: 0.4, MOM: -0.05 },
-  SPMO: { MKT: 1.08, SMB: -0.25, HML: -0.2, MOM: 0.7 },
-  SPHQ: { MKT: 0.9, SMB: -0.2, HML: 0.1, MOM: 0.15 },
-  IBIT: { MKT: 1.6, SMB: 0.35, HML: -0.45, MOM: 0.85 },
-  AMZN: { MKT: 1.3, SMB: -0.2, HML: -0.3, MOM: 0.52 },
+  VOO:  { MKT: 1.00, SMB: -0.10, HML:  0.00, MOM: 0.10 },
+  QQQM: { MKT: 1.10, SMB: -0.30, HML: -0.35, MOM: 0.25 },
+  SMH:  { MKT: 1.82, SMB: -0.25, HML: -0.20, MOM: 0.45 },
+  VXUS: { MKT: 0.80, SMB:  0.05, HML:  0.10, MOM: 0.10 },
+  AVUV: { MKT: 1.46, SMB:  0.80, HML:  0.50, MOM: -0.05 },
+  SPMO: { MKT: 1.05, SMB: -0.25, HML: -0.10, MOM: 0.60 },
+  SPHQ: { MKT: 1.09, SMB: -0.20, HML:  0.10, MOM: 0.15 },
+  IBIT: { MKT: 0.83, SMB:  0.35, HML: -0.45, MOM: 0.85 },
+  AMZN: { MKT: 1.84, SMB: -0.20, HML: -0.30, MOM: 0.50 },
 };
 
+// const factorCovariances = {
+//   MKT: { MKT: 0.042, SMB: 0.011, HML: 0.009, MOM: 0.007 },
+//   SMB: { MKT: 0.011, SMB: 0.028, HML: 0.006, MOM: 0.0025 },
+//   HML: { MKT: 0.009, SMB: 0.006, HML: 0.025, MOM: 0.002 },
+//   MOM: { MKT: 0.007, SMB: 0.0025, HML: 0.002, MOM: 0.03 },
+// };
+
 const factorCovariances = {
-  MKT: { MKT: 0.042, SMB: 0.011, HML: 0.009, MOM: 0.007 },
-  SMB: { MKT: 0.011, SMB: 0.028, HML: 0.006, MOM: 0.0025 },
-  HML: { MKT: 0.009, SMB: 0.006, HML: 0.025, MOM: 0.002 },
-  MOM: { MKT: 0.007, SMB: 0.0025, HML: 0.002, MOM: 0.03 },
+  MKT: { MKT: 0.017663, SMB:  0.001374, HML: -0.002355, MOM:  0.000883 },
+  SMB: { MKT: 0.001374, SMB:  0.010685, HML:  0.002748, MOM: -0.001374 },
+  HML: { MKT: -0.002355, SMB: 0.002748, HML:  0.007850, MOM: -0.004710 },
+  MOM: { MKT: 0.000883, SMB: -0.001374, HML: -0.004710, MOM:  0.017663 },
 };
 
 const assetResidualVols = {
-  VOO: 0.08,
-  QQQM: 0.12,
-  SMH: 0.18,
-  VXUS: 0.1,
-  AVUV: 0.14,
-  SPMO: 0.15,
-  SPHQ: 0.12,
-  IBIT: 0.35,
-  AMZN: 0.2,
+  VOO: 0.0000,
+  QQQM: 0.07306,
+  SMH: 0.15077,
+  VXUS: 0.15077,
+  AVUV: 0.12090,
+  SPMO: 0.06329,
+  SPHQ: 0.04544,
+  IBIT: 0.54477,
+  AMZN: 0.25138,
 };
 
 const BASE_MULTI_FACTOR_LOADINGS = Object.freeze(
