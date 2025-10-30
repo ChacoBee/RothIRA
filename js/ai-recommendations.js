@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 const AI_RISK_FREE_RATE =
   typeof DEFAULT_RISK_FREE_RATE === "number"
@@ -119,12 +119,29 @@ const PHS_FIXED_FEE =
 
 const PHS_PERFORMANCE_A = 1.5;
 const PHS_PERFORMANCE_B = 0.3;
-const PHS_GUARDRAIL_MAX_PENALTY =
+const GUARDRAIL_MAX_PENALTY =
   typeof aiPortfolioDefaults.guardrailPenalty === "number"
     ? aiPortfolioDefaults.guardrailPenalty
-    : 20;
-const PHS_GUARDRAIL_FIRST_FLAG = 10;
-const PHS_GUARDRAIL_FOLLOW_ON_PENALTY = 5;
+    : 25;
+const GUARDRAIL_PENALTY_FACTOR =
+  typeof aiPortfolioDefaults.guardrailPenaltyFactor === "number"
+    ? aiPortfolioDefaults.guardrailPenaltyFactor
+    : 0.3;
+const CORE_GUARDRAIL_THRESHOLD = 10;
+const CORE_GUARDRAIL_MULTIPLIER = 0.25;
+const CORE_GUARDRAIL_FLOOR = 5;
+const SATELLITE_GUARDRAIL_MULTIPLIER = 0.25;
+const HIGH_VOL_GUARDRAIL_MULTIPLIER = 0.5;
+const SMALL_POSITION_THRESHOLD = 3.5;
+const HIGH_VOL_TICKERS = new Set(["AMZN", "IBIT"]);
+const CRYPTO_TICKERS = new Set(["IBIT"]);
+const CRYPTO_ABSOLUTE_CAP = 5;
+const GUARDRAIL_SCORE_TIERS = [
+  { max: 0.5, score: 100 },
+  { max: 1.0, score: 80 },
+  { max: 1.5, score: 60 },
+  { max: 2.0, score: 40 },
+];
 const ROTH_TAX_SCORE = 100;
 const DEFAULT_EXPENSE_FALLBACK =
   typeof aiPortfolioDefaults.defaultExpenseRatio === "number"
@@ -259,6 +276,32 @@ function getCorrelationEstimate(assetA, assetB) {
   return clamp(estimated, -1, 1);
 }
 
+function determineGuardrailBand(asset, targetWeight) {
+  const weight = Math.max(0, safeNumber(targetWeight));
+  if (weight === 0) return 0;
+  const isHighVolHolding =
+    HIGH_VOL_TICKERS.has(asset) || weight <= SMALL_POSITION_THRESHOLD;
+  if (isHighVolHolding) {
+    return weight * HIGH_VOL_GUARDRAIL_MULTIPLIER;
+  }
+  if (weight >= CORE_GUARDRAIL_THRESHOLD) {
+    return Math.max(CORE_GUARDRAIL_FLOOR, weight * CORE_GUARDRAIL_MULTIPLIER);
+  }
+  return weight * SATELLITE_GUARDRAIL_MULTIPLIER;
+}
+
+function scoreGuardrailRatio(ratio) {
+  if (!Number.isFinite(ratio)) {
+    return 0;
+  }
+  for (let i = 0; i < GUARDRAIL_SCORE_TIERS.length; i += 1) {
+    if (ratio <= GUARDRAIL_SCORE_TIERS[i].max) {
+      return GUARDRAIL_SCORE_TIERS[i].score;
+    }
+  }
+  return 0;
+}
+
 function calculatePortfolioMetrics(
   assetList,
   targetPercents,
@@ -376,6 +419,86 @@ function calculatePortfolioMetrics(
     diversificationIndex,
     maxDeviation,
     averageDeviation,
+  };
+}
+
+function computeGuardrailAssessment(metrics) {
+  if (!metrics || !Array.isArray(metrics.assetList) || !metrics.assetList.length) {
+    return {
+      score: 100,
+      items: [],
+      breaches: [],
+      warnings: [],
+      absoluteBreaches: [],
+    };
+  }
+
+  const items = [];
+  let weightedScore = 0;
+  let totalWeight = 0;
+  const breaches = [];
+  const warnings = [];
+  const absoluteBreaches = [];
+
+  metrics.assetList.forEach((asset) => {
+    const targetWeight = Math.max(0, safeNumber(metrics.targetPercents[asset]));
+    const currentWeight = Math.max(
+      0,
+      safeNumber(metrics.currentPercents[asset], targetWeight)
+    );
+    const guardrailBand = determineGuardrailBand(asset, targetWeight);
+    const deviation = Math.abs(currentWeight - targetWeight);
+    const ratio =
+      guardrailBand > 0
+        ? deviation / guardrailBand
+        : deviation > 0
+          ? Number.POSITIVE_INFINITY
+          : 0;
+    const score = scoreGuardrailRatio(ratio);
+    const weightFraction = Math.max(
+      0,
+      safeNumber(metrics.targetFractions[asset], targetWeight / 100)
+    );
+
+    weightedScore += score * weightFraction;
+    totalWeight += weightFraction;
+
+    const detail = {
+      asset,
+      targetWeight,
+      currentWeight,
+      guardrailBand,
+      deviation,
+      ratio,
+      score,
+    };
+
+    items.push(detail);
+
+    if (ratio > 1 + 1e-6) {
+      breaches.push(detail);
+    } else if (ratio > 0.5 + 1e-6) {
+      warnings.push(detail);
+    }
+
+    if (CRYPTO_TICKERS.has(asset) && currentWeight > CRYPTO_ABSOLUTE_CAP + 1e-6) {
+      absoluteBreaches.push({
+        asset,
+        cap: CRYPTO_ABSOLUTE_CAP,
+        currentWeight,
+      });
+    }
+  });
+
+  const score =
+    totalWeight > 0 ? weightedScore / totalWeight : 100;
+
+  return {
+    score: clamp(score, 0, 100),
+    items,
+    breaches,
+    warnings,
+    absoluteBreaches,
   };
 }
 
@@ -696,87 +819,125 @@ function buildPortfolioHealth(metrics, actions) {
   const topTwo = diversification.topTwo || diversification.topThree || 0;
   const effectiveContributors = diversification.effectivePositions;
 
-  const guardrails = [];
+  const guardrailAssessment = computeGuardrailAssessment(metrics);
+  const guardrailScore = guardrailAssessment.score;
+  const rawGuardrailPenalty = Math.max(0, 100 - guardrailScore) * GUARDRAIL_PENALTY_FACTOR;
+  const guardrailPenalty = clamp(
+    Math.min(rawGuardrailPenalty, GUARDRAIL_MAX_PENALTY),
+    0,
+    GUARDRAIL_MAX_PENALTY
+  );
+
+  const guardrailBreaches = [];
+  const guardrailAlerts = [];
+
+  const formatDriftMessage = (entry) =>
+    `${entry.asset}: drift ${entry.deviation.toFixed(1)}% vs guardrail +/-${entry.guardrailBand.toFixed(1)}%.`;
+
+  guardrailAssessment.breaches.forEach((entry) => {
+    guardrailBreaches.push(formatDriftMessage(entry));
+  });
+
+  guardrailAssessment.warnings
+    .filter((entry) => entry.ratio > 0.75)
+    .sort((a, b) => b.ratio - a.ratio)
+    .slice(0, 2)
+    .forEach((entry) => {
+      guardrailAlerts.push(
+        `${entry.asset} is at ${(Math.min(entry.ratio, 2) * 100).toFixed(
+          0
+        )}% of its guardrail band (drift ${entry.deviation.toFixed(1)}%).`
+      );
+    });
+
+  guardrailAssessment.absoluteBreaches.forEach((entry) => {
+    guardrailBreaches.push(
+      `${entry.asset} weight ${entry.currentWeight.toFixed(1)}% exceeds the ${entry.cap}% hard cap.`
+    );
+  });
+
   const currentPercents = metrics.currentPercents || {};
   const targetPercents = metrics.targetPercents || {};
   const weightOf = (ticker) =>
     safeNumber(currentPercents[ticker], safeNumber(targetPercents[ticker]));
 
-  const SINGLE_STOCK_GUARDRAIL = 5;
-  const ETF_GUARDRAIL = 30;
-  const SECTOR_GUARDRAIL = 30;
-  const INTERNATIONAL_GUARDRAIL = 40;
+  const computeExposure = (map) =>
+    metrics.assetList.reduce(
+      (sum, ticker) => sum + weightOf(ticker) * safeNumber(map[ticker], 0),
+      0
+    );
 
-  const singleNameTickers = ["AMZN"];
-  singleNameTickers.forEach((ticker) => {
-    const weight = weightOf(ticker);
-    if (weight > SINGLE_STOCK_GUARDRAIL) {
-      guardrails.push(
-        `${ticker} at ${weight.toFixed(1)}% exceeds the 5% single-stock guardrail.`
-      );
-    }
+  const techExposure = computeExposure({
+    VOO: 0.3,
+    QQQM: 0.65,
+    SMH: 1.0,
+    VXUS: 0.12,
+    AVUV: 0.08,
+    AMZN: 1.0,
   });
-
-  const etfGuardrailTickers = metrics.assetList.filter(
-    (asset) => !singleNameTickers.includes(asset)
-  );
-  etfGuardrailTickers.forEach((ticker) => {
-    const weight = weightOf(ticker);
-    if (weight > ETF_GUARDRAIL) {
-      guardrails.push(
-        `${ticker} at ${weight.toFixed(1)}% exceeds the 30% ETF guardrail.`
-      );
-    }
-  });
-
-  const technologyWeight = ["QQQM", "SMH", "AMZN"].reduce(
-    (sum, ticker) => sum + weightOf(ticker),
-    0
-  );
-  if (technologyWeight > SECTOR_GUARDRAIL) {
-    guardrails.push(
-      `Technology sleeve at ${technologyWeight.toFixed(
-        1
-      )}% exceeds the 30% sector guardrail.`
+  if (techExposure > 35) {
+    guardrailBreaches.push(
+      `Technology exposure ${techExposure.toFixed(1)}% exceeds the ~35% guideline.`
+    );
+  } else if (techExposure > 32) {
+    guardrailAlerts.push(
+      `Technology exposure ${techExposure.toFixed(1)}% is nearing the 35% guideline.`
     );
   }
 
-  const internationalWeight = ["VXUS"].reduce(
-    (sum, ticker) => sum + weightOf(ticker),
-    0
-  );
-  if (internationalWeight > INTERNATIONAL_GUARDRAIL) {
-    guardrails.push(
-      `International allocation at ${internationalWeight.toFixed(
-        1
-      )}% exceeds the 40% asset-class guardrail.`
+  const semisExposure = computeExposure({
+    SMH: 1.0,
+    QQQM: 0.18,
+    VOO: 0.12,
+  });
+  if (semisExposure > 15) {
+    guardrailBreaches.push(
+      `Semiconductor exposure ${semisExposure.toFixed(1)}% exceeds the ~15% guideline.`
+    );
+  } else if (semisExposure > 13) {
+    guardrailAlerts.push(
+      `Semiconductor exposure ${semisExposure.toFixed(1)}% is approaching the 15% guideline.`
+    );
+  }
+
+  const weightedExpensePct = cost.weightedExpense * 100;
+  if (weightedExpensePct > 0.2) {
+    guardrailBreaches.push(
+      `Weighted expense ratio ${weightedExpensePct.toFixed(2)}% exceeds the 0.20% guardrail.`
+    );
+  } else if (weightedExpensePct > 0.15) {
+    guardrailAlerts.push(
+      `Weighted expense ratio ${weightedExpensePct.toFixed(2)}% is above the 0.15% soft guardrail.`
     );
   }
 
   if (effectiveContributors > 0 && effectiveContributors < 2) {
-    guardrails.push(
+    guardrailBreaches.push(
       `Effective risk contributors ${effectiveContributors.toFixed(1)} below 2 guardrail.`
     );
   }
 
-  if (cost.allInFee > 0.02) {
-    guardrails.push(`All-in fees ${(cost.allInFee * 100).toFixed(2)}% exceed 2% cap.`);
+  if (topTwo > 40) {
+    guardrailBreaches.push(
+      `Top holdings concentration ${topTwo.toFixed(1)}% exceeds the 40% diversification guardrail.`
+    );
+  } else if (topTwo > 38) {
+    guardrailAlerts.push(
+      `Top holdings concentration ${topTwo.toFixed(1)}% is approaching the 40% diversification guardrail.`
+    );
   }
 
-  const guardrailTriggered = guardrails.length > 0;
-  const guardrailPenalty = guardrailTriggered
-    ? Math.min(
-        PHS_GUARDRAIL_MAX_PENALTY,
-        PHS_GUARDRAIL_FIRST_FLAG +
-          Math.max(0, guardrails.length - 1) * PHS_GUARDRAIL_FOLLOW_ON_PENALTY
-      )
-    : 0;
+  const hasGuardrailBreach = guardrailBreaches.length > 0;
   const finalScore = clamp(compositeScore - guardrailPenalty, 0, 100);
 
   let status = "Healthy";
   let color = "green";
   let priorityLevel = "Monitor";
   let priorityColor = "light-green";
+
+  const baseColor = color;
+  const basePriorityLevel = priorityLevel;
+  const basePriorityColor = priorityColor;
 
   if (finalScore < 60) {
     status = "Critical";
@@ -790,17 +951,28 @@ function buildPortfolioHealth(metrics, actions) {
     priorityColor = "medium-green";
   }
 
-  if (guardrailTriggered) {
+  if (hasGuardrailBreach) {
     if (finalScore < 60) {
       status = "Critical - guardrail breach";
+      color = "red";
+      priorityLevel = "Critical";
+      priorityColor = "dark-red";
     } else if (finalScore < 80) {
-      status = "Watch - guardrail";
-    } else {
-      status = "Guardrail watch";
+      status = "Guardrail breach";
       color = "yellow";
       priorityLevel = "High";
       priorityColor = "medium-green";
+    } else {
+      status = "Guardrail breach (review)";
+      color = baseColor;
+      priorityLevel = "Review";
+      priorityColor = basePriorityColor;
     }
+  } else if (guardrailScore < 80) {
+    status = "Watch - guardrail drift";
+    color = "yellow";
+    priorityLevel = "High";
+    priorityColor = "medium-green";
   }
 
   const leadingAction = actions[0];
@@ -817,11 +989,15 @@ function buildPortfolioHealth(metrics, actions) {
     `Sharpe ${sharpeRatio.toFixed(2)}`,
     `All-in cost ${(cost.allInFee * 100).toFixed(2)}%`,
   ];
-  descriptionParts.push(
-    guardrailTriggered
-      ? `Guardrail penalty ${guardrailPenalty.toFixed(1)} pts`
-      : "No guardrail deduction"
-  );
+  const guardrailSummaryShort =
+    guardrailPenalty > 0
+      ? `Guardrail score ${guardrailScore.toFixed(1)} (-${guardrailPenalty.toFixed(1)} pts)`
+      : `Guardrail score ${guardrailScore.toFixed(1)}`;
+  const guardrailSummaryDetail =
+    guardrailPenalty > 0
+      ? `Guardrail score ${guardrailScore.toFixed(1)} (-${guardrailPenalty.toFixed(1)} pts)`
+      : `Guardrail score ${guardrailScore.toFixed(1)} (no deduction)`;
+  descriptionParts.push(guardrailSummaryShort);
 
   const watchlist = [];
   if (leadingAction) {
@@ -867,8 +1043,13 @@ function buildPortfolioHealth(metrics, actions) {
       `Single-name exposure ${(liquidity.singleWeight * 100).toFixed(0)}% of portfolio.`
     );
   }
-  if (guardrailTriggered) {
-    guardrails.forEach((item) => {
+  guardrailBreaches.forEach((item) => {
+    if (!watchlist.includes(item)) {
+      watchlist.push(item);
+    }
+  });
+  if (!hasGuardrailBreach && guardrailAlerts.length) {
+    guardrailAlerts.forEach((item) => {
       if (!watchlist.includes(item)) {
         watchlist.push(item);
       }
@@ -906,7 +1087,7 @@ function buildPortfolioHealth(metrics, actions) {
         score: risk.score,
         note: `Vol ${(portfolioVol * 100).toFixed(1)}% vs ${(risk.targetVol * 100).toFixed(
           1
-        )}% target (±${Math.round(risk.tolerance * 100)}%).`,
+        )}% target (+/-${Math.round(risk.tolerance * 100)}%).`,
       },
       performance: {
         score: performance.score,
@@ -926,13 +1107,19 @@ function buildPortfolioHealth(metrics, actions) {
       },
       total: {
         score: finalScore,
-        note: guardrailTriggered
-          ? `Guardrail deduction ${guardrailPenalty.toFixed(1)} pts: ${guardrails[0]}`
-          : status,
+        note: hasGuardrailBreach
+          ? `${guardrailSummaryDetail}. ${guardrailBreaches[0] || "Guardrail breach detected."}`
+          : `${guardrailSummaryDetail}. ${status}`,
       },
     },
     guardrailPenalty,
-    guardrailTriggers: guardrails,
+    guardrail: {
+      score: guardrailScore,
+      penalty: guardrailPenalty,
+      breaches: guardrailBreaches,
+      alerts: guardrailAlerts,
+      assessment: guardrailAssessment,
+    },
   };
 }
 
