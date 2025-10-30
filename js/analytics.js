@@ -3776,6 +3776,27 @@ function initializeAnalytics() {
   } = calculateDiversityScore(targets);
 
   document.getElementById('expectedReturnValue').textContent = formatPercent(expectedReturn * 100);
+  const annualReturnInput = document.getElementById('rate');
+  if (annualReturnInput) {
+    const previousValue = annualReturnInput.value;
+    if (Number.isFinite(expectedReturn)) {
+      const derivedRate = expectedReturn * 100;
+      const formattedRate =
+        Math.abs(derivedRate - Math.round(derivedRate)) < 0.005
+          ? Math.round(derivedRate).toString()
+          : derivedRate.toFixed(2);
+      annualReturnInput.value = formattedRate;
+      if (formattedRate !== previousValue && typeof runSimulation === 'function') {
+        try {
+          runSimulation();
+        } catch (error) {
+          console.warn('Simulation update failed after annual return sync', error);
+        }
+      }
+    } else if (!annualReturnInput.value) {
+      annualReturnInput.value = '';
+    }
+  }
   document.getElementById('volatilityValue').textContent = formatPercent(volatility * 100);
   document.getElementById('sharpeValue').textContent = sharpe.toFixed(2);
   document.getElementById('portfolioBetaValue').textContent = beta.toFixed(2);
