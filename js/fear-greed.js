@@ -1,7 +1,7 @@
 ﻿
 (() => {
-  const API_URL =
-    "https://api.allorigins.win/raw?url=https%3A%2F%2Fproduction.dataviz.cnn.io%2Findex%2Ffearandgreed%2Fgraphdata";
+  const API_ENDPOINT =
+    "https://production.dataviz.cnn.io/index/fearandgreed/graphdata";
   const ALTERNATIVE_URL =
     "https://api.allorigins.win/raw?url=https%3A%2F%2Fapi.alternative.me%2Ffng%2F%3Flimit%3D1%26format%3Djson";
   const STOOQ_BASE_URL = "https://api.allorigins.win/raw?url=";
@@ -1522,14 +1522,18 @@
     const previousCloseEntry = data[1];
     const priorEntry = data[2];
     const gaugeValue = Number(latest.value);
-    const previousCloseValue = Number.isFinite(latest.previous_close)
-      ? latest.previous_close
+    const previousCloseValue = Number.isFinite(Number(latest.previous_close))
+      ? Number(latest.previous_close)
       : Number(previousCloseEntry?.value);
-    const displayValue = Number.isFinite(previousCloseValue)
+    const usingIntraday = Number.isFinite(gaugeValue);
+    const displayValue = usingIntraday
+      ? gaugeValue
+      : Number.isFinite(previousCloseValue)
       ? previousCloseValue
-      : gaugeValue;
-    const displayClassification =
-      previousCloseEntry?.value_classification || latest.value_classification;
+      : NaN;
+    const displayClassification = usingIntraday
+      ? latest.value_classification
+      : previousCloseEntry?.value_classification || latest.value_classification;
 
     rotateNeedle($("fearGreedNeedle"), gaugeValue);
 
@@ -1545,13 +1549,22 @@
     }
 
     setBadge($("fearGreedStatusBadge"), displayClassification);
+    const changeBaselineValue = Number.isFinite(previousCloseValue)
+      ? previousCloseValue
+      : Number(priorEntry?.value);
+    const changeBaselineLabel = Number.isFinite(previousCloseValue)
+      ? previousCloseEntry?.value_classification
+        ? `${previousCloseEntry.value_classification} (previous close)`
+        : "previous close"
+      : priorEntry?.value_classification
+      ? `${priorEntry.value_classification} (prior close)`
+      : "prior close";
+
     setChange(
       $("fearGreedChange"),
       displayValue,
-      Number(priorEntry?.value),
-      priorEntry?.value_classification
-        ? `${priorEntry.value_classification} (prior close)`
-        : "prior close"
+      changeBaselineValue,
+      changeBaselineLabel
     );
 
     const comparisonEl = $("fearGreedComparison");
@@ -1619,6 +1632,12 @@
     }
   }
 
+  function buildFearGreedUrl() {
+    const cacheBust = Date.now();
+    const target = `${API_ENDPOINT}?_=${cacheBust}`;
+    return `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`;
+  }
+
   async function fetchFearGreed(options = {}) {
     const userInitiated = Boolean(options && options.userInitiated);
     if (userInitiated && typeof window.showActionFeedback === "function") {
@@ -1634,7 +1653,7 @@
     }
     let cached = null;
     try {
-      const response = await fetch(API_URL, { cache: "no-cache" });
+      const response = await fetch(buildFearGreedUrl(), { cache: "no-cache" });
       if (!response.ok) {
         throw new Error(`Request failed (${response.status})`);
       }
