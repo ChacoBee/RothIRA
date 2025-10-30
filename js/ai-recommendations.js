@@ -119,6 +119,10 @@ const PHS_FIXED_FEE =
 
 const PHS_PERFORMANCE_A = 1.5;
 const PHS_PERFORMANCE_B = 0.3;
+const PHS_GUARDRAIL_WEIGHT =
+  typeof aiPortfolioDefaults.guardrailWeight === "number"
+    ? clamp(aiPortfolioDefaults.guardrailWeight, 0, 0.3)
+    : 0.1;
 const CORE_GUARDRAIL_THRESHOLD = 10;
 const CORE_GUARDRAIL_MULTIPLIER = 0.25;
 const CORE_GUARDRAIL_FLOOR = 5;
@@ -814,6 +818,21 @@ function buildPortfolioHealth(metrics, actions) {
   const guardrailAssessment = computeGuardrailAssessment(metrics);
   const guardrailScore = guardrailAssessment.score;
   const guardrailPenalty = 0; // Guardrail is monitored separately; no longer affects health score.
+  const guardrailWeight = clamp(PHS_GUARDRAIL_WEIGHT, 0, 1);
+  const pillarWeightScale = Math.max(0, 1 - guardrailWeight);
+  const componentWeights = {
+    allocation: PHS_WEIGHTS.allocation * pillarWeightScale,
+    diversification: PHS_WEIGHTS.diversification * pillarWeightScale,
+    cost: PHS_WEIGHTS.cost * pillarWeightScale,
+    risk: PHS_WEIGHTS.risk * pillarWeightScale,
+    performance: PHS_WEIGHTS.performance * pillarWeightScale,
+    liquidity: PHS_WEIGHTS.liquidity * pillarWeightScale,
+    tax: PHS_WEIGHTS.tax * pillarWeightScale,
+    guardrail: guardrailWeight,
+    total: pillarWeightScale + guardrailWeight,
+  };
+  const compositeContribution = compositeScore * pillarWeightScale;
+  const guardrailContribution = guardrailScore * guardrailWeight;
 
   const guardrailBreaches = [];
   const guardrailAlerts = [];
@@ -915,7 +934,7 @@ function buildPortfolioHealth(metrics, actions) {
   }
 
   const hasGuardrailBreach = guardrailBreaches.length > 0;
-  const finalScore = clamp(compositeScore, 0, 100);
+  const finalScore = clamp(compositeContribution + guardrailContribution, 0, 100);
 
   let status = "Healthy";
   let color = "green";
@@ -976,7 +995,12 @@ function buildPortfolioHealth(metrics, actions) {
     `Sharpe ${sharpeRatio.toFixed(2)}`,
     `All-in cost ${(cost.allInFee * 100).toFixed(2)}%`,
   ];
-  const guardrailSummaryShort = `Guardrail score ${guardrailScore.toFixed(1)}`;
+  const pillarWeightPercent = Math.round(pillarWeightScale * 100);
+  const guardrailWeightPercent = Math.round(guardrailWeight * 100);
+  const guardrailSummaryShort =
+    guardrailWeight > 0
+      ? `Guardrail score ${guardrailScore.toFixed(1)} (${guardrailWeightPercent}% weight)`
+      : `Guardrail score ${guardrailScore.toFixed(1)}`;
   const guardrailSummaryDetail = guardrailSummaryShort;
   descriptionParts.push(guardrailSummaryShort);
 
@@ -1047,53 +1071,74 @@ function buildPortfolioHealth(metrics, actions) {
     watchlist,
     components: {
       allocation: {
+        weight: componentWeights.allocation,
         score: allocation.score,
         note: `Avg drift ${allocation.averageDeviation.toFixed(
           1
         )}%, max ${allocation.maxDeviation.toFixed(1)}%.`,
       },
       diversification: {
+        weight: componentWeights.diversification,
         score: diversification.score,
         note: `Effective contributors ${effectiveContributors.toFixed(
           1
         )}. Top holding ${topHolding.toFixed(1)}%.`,
       },
       cost: {
+        weight: componentWeights.cost,
         score: cost.score,
         note: `WER ${(cost.weightedExpense * 100).toFixed(2)}%, all-in ${(cost.allInFee * 100).toFixed(
           2
         )}%.`,
       },
       risk: {
+        weight: componentWeights.risk,
         score: risk.score,
         note: `Vol ${(portfolioVol * 100).toFixed(1)}% vs ${(risk.targetVol * 100).toFixed(
           1
         )}% target (+/-${Math.round(risk.tolerance * 100)}%).`,
       },
       performance: {
+        weight: componentWeights.performance,
         score: performance.score,
         note: `Sharpe ${performance.sharpe.toFixed(
           2
         )}, expected return ${(expectedReturn * 100).toFixed(1)}%.`,
       },
       liquidity: {
+        weight: componentWeights.liquidity,
         score: liquidity.score,
         note: `ETF sleeve ${(liquidity.etfWeight * 100).toFixed(
           0
         )}%, single-name ${(liquidity.singleWeight * 100).toFixed(0)}%.`,
       },
       tax: {
+        weight: componentWeights.tax,
         score: tax.score,
         note: "Roth IRA: qualified withdrawals \u2192 0% tax drag.",
       },
-      total: {
-        score: finalScore,
+      guardrail: {
+        weight: componentWeights.guardrail,
+        score: guardrailScore,
         note: hasGuardrailBreach
+          ? guardrailBreaches[0] || "Guardrail breach detected."
+          : guardrailAlerts[0] || "Guardrail parameters remain within tolerance.",
+      },
+      total: {
+        weight: componentWeights.total,
+        score: finalScore,
+        note: (hasGuardrailBreach
           ? `${guardrailSummaryDetail}. ${guardrailBreaches[0] || "Guardrail breach detected."}`
-          : `${guardrailSummaryDetail}. ${status}`,
+          : `${guardrailSummaryDetail}. ${status}.`
+        ).concat(
+          guardrailWeight > 0
+            ? ` Blend: ${pillarWeightPercent}% pillars + ${guardrailWeightPercent}% guardrail.`
+            : ""
+        ),
       },
     },
     guardrailPenalty,
+    guardrailWeight,
     guardrail: {
       score: guardrailScore,
       penalty: guardrailPenalty,
@@ -1545,8 +1590,15 @@ function updatePhsBreakdown(health) {
 
     const scoreEl = row.querySelector('[data-role="score"]');
     const noteEl = row.querySelector('[data-role="note"]');
+    const weightEl = row.querySelector('[data-role="weight"]');
     if (scoreEl) scoreEl.textContent = data.score.toFixed(1);
     if (noteEl) noteEl.textContent = data.note;
+    if (weightEl && typeof data.weight === "number") {
+      const pct = data.weight * 100;
+      const formatted =
+        Math.abs(pct - Math.round(pct)) < 0.05 ? `${Math.round(pct)}%` : `${pct.toFixed(1)}%`;
+      weightEl.textContent = formatted;
+    }
   });
 }
 function updateImmediateActions(actions) {

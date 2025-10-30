@@ -724,6 +724,7 @@ const portfolioDefaults = Object.freeze({
   multiFactorLoadings: BASE_MULTI_FACTOR_LOADINGS,
   factorCovariances: BASE_FACTOR_COVARIANCES,
   residualVols: BASE_ASSET_RESIDUAL_VOLS,
+  guardrailWeight: 0.1,
 });
 
 window.portfolioDefaults = portfolioDefaults;

@@ -3080,6 +3080,16 @@
                       Roth IRA: qualified withdrawals imply 0% tax drag, so this pillar stays at 100.
                     </td>
                   </tr>
+                  <tr data-component="guardrail">
+                    <td class="px-3 py-3 font-medium">Guardrail Integrity (H)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">10%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Concentration, expense and volatility guardrails rolled into a single health score.
+                    </td>
+                  </tr>
                   <tr
                     data-component="total"
                     class="bg-purple-50/60 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 font-semibold"
@@ -3090,7 +3100,7 @@
                       <span data-role="score">-</span>
                     </td>
                     <td class="px-3 py-3 text-sm" data-role="note">
-                      Weighted blend of the seven pillars; guardrails deduct points instead of overriding the total.
+                      Weighted blend of the seven pillars plus the guardrail integrity score.
                     </td>
                   </tr>
                 </tbody>
