@@ -9,6 +9,7 @@ const portfolioAssetBetas =
         VOO: 1.0,
         QQQM: 1.2,
         SMH: 1.3,
+        SPMO: 1.15,
         VXUS: 0.9,
         AVUV: 1.1,
         IBIT: 1.5,
@@ -22,6 +23,7 @@ const portfolioExpenseRatios =
         VOO: 0.0003,
         QQQM: 0.0015,
         SMH: 0.0035,
+        SPMO: 0.0013,
         VXUS: 0.0005,
         AVUV: 0.0025,
         IBIT: 0.0025,
@@ -4231,4 +4233,3 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(runInitialAnalytics, 0);
   }
 });
-

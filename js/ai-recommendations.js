@@ -1129,7 +1129,7 @@ function buildStrategicAdvice(metrics, actions) {
     ? `${leadingAction.asset} is ${leadingAction.deviation}% ${leadingAction.deviation > 0 ? "over" : "under"} target.`
     : "All positions remain inside the drift tolerance band.";
 
-  const growthWeight = ["QQQM", "SMH", "IBIT", "AMZN"].reduce(
+  const growthWeight = ["QQQM", "SMH", "SPMO", "IBIT", "AMZN"].reduce(
     (acc, asset) => acc + safeNumber(metrics.targetFractions[asset]),
     0
   );
@@ -1161,9 +1161,9 @@ function buildStrategicAdvice(metrics, actions) {
           ? "Moderate growth tilt to keep volatility contained."
           : "You can lean slightly more into growth if risk tolerance allows.",
       actions: [
-        "Revisit VOO versus QQQM weights before the next major contribution.",
+        "Revisit VOO versus QQQM/SPMO weights before the next major contribution.",
         "Use scenario lab to model 20% drawdown and recovery timing.",
-        "Track factor sleeves (AVUV alongside core ETFs) to maintain diversification.",
+        "Track factor sleeves (AVUV and SPMO alongside core ETFs) to maintain diversification.",
       ],
     },
     {

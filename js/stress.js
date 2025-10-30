@@ -36,8 +36,9 @@ function applyStressScenario(scenario, severity) {
     const currentValue = getCurrentAssetValues()[key];
     const beta = key === 'VOO' ? 1.0
       : key === 'QQQM' ? 1.2
-      : key === 'VXUS' ? 0.9
       : key === 'SMH' ? 1.3
+      : key === 'SPMO' ? 1.15
+      : key === 'VXUS' ? 0.9
       : key === 'AVUV' ? 1.1
       : key === 'AMZN' ? 1.4
       : key === 'IBIT' ? 1.5
