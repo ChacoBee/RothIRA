@@ -39,8 +39,6 @@ function applyStressScenario(scenario, severity) {
       : key === 'VXUS' ? 0.9
       : key === 'SMH' ? 1.3
       : key === 'AVUV' ? 1.1
-      : key === 'SPMO' ? 1.1
-      : key === 'SPHQ' ? 0.9
       : key === 'AMZN' ? 1.4
       : key === 'IBIT' ? 1.5
       : 1.0;

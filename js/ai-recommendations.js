@@ -18,8 +18,6 @@ const aiAssetBetas =
           SMH: 1.3,
           VXUS: 0.9,
           AVUV: 1.1,
-          SPMO: 1.1,
-          SPHQ: 0.9,
           IBIT: 1.6,
           AMZN: 1.4,
         };
@@ -121,10 +119,12 @@ const PHS_FIXED_FEE =
 
 const PHS_PERFORMANCE_A = 1.5;
 const PHS_PERFORMANCE_B = 0.3;
-const PHS_GUARDRAIL_CAP =
-  typeof aiPortfolioDefaults.guardrailCap === "number"
-    ? aiPortfolioDefaults.guardrailCap
-    : 60;
+const PHS_GUARDRAIL_MAX_PENALTY =
+  typeof aiPortfolioDefaults.guardrailPenalty === "number"
+    ? aiPortfolioDefaults.guardrailPenalty
+    : 20;
+const PHS_GUARDRAIL_FIRST_FLAG = 10;
+const PHS_GUARDRAIL_FOLLOW_ON_PENALTY = 5;
 const ROTH_TAX_SCORE = 100;
 const DEFAULT_EXPENSE_FALLBACK =
   typeof aiPortfolioDefaults.defaultExpenseRatio === "number"
@@ -692,18 +692,67 @@ function buildPortfolioHealth(metrics, actions) {
 
   compositeScore = clamp(compositeScore, 0, 100);
 
-  const guardrails = [];
-
   const topHolding = diversification.topHolding;
   const topTwo = diversification.topTwo || diversification.topThree || 0;
-  if (topHolding > 30) {
-    guardrails.push(`Top holding ${topHolding.toFixed(1)}% exceeds 30% guardrail.`);
-  }
-  if (topTwo > 60) {
-    guardrails.push(`Top 2 holdings ${topTwo.toFixed(1)}% exceed 60% guardrail.`);
+  const effectiveContributors = diversification.effectivePositions;
+
+  const guardrails = [];
+  const currentPercents = metrics.currentPercents || {};
+  const targetPercents = metrics.targetPercents || {};
+  const weightOf = (ticker) =>
+    safeNumber(currentPercents[ticker], safeNumber(targetPercents[ticker]));
+
+  const SINGLE_STOCK_GUARDRAIL = 5;
+  const ETF_GUARDRAIL = 30;
+  const SECTOR_GUARDRAIL = 30;
+  const INTERNATIONAL_GUARDRAIL = 40;
+
+  const singleNameTickers = ["AMZN"];
+  singleNameTickers.forEach((ticker) => {
+    const weight = weightOf(ticker);
+    if (weight > SINGLE_STOCK_GUARDRAIL) {
+      guardrails.push(
+        `${ticker} at ${weight.toFixed(1)}% exceeds the 5% single-stock guardrail.`
+      );
+    }
+  });
+
+  const etfGuardrailTickers = metrics.assetList.filter(
+    (asset) => !singleNameTickers.includes(asset)
+  );
+  etfGuardrailTickers.forEach((ticker) => {
+    const weight = weightOf(ticker);
+    if (weight > ETF_GUARDRAIL) {
+      guardrails.push(
+        `${ticker} at ${weight.toFixed(1)}% exceeds the 30% ETF guardrail.`
+      );
+    }
+  });
+
+  const technologyWeight = ["QQQM", "SMH", "AMZN"].reduce(
+    (sum, ticker) => sum + weightOf(ticker),
+    0
+  );
+  if (technologyWeight > SECTOR_GUARDRAIL) {
+    guardrails.push(
+      `Technology sleeve at ${technologyWeight.toFixed(
+        1
+      )}% exceeds the 30% sector guardrail.`
+    );
   }
 
-  const effectiveContributors = diversification.effectivePositions;
+  const internationalWeight = ["VXUS"].reduce(
+    (sum, ticker) => sum + weightOf(ticker),
+    0
+  );
+  if (internationalWeight > INTERNATIONAL_GUARDRAIL) {
+    guardrails.push(
+      `International allocation at ${internationalWeight.toFixed(
+        1
+      )}% exceeds the 40% asset-class guardrail.`
+    );
+  }
+
   if (effectiveContributors > 0 && effectiveContributors < 2) {
     guardrails.push(
       `Effective risk contributors ${effectiveContributors.toFixed(1)} below 2 guardrail.`
@@ -715,21 +764,21 @@ function buildPortfolioHealth(metrics, actions) {
   }
 
   const guardrailTriggered = guardrails.length > 0;
-  const finalScore = guardrailTriggered
-    ? Math.min(compositeScore, PHS_GUARDRAIL_CAP)
-    : compositeScore;
+  const guardrailPenalty = guardrailTriggered
+    ? Math.min(
+        PHS_GUARDRAIL_MAX_PENALTY,
+        PHS_GUARDRAIL_FIRST_FLAG +
+          Math.max(0, guardrails.length - 1) * PHS_GUARDRAIL_FOLLOW_ON_PENALTY
+      )
+    : 0;
+  const finalScore = clamp(compositeScore - guardrailPenalty, 0, 100);
 
   let status = "Healthy";
   let color = "green";
   let priorityLevel = "Monitor";
   let priorityColor = "light-green";
 
-  if (guardrailTriggered) {
-    status = "Guardrail";
-    color = "red";
-    priorityLevel = "Critical";
-    priorityColor = "dark-red";
-  } else if (finalScore < 60) {
+  if (finalScore < 60) {
     status = "Critical";
     color = "red";
     priorityLevel = "Critical";
@@ -741,13 +790,26 @@ function buildPortfolioHealth(metrics, actions) {
     priorityColor = "medium-green";
   }
 
+  if (guardrailTriggered) {
+    if (finalScore < 60) {
+      status = "Critical - guardrail breach";
+    } else if (finalScore < 80) {
+      status = "Watch - guardrail";
+    } else {
+      status = "Guardrail watch";
+      color = "yellow";
+      priorityLevel = "High";
+      priorityColor = "medium-green";
+    }
+  }
+
   const leadingAction = actions[0];
   const driftNote =
     allocation.maxDeviation >= 4
       ? `Largest allocation gap is ${allocation.maxDeviation.toFixed(1)}%`
       : allocation.maxDeviation >= 2
         ? `Allocation drift peaks at ${allocation.maxDeviation.toFixed(1)}%`
-        : "Allocations remain within guardrails";
+        : "Allocations remain within the policy tolerance.";
 
   const descriptionParts = [
     `Projected return ${(expectedReturn * 100).toFixed(1)}%`,
@@ -755,6 +817,11 @@ function buildPortfolioHealth(metrics, actions) {
     `Sharpe ${sharpeRatio.toFixed(2)}`,
     `All-in cost ${(cost.allInFee * 100).toFixed(2)}%`,
   ];
+  descriptionParts.push(
+    guardrailTriggered
+      ? `Guardrail penalty ${guardrailPenalty.toFixed(1)} pts`
+      : "No guardrail deduction"
+  );
 
   const watchlist = [];
   if (leadingAction) {
@@ -859,9 +926,13 @@ function buildPortfolioHealth(metrics, actions) {
       },
       total: {
         score: finalScore,
-        note: guardrailTriggered ? guardrails[0] : status,
+        note: guardrailTriggered
+          ? `Guardrail deduction ${guardrailPenalty.toFixed(1)} pts: ${guardrails[0]}`
+          : status,
       },
     },
+    guardrailPenalty,
+    guardrailTriggers: guardrails,
   };
 }
 
@@ -869,9 +940,9 @@ function buildStrategicAdvice(metrics, actions) {
   const leadingAction = actions[0];
   const rebalanceSummary = leadingAction
     ? `${leadingAction.asset} is ${leadingAction.deviation}% ${leadingAction.deviation > 0 ? "over" : "under"} target.`
-    : "All positions remain inside drift guardrails.";
+    : "All positions remain inside the drift tolerance band.";
 
-  const growthWeight = ["QQQM", "SMH", "SPMO", "IBIT", "AMZN"].reduce(
+  const growthWeight = ["QQQM", "SMH", "IBIT", "AMZN"].reduce(
     (acc, asset) => acc + safeNumber(metrics.targetFractions[asset]),
     0
   );
@@ -905,7 +976,7 @@ function buildStrategicAdvice(metrics, actions) {
       actions: [
         "Revisit VOO versus QQQM weights before the next major contribution.",
         "Use scenario lab to model 20% drawdown and recovery timing.",
-        "Track factor sleeves (AVUV, SPMO, SPHQ) to maintain diversification.",
+        "Track factor sleeves (AVUV alongside core ETFs) to maintain diversification.",
       ],
     },
     {

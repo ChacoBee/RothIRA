@@ -61,7 +61,7 @@
   };
 
   const HEATMAP_PORTFOLIO_MEMBERSHIP = {
-    sp500: ["VOO", "AMZN", "SPMO", "SPHQ"],
+    sp500: ["VOO", "AMZN"],
     dow30: ["VOO", "AMZN"],
     nasdaq100: ["QQQM", "SMH", "AMZN"],
     russell2000: ["AVUV"],
