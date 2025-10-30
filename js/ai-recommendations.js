@@ -119,14 +119,6 @@ const PHS_FIXED_FEE =
 
 const PHS_PERFORMANCE_A = 1.5;
 const PHS_PERFORMANCE_B = 0.3;
-const GUARDRAIL_MAX_PENALTY =
-  typeof aiPortfolioDefaults.guardrailPenalty === "number"
-    ? aiPortfolioDefaults.guardrailPenalty
-    : 25;
-const GUARDRAIL_PENALTY_FACTOR =
-  typeof aiPortfolioDefaults.guardrailPenaltyFactor === "number"
-    ? aiPortfolioDefaults.guardrailPenaltyFactor
-    : 0.3;
 const CORE_GUARDRAIL_THRESHOLD = 10;
 const CORE_GUARDRAIL_MULTIPLIER = 0.25;
 const CORE_GUARDRAIL_FLOOR = 5;
@@ -821,12 +813,7 @@ function buildPortfolioHealth(metrics, actions) {
 
   const guardrailAssessment = computeGuardrailAssessment(metrics);
   const guardrailScore = guardrailAssessment.score;
-  const rawGuardrailPenalty = Math.max(0, 100 - guardrailScore) * GUARDRAIL_PENALTY_FACTOR;
-  const guardrailPenalty = clamp(
-    Math.min(rawGuardrailPenalty, GUARDRAIL_MAX_PENALTY),
-    0,
-    GUARDRAIL_MAX_PENALTY
-  );
+  const guardrailPenalty = 0; // Guardrail is monitored separately; no longer affects health score.
 
   const guardrailBreaches = [];
   const guardrailAlerts = [];
@@ -928,7 +915,7 @@ function buildPortfolioHealth(metrics, actions) {
   }
 
   const hasGuardrailBreach = guardrailBreaches.length > 0;
-  const finalScore = clamp(compositeScore - guardrailPenalty, 0, 100);
+  const finalScore = clamp(compositeScore, 0, 100);
 
   let status = "Healthy";
   let color = "green";
@@ -989,14 +976,8 @@ function buildPortfolioHealth(metrics, actions) {
     `Sharpe ${sharpeRatio.toFixed(2)}`,
     `All-in cost ${(cost.allInFee * 100).toFixed(2)}%`,
   ];
-  const guardrailSummaryShort =
-    guardrailPenalty > 0
-      ? `Guardrail score ${guardrailScore.toFixed(1)} (-${guardrailPenalty.toFixed(1)} pts)`
-      : `Guardrail score ${guardrailScore.toFixed(1)}`;
-  const guardrailSummaryDetail =
-    guardrailPenalty > 0
-      ? `Guardrail score ${guardrailScore.toFixed(1)} (-${guardrailPenalty.toFixed(1)} pts)`
-      : `Guardrail score ${guardrailScore.toFixed(1)} (no deduction)`;
+  const guardrailSummaryShort = `Guardrail score ${guardrailScore.toFixed(1)}`;
+  const guardrailSummaryDetail = guardrailSummaryShort;
   descriptionParts.push(guardrailSummaryShort);
 
   const watchlist = [];
@@ -1129,7 +1110,7 @@ function buildStrategicAdvice(metrics, actions) {
     ? `${leadingAction.asset} is ${leadingAction.deviation}% ${leadingAction.deviation > 0 ? "over" : "under"} target.`
     : "All positions remain inside the drift tolerance band.";
 
-  const growthWeight = ["QQQM", "SMH", "SPMO", "IBIT", "AMZN"].reduce(
+  const growthWeight = ["QQQM", "SMH", "IBIT", "AMZN"].reduce(
     (acc, asset) => acc + safeNumber(metrics.targetFractions[asset]),
     0
   );
@@ -1161,9 +1142,9 @@ function buildStrategicAdvice(metrics, actions) {
           ? "Moderate growth tilt to keep volatility contained."
           : "You can lean slightly more into growth if risk tolerance allows.",
       actions: [
-        "Revisit VOO versus QQQM/SPMO weights before the next major contribution.",
+        "Revisit VOO versus QQQM weights before the next major contribution.",
         "Use scenario lab to model 20% drawdown and recovery timing.",
-        "Track factor sleeves (AVUV and SPMO alongside core ETFs) to maintain diversification.",
+        "Track factor sleeves (AVUV alongside the core ETFs) to maintain diversification.",
       ],
     },
     {

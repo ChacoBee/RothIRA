@@ -5,45 +5,36 @@ const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
 // Sample Data (Based on your Sheet) - Will be updated with real data
 let initialStockData = {
   VOO: {
-    target: 30.0,
-    currentValue: 30.0,
-    currentPercent: 30.0,
+    target: 40.0,
+    currentValue: 40.0,
+    currentPercent: 40.0,
     sector: 'Core US',
     region: 'United States',
     exposureCategory: 'us',
     assetClass: 'equity',
   },
   QQQM: {
-    target: 15.0,
-    currentValue: 15.0,
-    currentPercent: 15.0,
+    target: 10.0,
+    currentValue: 10.0,
+    currentPercent: 10.0,
     sector: 'Technology',
     region: 'United States',
     exposureCategory: 'us',
     assetClass: 'equity',
   },
   SMH: {
-    target: 10.0,
-    currentValue: 10.0,
-    currentPercent: 10.0,
+    target: 5.0,
+    currentValue: 5.0,
+    currentPercent: 5.0,
     sector: 'Technology',
     region: 'Global',
     exposureCategory: 'us',
     assetClass: 'equity',
   },
-  SPMO: {
-    target: 10.0,
-    currentValue: 10.0,
-    currentPercent: 10.0,
-    sector: 'Momentum Factor',
-    region: 'United States',
-    exposureCategory: 'us',
-    assetClass: 'equity',
-  },
   VXUS: {
-    target: 20.0,
-    currentValue: 20.0,
-    currentPercent: 20.0,
+    target: 30.0,
+    currentValue: 30.0,
+    currentPercent: 30.0,
     sector: 'International Multi-Sector',
     region: 'Global ex-US',
     exposureCategory: 'international',
@@ -182,7 +173,6 @@ const assetBetas = {
   VOO: 1.0,
   QQQM: 1.2,
   SMH: 1.3,
-  SPMO: 1.15,
   VXUS: 0.9,
   AVUV: 1.1,
   IBIT: 1.5,
@@ -206,7 +196,6 @@ const multiFactorLoadings = {
   VOO:  { MKT: 1.00, SMB: -0.10, HML:  0.00, MOM: 0.10 },
   QQQM: { MKT: 1.10, SMB: -0.30, HML: -0.35, MOM: 0.25 },
   SMH:  { MKT: 1.82, SMB: -0.25, HML: -0.20, MOM: 0.45 },
-  SPMO: { MKT: 1.22, SMB: -0.18, HML: -0.15, MOM: 0.62 },
   VXUS: { MKT: 0.80, SMB:  0.05, HML:  0.10, MOM: 0.10 },
   AVUV: { MKT: 1.46, SMB:  0.80, HML:  0.50, MOM: -0.05 },
   IBIT: { MKT: 0.83, SMB:  0.35, HML: -0.45, MOM: 0.85 },
@@ -231,7 +220,6 @@ const assetResidualVols = {
   VOO: 0.0000,
   QQQM: 0.07306,
   SMH: 0.15077,
-  SPMO: 0.18211,
   VXUS: 0.15077,
   AVUV: 0.12090,
   IBIT: 0.54477,
@@ -275,7 +263,6 @@ const STATIC_DEFAULT_VOLATILITIES = Object.freeze({
   VOO: 0.1337, // 13,37%
   QQQM: 0.1676, // 16,76%
   SMH: 0.2862, // 28,62%
-  SPMO: 0.1925, // 19,25%
   VXUS: 0.1384, // 13,84%
   AVUV: 0.2295, // 22,95%
   IBIT: 0.556, // 55,6%
@@ -293,7 +280,6 @@ const expenseRatios = {
   VOO: 0.0003, // 0.03%
   QQQM: 0.0015, // 0.15%
   SMH: 0.0035, // 0.35%
-  SPMO: 0.0013, // 0.13%
   VXUS: 0.0005, // 0.05%
   AVUV: 0.0025, // 0.25%
   IBIT: 0.0025, // 0.25%
@@ -305,29 +291,22 @@ const DEFAULT_CORRELATIONS = Object.freeze({
   AMZN_IBIT: 0.25,
   AMZN_QQQM: 0.81,
   AMZN_SMH: 0.68,
-  AMZN_SPMO: 0.55,
   AMZN_VOO: 0.67,
   AMZN_VXUS: 0.38,
   AVUV_IBIT: 0.2,
   AVUV_QQQM: 0.54,
   AVUV_SMH: 0.52,
-  AVUV_SPMO: 0.56,
   AVUV_VOO: 0.83,
   AVUV_VXUS: 0.67,
   IBIT_QQQM: 0.25,
   IBIT_SMH: 0.225,
-  IBIT_SPMO: 0.25,
   IBIT_VOO: 0.2,
   IBIT_VXUS: 0.2,
   QQQM_SMH: 0.88,
-  QQQM_SPMO: 0.77,
   QQQM_VOO: 0.92,
   QQQM_VXUS: 0.69,
   SMH_VOO: 0.79,
-  SMH_SPMO: 0.63,
   SMH_VXUS: 0.68,
-  SPMO_VOO: 0.86,
-  SPMO_VXUS: 0.63,
   VOO_VXUS: 0.8,
 });
 
@@ -816,9 +795,6 @@ function getTradingViewSymbol(ticker) {
   if (["QQQM", "SMH", "VXUS"].includes(ticker)) {
     return `NASDAQ:${ticker}`;
   }
-  if (ticker === "SPMO") {
-    return `AMEX:SPMO`;
-  }
   if (ticker === "AMZN") {
     return `NASDAQ:AMZN`;
   }
@@ -858,11 +834,6 @@ const stockDetailsContent = {
     desc: "Tracks the NASDAQ-100 with 100 non-financial tech leaders. High-octane growth sleeve powering the hangar's innovation exposure.",
     pros: "Heavy exposure to cloud, AI, and platform giants. Lower fee than legacy QQQ. Historically outperforms during technology bull cycles.",
     cons: "Higher volatility than broad market funds. Concentration risk if mega-cap tech stumbles or regulation tightens.",
-  },
-  SPMO: {
-    desc: "Invesco S&P 500 Momentum ETF amplifying the core sleeve with a systematic momentum tilt across leading US large caps.",
-    pros: "Maintains exposure to the market's strongest trends. Complements VOO by overweighting persistent outperformers. Rules-based process reduces behavioural bias.",
-    cons: "Momentum crashes can trigger sharp reversals. Higher turnover may elevate taxable distributions. More concentrated than broad cap-weighted benchmarks.",
   },
   VXUS: {
     desc: "Broad international ETF covering developed and emerging markets outside the US. Adds regional diversification and reduces home-market bias.",

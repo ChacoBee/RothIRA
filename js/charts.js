@@ -279,7 +279,6 @@ function updateAllocationChart(labels, data, title, totalPercent) {
           "#0f766e", // deep teal (VOO)
           "#1d4ed8", // royal blue (QQQM)
           "#6d28d9", // deep violet (SMH)
-          "#0ea5e9", // vibrant cyan (SPMO)
           "#b91c1c", // crimson (VXUS)
           "#b45309", // burnt orange (AVUV)
           "#be123c", // magenta wine (IBIT)
@@ -289,7 +288,6 @@ function updateAllocationChart(labels, data, title, totalPercent) {
           "#14b8a6",
           "#2563eb",
           "#7c3aed",
-          "#38bdf8",
           "#dc2626",
           "#d97706",
           "#e11d48",
