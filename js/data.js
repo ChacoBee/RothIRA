@@ -817,7 +817,7 @@ function getTradingViewSymbol(ticker) {
     return `NASDAQ:${ticker}`;
   }
   if (ticker === "SPMO") {
-    return `NYSEARCA:SPMO`;
+    return `AMEX:SPMO`;
   }
   if (ticker === "AMZN") {
     return `NASDAQ:AMZN`;
