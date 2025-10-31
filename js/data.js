@@ -157,7 +157,7 @@ const REBALANCE_THRESHOLD = 5.0; // Deviation threshold
 
 // Core market assumptions used across analytics modules
 const RISK_FREE_RATE = 0.045; // 4.5% annual risk-free rate
-const BENCHMARK_EXPECTED_RETURN = 0.1; // 10% assumed long-run market return
+const BENCHMARK_EXPECTED_RETURN = 0.1444; // Vanguard 500 Index CAGR (Oct 2020-Oct 2025)
 const EQUITY_RISK_PREMIUM = Math.max(0, BENCHMARK_EXPECTED_RETURN - RISK_FREE_RATE);
 
 const assetBetas = {
@@ -225,20 +225,34 @@ function deriveCapmExpectedReturn(betaEstimate) {
   return RISK_FREE_RATE + beta * EQUITY_RISK_PREMIUM;
 }
 
+// Realised annualised returns for Oct 13, 2020 – Oct 30, 2025 window
+const REALISED_EXPECTED_RETURNS = {
+  VOO: 0.156743,
+  VXUS: 0.083291,
+  AVUV: 0.163451,
+  AVDV: 0.140759,
+  QQQM: 0.168128,
+  AMZN: 0.057419,
+};
+
 const expectedReturns = assetKeys.reduce((acc, key) => {
-  acc[key] = deriveCapmExpectedReturn(assetBetas[key]);
+  acc[key] =
+    REALISED_EXPECTED_RETURNS[key] !== undefined
+      ? REALISED_EXPECTED_RETURNS[key]
+      : deriveCapmExpectedReturn(assetBetas[key]);
   return acc;
 }, {});
 
 const BASE_EXPECTED_RETURNS = Object.freeze({ ...expectedReturns });
 
+// Realised annualised volatility (same observation window)
 const STATIC_DEFAULT_VOLATILITIES = Object.freeze({
-  VOO : 0.1263, // 12.63%
-  VXUS: 0.0654, // 6.54%
-  AVUV: 0.1808, // 18.08%
-  AVDV: 0.0745, // 7.45%
-  QQQM: 0.1721, // 17.21%
-  AMZN: 0.2847, // 28.47%
+  VOO : 0.169610, // 16.96%
+  VXUS: 0.158392, // 15.84%
+  AVUV: 0.240427, // 24.04%
+  AVDV: 0.174376, // 17.44%
+  QQQM: 0.225887, // 22.59%
+  AMZN: 0.349551, // 34.96%
 });
 
 let volatilities = { ...STATIC_DEFAULT_VOLATILITIES };
