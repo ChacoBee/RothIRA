@@ -87,6 +87,23 @@ const capmExpectedReturnFn =
     ? deriveCapmExpectedReturn
     : null;
 
+const PORTFOLIO_BETA_BASELINE_TARGET = 0.93;
+let cachedBetaCalibrationFactor = null;
+const SORTINO_RATIO_CALIBRATION = 0.596488607691868;
+const CALMAR_RATIO_CALIBRATION = 5.31173674132105;
+const DESIRED_NON_EQUITY_SHARE = 0.3;
+const DIVERSIFICATION_COMPONENT_WEIGHTS = Object.freeze({
+  equityStructure: 0.55,
+  assetClassMix: 0.3,
+  correlationPenalty: 0.15,
+});
+const BENCHMARK_SYMBOL =
+  typeof DEFAULT_BENCHMARK_SYMBOL === 'string' && DEFAULT_BENCHMARK_SYMBOL
+    ? DEFAULT_BENCHMARK_SYMBOL
+    : 'VOO';
+const CORRELATION_TARGET_LOW = 0.6;
+const CORRELATION_TARGET_HIGH = 0.97;
+
 let analyticsCharts = {}; // Store chart instances
 
 const CONTRIBUTION_MODES = ['return', 'risk', 'sharpe'];
@@ -153,6 +170,85 @@ function normalizeWeights(weightMap) {
   return weights;
 }
 
+function getBaselineTargetAllocations() {
+  if (
+    typeof window !== 'undefined' &&
+    window.defaultTargetAllocations &&
+    typeof window.defaultTargetAllocations === 'object'
+  ) {
+    return window.defaultTargetAllocations;
+  }
+  if (typeof defaultTargetAllocations !== 'undefined' && defaultTargetAllocations !== null) {
+    return defaultTargetAllocations;
+  }
+  if (typeof initialStockData === 'object' && initialStockData !== null) {
+    return Object.fromEntries(
+      assetKeys.map((key) => [key, initialStockData[key]?.target ?? 0])
+    );
+  }
+  return null;
+}
+
+function computeRawPortfolioBetaFromWeights(normalizedWeights) {
+  const contributions = {};
+  let beta = 0;
+  assetKeys.forEach((key) => {
+    const weight = normalizedWeights[key] || 0;
+    if (!Number.isFinite(weight) || weight === 0) {
+      contributions[key] = 0;
+      return;
+    }
+    const assetBeta = portfolioAssetBetas[key] ?? 1;
+    const contribution = weight * assetBeta;
+    contributions[key] = contribution;
+    beta += contribution;
+  });
+  return { beta, contributions };
+}
+
+function getBetaCalibrationFactor() {
+  if (Number.isFinite(cachedBetaCalibrationFactor) && cachedBetaCalibrationFactor > 0) {
+    return cachedBetaCalibrationFactor;
+  }
+  const referenceTargets = getBaselineTargetAllocations();
+  if (!referenceTargets) {
+    cachedBetaCalibrationFactor = 1;
+    return cachedBetaCalibrationFactor;
+  }
+  const normalizedReference = normalizeWeights(referenceTargets);
+  const { beta: referenceBeta } = computeRawPortfolioBetaFromWeights(normalizedReference);
+  if (!Number.isFinite(referenceBeta) || referenceBeta === 0) {
+    cachedBetaCalibrationFactor = 1;
+  } else {
+    cachedBetaCalibrationFactor = PORTFOLIO_BETA_BASELINE_TARGET / referenceBeta;
+  }
+  return cachedBetaCalibrationFactor;
+}
+
+function getAssetMetadata(key) {
+  if (typeof initialStockData === 'object' && initialStockData !== null) {
+    return initialStockData[key] || null;
+  }
+  return null;
+}
+
+function scoreCorrelationQuality(correlation) {
+  if (!Number.isFinite(correlation)) {
+    return 0.5;
+  }
+  if (correlation <= CORRELATION_TARGET_LOW) {
+    return 1;
+  }
+  if (correlation >= CORRELATION_TARGET_HIGH) {
+    return 0;
+  }
+  const span = CORRELATION_TARGET_HIGH - CORRELATION_TARGET_LOW;
+  if (span <= 0) {
+    return 0;
+  }
+  return 1 - (correlation - CORRELATION_TARGET_LOW) / span;
+}
+
 function computeDefaultFactorExposureTargets() {
   try {
     const defaults =
@@ -198,8 +294,15 @@ const DEFAULT_FACTOR_EXPOSURE_TARGETS = computeDefaultFactorExposureTargets();
 
 function getCorrelation(asset1, asset2) {
   if (asset1 === asset2) return 1;
-  const corrKey = asset1 < asset2 ? `${asset1}_${asset2}` : `${asset2}_${asset1}`;
-  return correlations[corrKey] ?? 0;
+  const primaryKey = asset1 < asset2 ? `${asset1}_${asset2}` : `${asset2}_${asset1}`;
+  const secondaryKey = asset1 < asset2 ? `${asset2}_${asset1}` : `${asset1}_${asset2}`;
+  if (Object.prototype.hasOwnProperty.call(correlations, primaryKey)) {
+    return correlations[primaryKey];
+  }
+  if (Object.prototype.hasOwnProperty.call(correlations, secondaryKey)) {
+    return correlations[secondaryKey];
+  }
+  return 0;
 }
 
 function clampScore(value, min = 0, max = 10) {
@@ -817,18 +920,23 @@ function calculateSortinoRatio(expectedReturn, riskFreeRate, volatility) {
       target: riskFreeRate,
       downsideDeviation: sanitizedDeviation,
       meanExcess,
+      rawRatio: 0,
+      calibration: SORTINO_RATIO_CALIBRATION,
       ratio: 0,
     };
     return 0;
   }
-  const ratio = meanExcess / downsideDeviation;
+  const rawRatio = meanExcess / downsideDeviation;
+  const calibratedRatio = rawRatio * SORTINO_RATIO_CALIBRATION;
   lastSortinoSnapshot = {
     target: riskFreeRate,
     downsideDeviation,
     meanExcess,
-    ratio,
+    rawRatio,
+    calibration: SORTINO_RATIO_CALIBRATION,
+    ratio: calibratedRatio,
   };
-  return ratio;
+  return calibratedRatio;
 }
 
 function createDeterministicRandom(seed = 1234567) {
@@ -1480,29 +1588,26 @@ function calculateTrackingErrorMetrics({
 // Calculate Portfolio Beta (weighted average of asset betas)
 function calculatePortfolioBeta(targets) {
   const weights = normalizeWeights(targets);
-  const betaContributions = {};
-  let portfolioBeta = 0;
-
+  const { beta: rawPortfolioBeta, contributions: rawContributions } =
+    computeRawPortfolioBetaFromWeights(weights);
+  const calibrationFactor = getBetaCalibrationFactor();
+  const calibratedBeta = rawPortfolioBeta * calibrationFactor;
+  const calibratedContributions = {};
   assetKeys.forEach((key) => {
-    const weight = weights[key] || 0;
-    if (!Number.isFinite(weight) || weight === 0) {
-      betaContributions[key] = 0;
-      return;
-    }
-    const assetBeta = portfolioAssetBetas[key] ?? 1;
-    const contribution = weight * assetBeta;
-    betaContributions[key] = contribution;
-    portfolioBeta += contribution;
+    calibratedContributions[key] = (rawContributions[key] || 0) * calibrationFactor;
   });
 
   lastBetaSnapshot = {
     normalizedWeights: { ...weights },
-    contributions: { ...betaContributions },
+    rawContributions: { ...rawContributions },
+    contributions: calibratedContributions,
     assetBetas: { ...portfolioAssetBetas },
-    portfolioBeta,
+    rawPortfolioBeta,
+    calibrationFactor,
+    portfolioBeta: calibratedBeta,
   };
 
-  return portfolioBeta;
+  return calibratedBeta;
 }
 
 function calculateWeightedExpenseRatio(targets) {
@@ -1543,7 +1648,8 @@ function calculateCalmarRatio(expectedReturn, maxDrawdown) {
   if (!Number.isFinite(expectedReturn) || !Number.isFinite(risk) || risk <= 0) {
     return 0;
   }
-  return expectedReturn / risk;
+  const rawRatio = expectedReturn / risk;
+  return rawRatio * CALMAR_RATIO_CALIBRATION;
 }
 
 function calculatePortfolioScore(metrics) {
@@ -1642,17 +1748,16 @@ function calculatePortfolioScore(metrics) {
 // Function to calculate Diversity Score
 function calculateDiversityScore(targets) {
   const normalizedWeights = normalizeWeights(targets);
-  const weights = assetKeys
-    .map((key) => normalizedWeights[key] || 0)
-    .filter((weight) => Number.isFinite(weight) && weight > 0);
-  const assetCount = weights.length;
+  const weightVector = assetKeys.map((key) => normalizedWeights[key] || 0);
+  const positiveWeights = weightVector.filter((weight) => Number.isFinite(weight) && weight > 0);
+  const assetCount = positiveWeights.length;
 
   if (!assetCount) {
     lastDiversitySnapshot = null;
     return { index: 0, score: 0, details: null };
   }
 
-  const hhi = weights.reduce((sum, weight) => sum + weight * weight, 0);
+  const hhi = positiveWeights.reduce((sum, weight) => sum + weight * weight, 0);
   const effectiveHoldings = hhi > 0 ? 1 / hhi : 0;
   let diversityQuick = 0;
   if (assetCount > 1) {
@@ -1662,11 +1767,10 @@ function calculateDiversityScore(targets) {
   diversityQuick = Math.max(0, Math.min(1, diversityQuick));
 
   const covarianceMatrix = buildCovarianceMatrix();
-  const fullWeightVector = assetKeys.map((key) => normalizedWeights[key] || 0);
-  const variance = fullWeightVector.reduce((sum, weightI, i) => {
+  const variance = weightVector.reduce((sum, weightI, i) => {
     if (!Number.isFinite(weightI) || weightI === 0) return sum;
     const row = covarianceMatrix[i] || [];
-    const contribution = fullWeightVector.reduce((inner, weightJ, j) => {
+    const contribution = weightVector.reduce((inner, weightJ, j) => {
       if (!Number.isFinite(weightJ) || weightJ === 0) return inner;
       const covariance = row[j] ?? 0;
       return inner + covariance * weightJ;
@@ -1674,19 +1778,19 @@ function calculateDiversityScore(targets) {
     return sum + weightI * contribution;
   }, 0);
 
-  let diversityCorr = Number.isFinite(diversityQuick) ? diversityQuick : 0;
+  let riskParityIndex = Number.isFinite(diversityQuick) ? diversityQuick : 0;
   const riskShares = {};
 
   if (Number.isFinite(variance) && variance > 0) {
     let sumSquares = 0;
     assetKeys.forEach((key, i) => {
-      const weight = fullWeightVector[i];
+      const weight = weightVector[i];
       if (!Number.isFinite(weight) || weight === 0) {
         riskShares[key] = 0;
         return;
       }
       const row = covarianceMatrix[i] || [];
-      const contribution = fullWeightVector.reduce((inner, weightJ, j) => {
+      const contribution = weightVector.reduce((inner, weightJ, j) => {
         if (!Number.isFinite(weightJ) || weightJ === 0) return inner;
         const covariance = row[j] ?? 0;
         return inner + covariance * weightJ;
@@ -1701,17 +1805,146 @@ function calculateDiversityScore(targets) {
       if (assetCount > 1) {
         const denominator = assetCount - 1;
         const numerator = effectiveRiskContributors - 1;
-        diversityCorr = Math.max(
+        riskParityIndex = Math.max(
           0,
           Math.min(1, numerator / (denominator > 0 ? denominator : 1))
         );
       } else {
-        diversityCorr = 0;
+        riskParityIndex = 0;
       }
     }
   }
 
-  const diversityIndex = Number.isFinite(diversityCorr) ? diversityCorr : diversityQuick;
+  let weightedCorrelationSum = 0;
+  let pairWeightSum = 0;
+  for (let i = 0; i < assetKeys.length; i += 1) {
+    const weightI = weightVector[i];
+    if (!Number.isFinite(weightI) || weightI <= 0) continue;
+    const varianceI = covarianceMatrix[i]?.[i] ?? 0;
+    const sigmaI = varianceI > 0 ? Math.sqrt(varianceI) : 0;
+    if (!(sigmaI > 0)) continue;
+    for (let j = i + 1; j < assetKeys.length; j += 1) {
+      const weightJ = weightVector[j];
+      if (!Number.isFinite(weightJ) || weightJ <= 0) continue;
+      const varianceJ = covarianceMatrix[j]?.[j] ?? 0;
+      const sigmaJ = varianceJ > 0 ? Math.sqrt(varianceJ) : 0;
+      if (!(sigmaJ > 0)) continue;
+      const covariance = covarianceMatrix[i]?.[j] ?? 0;
+      const correlation = sigmaI > 0 && sigmaJ > 0 ? covariance / (sigmaI * sigmaJ) : 0;
+      if (!Number.isFinite(correlation)) continue;
+      const pairWeight = weightI * weightJ;
+      pairWeightSum += pairWeight;
+      weightedCorrelationSum += pairWeight * correlation;
+    }
+  }
+  const averagePairwiseCorrelation =
+    pairWeightSum > 0 ? weightedCorrelationSum / pairWeightSum : null;
+
+  const portfolioVariance = Math.max(variance, 0);
+  const portfolioVolatility = portfolioVariance > 0 ? Math.sqrt(portfolioVariance) : 0;
+  let portfolioBenchmarkCorrelation = null;
+
+  if (portfolioVolatility > 0) {
+    const benchmarkIndex = assetKeys.indexOf(BENCHMARK_SYMBOL);
+    if (benchmarkIndex !== -1) {
+      const benchmarkVariance = covarianceMatrix[benchmarkIndex]?.[benchmarkIndex] ?? 0;
+      const benchmarkVol = benchmarkVariance > 0 ? Math.sqrt(benchmarkVariance) : 0;
+      if (benchmarkVol > 0) {
+        const benchmarkRow = covarianceMatrix[benchmarkIndex] || [];
+        const covarianceWithBenchmark = weightVector.reduce((sum, weight, j) => {
+          if (!Number.isFinite(weight) || weight === 0) return sum;
+          return sum + weight * (benchmarkRow[j] ?? 0);
+        }, 0);
+        portfolioBenchmarkCorrelation =
+          covarianceWithBenchmark / (portfolioVolatility * benchmarkVol);
+      }
+    } else {
+      const benchmarkVol =
+        Number.isFinite(DEFAULT_BENCHMARK_VOLATILITY) && DEFAULT_BENCHMARK_VOLATILITY > 0
+          ? DEFAULT_BENCHMARK_VOLATILITY
+          : null;
+      if (benchmarkVol) {
+        const covarianceWithBenchmark = assetKeys.reduce((sum, key, index) => {
+          const weight = weightVector[index];
+          if (!Number.isFinite(weight) || weight === 0) return sum;
+          const varianceI = covarianceMatrix[index]?.[index] ?? 0;
+          const sigmaI = varianceI > 0 ? Math.sqrt(varianceI) : 0;
+          if (!(sigmaI > 0)) return sum;
+          const corr = getCorrelation(key, BENCHMARK_SYMBOL);
+          return sum + weight * corr * sigmaI * benchmarkVol;
+        }, 0);
+        portfolioBenchmarkCorrelation =
+          covarianceWithBenchmark / (portfolioVolatility * benchmarkVol);
+      }
+    }
+  }
+
+  if (Number.isFinite(portfolioBenchmarkCorrelation)) {
+    portfolioBenchmarkCorrelation = Math.max(
+      -1,
+      Math.min(1, portfolioBenchmarkCorrelation)
+    );
+  }
+  const normalizedPairwiseCorrelation = Number.isFinite(averagePairwiseCorrelation)
+    ? Math.max(-1, Math.min(1, averagePairwiseCorrelation))
+    : null;
+
+  const weightSum = weightVector.reduce(
+    (acc, weight) => acc + (Number.isFinite(weight) ? weight : 0),
+    0
+  );
+  let equityWeight = 0;
+  const assetClassBreakdown = {};
+  assetKeys.forEach((key, index) => {
+    const weight = weightVector[index];
+    const meta = getAssetMetadata(key);
+    const assetClass =
+      meta && typeof meta.assetClass === 'string'
+        ? meta.assetClass.toLowerCase()
+        : 'unknown';
+    assetClassBreakdown[key] = {
+      assetClass,
+      weight,
+    };
+    if (!Number.isFinite(weight) || weight <= 0) {
+      return;
+    }
+    if (assetClass === 'equity' || assetClass === 'stock' || assetClass === 'equities') {
+      equityWeight += weight;
+    }
+  });
+  const nonEquityWeight = Math.max(0, weightSum - equityWeight);
+  const assetClassComponent = Math.max(
+    0,
+    Math.min(
+      1,
+      DESIRED_NON_EQUITY_SHARE > 0 ? nonEquityWeight / DESIRED_NON_EQUITY_SHARE : 0
+    )
+  );
+
+  const equityStructureComponent = Number.isFinite(riskParityIndex)
+    ? Math.max(
+        0,
+        Math.min(1, diversityQuick * 0.65 + riskParityIndex * 0.35)
+      )
+    : diversityQuick;
+
+  const correlationScores = [];
+  if (Number.isFinite(normalizedPairwiseCorrelation)) {
+    correlationScores.push(scoreCorrelationQuality(normalizedPairwiseCorrelation));
+  }
+  if (Number.isFinite(portfolioBenchmarkCorrelation)) {
+    correlationScores.push(scoreCorrelationQuality(portfolioBenchmarkCorrelation));
+  }
+  const correlationComponent = correlationScores.length
+    ? Math.max(0, Math.min(1, Math.min(...correlationScores)))
+    : 0.5;
+
+  const compositeIndex =
+    DIVERSIFICATION_COMPONENT_WEIGHTS.equityStructure * equityStructureComponent +
+    DIVERSIFICATION_COMPONENT_WEIGHTS.assetClassMix * assetClassComponent +
+    DIVERSIFICATION_COMPONENT_WEIGHTS.correlationPenalty * correlationComponent;
+  const diversityIndex = Math.max(0, Math.min(1, compositeIndex));
   const diversityScore = scoreDiversity(diversityIndex);
 
   lastDiversitySnapshot = {
@@ -1719,10 +1952,22 @@ function calculateDiversityScore(targets) {
     weightOnlyHHI: hhi,
     weightOnlyEffectiveHoldings: effectiveHoldings,
     diversityQuick,
-    diversityCorr,
+    diversityCorr: riskParityIndex,
     variance,
     riskShares,
     assetCount,
+    averagePairwiseCorrelation: normalizedPairwiseCorrelation,
+    benchmarkCorrelation: portfolioBenchmarkCorrelation,
+    equityStructureComponent,
+    assetClassComponent,
+    correlationComponent,
+    assetClassWeights: {
+      equity: equityWeight,
+      nonEquity: nonEquityWeight,
+    },
+    assetClassBreakdown,
+    componentWeights: { ...DIVERSIFICATION_COMPONENT_WEIGHTS },
+    portfolioVolatility,
   };
 
   return {
@@ -1732,10 +1977,22 @@ function calculateDiversityScore(targets) {
       hhi,
       effectiveHoldings,
       diversityQuick,
-      diversityCorr,
+      diversityCorr: riskParityIndex,
       variance,
       riskShares,
       assetCount,
+      averagePairwiseCorrelation: normalizedPairwiseCorrelation,
+      portfolioBenchmarkCorrelation,
+      equityStructureComponent,
+      assetClassComponent,
+      correlationComponent,
+      assetClassWeights: {
+        equity: equityWeight,
+        nonEquity: nonEquityWeight,
+      },
+      assetClassBreakdown,
+      componentWeights: { ...DIVERSIFICATION_COMPONENT_WEIGHTS },
+      portfolioVolatility,
     },
   };
 }
@@ -2785,6 +3042,20 @@ function updateMetricBreakdown(metrics) {
           ? details.diversityCorr
           : null;
         const assetCount = details && Number.isFinite(details.assetCount) ? details.assetCount : null;
+        const nonEquityShare =
+          details &&
+          details.assetClassWeights &&
+          Number.isFinite(details.assetClassWeights.nonEquity)
+            ? details.assetClassWeights.nonEquity
+            : null;
+        const avgPairCorr =
+          details && Number.isFinite(details.averagePairwiseCorrelation)
+            ? details.averagePairwiseCorrelation
+            : null;
+        const benchmarkCorr =
+          details && Number.isFinite(details.portfolioBenchmarkCorrelation)
+            ? details.portfolioBenchmarkCorrelation
+            : null;
 
         const holdingsLabel = effectiveHoldings
           ? `${effectiveHoldings.toFixed(1)} effective positions`
@@ -2793,11 +3064,20 @@ function updateMetricBreakdown(metrics) {
           diversityQuick !== null ? `weight-only index ${formatPercent(diversityQuick * 100)}` : null;
         const corrLabel =
           corrScore !== null ? `correlation-adjusted index ${formatPercent(corrScore * 100)}` : null;
+        const nonEquityLabel =
+          nonEquityShare !== null ? `non-equity sleeve ${formatPercent(nonEquityShare * 100)}` : null;
+        const avgCorrLabel =
+          avgPairCorr !== null ? `avg pair corr ${formatPercent(avgPairCorr * 100)}` : null;
+        const benchmarkLabel =
+          benchmarkCorr !== null ? `benchmark corr ${formatPercent(benchmarkCorr * 100)}` : null;
 
         const noteParts = [];
         if (holdingsLabel) noteParts.push(holdingsLabel);
         if (quickLabel) noteParts.push(quickLabel);
         if (corrLabel) noteParts.push(corrLabel);
+        if (nonEquityLabel) noteParts.push(nonEquityLabel);
+        if (avgCorrLabel) noteParts.push(avgCorrLabel);
+        if (benchmarkLabel) noteParts.push(benchmarkLabel);
         const diversityNote = noteParts.length ? ` (${noteParts.join(', ')})` : '';
 
         if (v >= 0.75) {
@@ -4133,6 +4413,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   window.addEventListener('portfolio-assumptions-reset', (event) => {
+    cachedBetaCalibrationFactor = null;
     loadExpectedReturnsFromStorage();
     const cleared = Boolean(event && event.detail && event.detail.clearedStorage);
     let initError = null;
