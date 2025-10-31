@@ -162,25 +162,17 @@ const EQUITY_RISK_PREMIUM = Math.max(0, BENCHMARK_EXPECTED_RETURN - RISK_FREE_RA
 
 const assetBetas = {
   VOO: 1.0,
-  VXUS: 0.9,
-  AVUV: 1.1,
-  AVDV: 1.05,
-  QQQM: 1.2,
-  AMZN: 1.4,
+  VXUS: 0.62,
+  AVUV: 0.8,
+  AVDV: 0.37,
+  QQQM: 0.97,
+  AMZN: 0.81,
 };
 
 const BASE_ASSET_BETAS = Object.freeze({ ...assetBetas });
 
 const factorNames = ['MKT', 'SMB', 'HML', 'MOM'];
 
-// const multiFactorLoadings = {
-//   VOO: { MKT: 1.0, SMB: -0.1, HML: 0.0, MOM: 0.12 },
-//   VXUS: { MKT: 0.95, SMB: 0.05, HML: 0.12, MOM: 0.08 },
-//   AVUV: { MKT: 1.05, SMB: 0.7, HML: 0.4, MOM: -0.05 },
-//   AVDV: { MKT: 1.15, SMB: 0.65, HML: 0.45, MOM: -0.08 },
-//   QQQM: { MKT: 1.15, SMB: -0.25, HML: -0.35, MOM: 0.3 },
-//   AMZN: { MKT: 1.3, SMB: -0.2, HML: -0.3, MOM: 0.52 },
-// };
 const multiFactorLoadings = {
   VOO:  { MKT: 1.00, SMB: -0.10, HML:  0.00, MOM: 0.10 },
   VXUS: { MKT: 0.80, SMB:  0.05, HML:  0.10, MOM: 0.10 },
@@ -190,12 +182,6 @@ const multiFactorLoadings = {
   AMZN: { MKT: 1.84, SMB: -0.20, HML: -0.30, MOM: 0.50 },
 };
 
-// const factorCovariances = {
-//   MKT: { MKT: 0.042, SMB: 0.011, HML: 0.009, MOM: 0.007 },
-//   SMB: { MKT: 0.011, SMB: 0.028, HML: 0.006, MOM: 0.0025 },
-//   HML: { MKT: 0.009, SMB: 0.006, HML: 0.025, MOM: 0.002 },
-//   MOM: { MKT: 0.007, SMB: 0.0025, HML: 0.002, MOM: 0.03 },
-// };
 
 const factorCovariances = {
   MKT: { MKT: 0.017663, SMB:  0.001374, HML: -0.002355, MOM:  0.000883 },
@@ -205,7 +191,7 @@ const factorCovariances = {
 };
 
 const assetResidualVols = {
-  VOO: 0.0000,
+  VOO : 0.0000,
   VXUS: 0.15077,
   AVUV: 0.12090,
   AVDV: 0.13840,
@@ -247,12 +233,12 @@ const expectedReturns = assetKeys.reduce((acc, key) => {
 const BASE_EXPECTED_RETURNS = Object.freeze({ ...expectedReturns });
 
 const STATIC_DEFAULT_VOLATILITIES = Object.freeze({
-  VOO: 0.1337, // 13.37%
-  VXUS: 0.1384, // 13.84%
-  AVUV: 0.2295, // 22.95%
-  AVDV: 0.2140, // 21.40%
-  QQQM: 0.1820, // 18.20%
-  AMZN: 0.3520, // 35.20%
+  VOO : 0.1263, // 12.63%
+  VXUS: 0.0654, // 6.54%
+  AVUV: 0.1808, // 18.08%
+  AVDV: 0.0745, // 7.45%
+  QQQM: 0.1721, // 17.21%
+  AMZN: 0.2847, // 28.47%
 });
 
 let volatilities = { ...STATIC_DEFAULT_VOLATILITIES };
@@ -263,30 +249,30 @@ if (typeof window !== 'undefined') {
 const BASE_VOLATILITIES = Object.freeze({ ...STATIC_DEFAULT_VOLATILITIES });
 
 const expenseRatios = {
-  VOO: 0.0003, // 0.03%
-  VXUS: 0.0007, // 0.07%
+  VOO : 0.0003, // 0.03%
+  VXUS: 0.0005, // 0.05%
   AVUV: 0.0025, // 0.25%
-  AVDV: 0.0025, // 0.25%
+  AVDV: 0.0036, // 0.36%
   QQQM: 0.0015, // 0.15%
   AMZN: 0.0, // Direct equity, no fund expense
 };
 
 const DEFAULT_CORRELATIONS = Object.freeze({
-  AMZN_AVUV: 0.36,
-  AMZN_AVDV: 0.32,
-  AMZN_QQQM: 0.81,
-  AMZN_VOO: 0.67,
-  AMZN_VXUS: 0.38,
-  AVUV_AVDV: 0.74,
-  AVUV_QQQM: 0.54,
-  AVUV_VOO: 0.83,
-  AVUV_VXUS: 0.67,
-  AVDV_QQQM: 0.62,
-  AVDV_VOO: 0.78,
-  AVDV_VXUS: 0.75,
-  QQQM_VOO: 0.92,
-  QQQM_VXUS: 0.69,
-  VOO_VXUS: 0.8,
+  AMZN_AVUV: 0.71,
+  AMZN_AVDV: 0.2,
+  AMZN_QQQM: 0.78,
+  AMZN_VOO: 0.81,
+  AMZN_VXUS: 0.33,
+  AVUV_AVDV: 0.64,
+  AVUV_QQQM: 0.68,
+  AVUV_VOO: 0.80,
+  AVUV_VXUS: 0.57,
+  AVDV_QQQM: 0.4,
+  AVDV_VOO: 0.37,
+  AVDV_VXUS: 0.76,
+  QQQM_VOO: 0.96,
+  QQQM_VXUS: 0.62,
+  VOO_VXUS: 0.61,
 });
 
 let correlations = { ...DEFAULT_CORRELATIONS };
