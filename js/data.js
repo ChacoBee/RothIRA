@@ -191,12 +191,12 @@ const factorCovariances = {
 };
 
 const assetResidualVols = {
-  VOO : 0.0000,
-  VXUS: 0.15077,
-  AVUV: 0.12090,
-  AVDV: 0.13840,
-  QQQM: 0.08350,
-  AMZN: 0.25138,
+  VOO : 0.051512,
+  VXUS: 0.063578,
+  AVUV: 0.183707,
+  AVDV: 0.165415,
+  QQQM: 0.168532,
+  AMZN: 0.281734,
 };
 
 const BASE_MULTI_FACTOR_LOADINGS = Object.freeze(
