@@ -5,7 +5,7 @@ const AI_RISK_FREE_RATE =
     ? DEFAULT_RISK_FREE_RATE
     : typeof RISK_FREE_RATE === "number"
       ? RISK_FREE_RATE
-      : 0.04;
+      : 0.0265;
 
 const aiAssetBetas =
   typeof portfolioAssetBetas === "object" && portfolioAssetBetas

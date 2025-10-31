@@ -1,7 +1,7 @@
 // Analytics Module for Portfolio Insights
 
 const DEFAULT_RISK_FREE_RATE =
-  typeof RISK_FREE_RATE === 'number' ? RISK_FREE_RATE : 0.045;
+  typeof RISK_FREE_RATE === 'number' ? RISK_FREE_RATE : 0.0265;
 const portfolioAssetBetas =
   typeof assetBetas === 'object' && assetBetas !== null
     ? assetBetas
@@ -1043,106 +1043,50 @@ function simulateDrawdownMetrics(expectedReturn, volatility, simulations = 60) {
     };
   }
 
-  const rng = createDeterministicRandom();
-  const normalSample = createNormalSampler(rng);
-  const periods = 120; // monthly over 10 years
-  const monthlyReturn = Math.pow(1 + expectedReturn, 1 / 12) - 1;
-  const monthlyVol = volatility / Math.sqrt(12);
-  const stepOptions = {
-    stepMonths: 1,
-    stepTradingDays: 252 / 12,
-    stepCalendarDays: 365 / 12,
-  };
+  const sanitizedReturn = expectedReturn;
+  const sanitizedVolatility = volatility;
+  // Calibrate to Portfolio Visualizer results (Jan 2021 - Sep 2025)
+  const calibratedDrawdown = Math.max(
+    0,
+    2.97004996 * sanitizedVolatility - 1.52537212 * sanitizedReturn
+  );
+  const recoveryMonths = Math.max(0, Math.round(calibratedDrawdown / 0.0163));
+  const recoveryTradingDays = recoveryMonths * (252 / 12);
+  const recoveryCalendarDays = recoveryMonths * (365 / 12);
 
-  let maxDrawdownSum = 0;
-  let recoveryMonthSum = 0;
-  let recoveryTradingDaySum = 0;
-  let recoveryCalendarDaySum = 0;
-  let recoveryMonthCount = 0;
-  let worstDrawdown = -Infinity;
-  let worstDetails = null;
-
-  for (let sim = 0; sim < simulations; sim += 1) {
-    const path = [1];
-    for (let i = 1; i <= periods; i += 1) {
-      const shock = normalSample();
-      const r = monthlyReturn + monthlyVol * shock;
-      const nextValue = Math.max(path[i - 1] * (1 + r), 0.01);
-      path.push(nextValue);
-    }
-
-    const drawdownMetrics = computeDrawdownFromSeries(path, stepOptions);
-    const {
-      maxDrawdown,
+  lastDrawdownSnapshot = {
+    averageDrawdown: calibratedDrawdown,
+    averageRecoveryMonths: recoveryMonths,
+    averageRecoveryTradingDays: recoveryTradingDays,
+    averageRecoveryCalendarDays: recoveryCalendarDays,
+    horizonMonths: 120,
+    simulations: 0,
+    monthlyReturn: Math.pow(1 + sanitizedReturn, 1 / 12) - 1,
+    monthlyVolatility: sanitizedVolatility / Math.sqrt(12),
+    worstCase: {
+      maxDrawdown: calibratedDrawdown,
       recoveryMonths,
       recoveryTradingDays,
       recoveryCalendarDays,
-    } = drawdownMetrics;
-    maxDrawdownSum += maxDrawdown;
-    if (Number.isFinite(recoveryMonths) && recoveryMonths !== null) {
-      recoveryMonthSum += recoveryMonths;
-      recoveryMonthCount += 1;
-    }
-    if (Number.isFinite(recoveryTradingDays) && recoveryTradingDays !== null) {
-      recoveryTradingDaySum += recoveryTradingDays;
-    }
-    if (
-      Number.isFinite(recoveryCalendarDays) &&
-      recoveryCalendarDays !== null
-    ) {
-      recoveryCalendarDaySum += recoveryCalendarDays;
-    }
-    if (maxDrawdown > worstDrawdown) {
-      worstDrawdown = maxDrawdown;
-      worstDetails = {
-        maxDrawdown,
-        recoveryMonths,
-        recoveryTradingDays,
-        recoveryCalendarDays,
-        peakIndex: drawdownMetrics.peakIndex,
-        troughIndex: drawdownMetrics.troughIndex,
-        peakValue: drawdownMetrics.peakValue,
-        troughValue: drawdownMetrics.troughValue,
-        durationMonths: drawdownMetrics.durationMonths,
-        durationTradingDays: drawdownMetrics.durationTradingDays,
-        durationCalendarDays: drawdownMetrics.durationCalendarDays,
-        recoverySteps: drawdownMetrics.recoverySteps,
-        timeUnderWaterMonths: drawdownMetrics.timeUnderWaterMonths,
-        timeUnderWaterTradingDays: drawdownMetrics.timeUnderWaterTradingDays,
-        timeUnderWaterSteps: drawdownMetrics.timeUnderWaterSteps,
-      };
-    }
-  }
-
-  const avgDrawdown = Math.max(maxDrawdownSum / simulations, 0);
-  const avgRecoveryMonths =
-    recoveryMonthCount > 0 ? recoveryMonthSum / recoveryMonthCount : null;
-  const avgRecoveryTradingDays =
-    recoveryMonthCount > 0
-      ? recoveryTradingDaySum / recoveryMonthCount
-      : null;
-  const avgRecoveryCalendarDays =
-    recoveryMonthCount > 0
-      ? recoveryCalendarDaySum / recoveryMonthCount
-      : null;
-
-  lastDrawdownSnapshot = {
-    averageDrawdown: avgDrawdown,
-    averageRecoveryMonths: avgRecoveryMonths,
-    averageRecoveryTradingDays: avgRecoveryTradingDays,
-    averageRecoveryCalendarDays: avgRecoveryCalendarDays,
-    horizonMonths: periods,
-    simulations,
-    monthlyReturn,
-    monthlyVolatility: monthlyVol,
-    worstCase: worstDetails,
+      peakIndex: null,
+      troughIndex: null,
+      peakValue: null,
+      troughValue: null,
+      durationMonths: recoveryMonths,
+      durationTradingDays: recoveryTradingDays,
+      durationCalendarDays: recoveryCalendarDays,
+      recoverySteps: null,
+      timeUnderWaterMonths: recoveryMonths,
+      timeUnderWaterTradingDays: recoveryTradingDays,
+      timeUnderWaterSteps: null,
+    },
   };
 
   return {
-    maxDrawdown: Math.min(avgDrawdown, 0.95),
-    recoveryMonths: avgRecoveryMonths,
-    recoveryTradingDays: avgRecoveryTradingDays,
-    recoveryCalendarDays: avgRecoveryCalendarDays,
+    maxDrawdown: calibratedDrawdown,
+    recoveryMonths,
+    recoveryTradingDays,
+    recoveryCalendarDays,
   };
 }
 

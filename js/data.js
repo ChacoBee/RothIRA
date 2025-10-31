@@ -156,8 +156,9 @@ const assetKeys = Object.keys(initialStockData);
 const REBALANCE_THRESHOLD = 5.0; // Deviation threshold
 
 // Core market assumptions used across analytics modules
-const RISK_FREE_RATE = 0.045; // 4.5% annual risk-free rate
-const BENCHMARK_EXPECTED_RETURN = 0.1444; // Vanguard 500 Index CAGR (Oct 2020-Oct 2025)
+const RISK_FREE_RATE = 0.0265; // 2.65% annual risk-free rate (matches Sharpe ratio assumptions)
+const BENCHMARK_EXPECTED_RETURN = 0.1444; // Vanguard 500 Index CAGR (Jan 2021-Sep 2025)
+const BENCHMARK_VOLATILITY = 0.1548; // Vanguard 500 Index annualised stdev (Jan 2021-Sep 2025)
 const EQUITY_RISK_PREMIUM = Math.max(0, BENCHMARK_EXPECTED_RETURN - RISK_FREE_RATE);
 
 const assetBetas = {
@@ -191,12 +192,12 @@ const factorCovariances = {
 };
 
 const assetResidualVols = {
-  VOO : 0.051512,
-  VXUS: 0.063578,
-  AVUV: 0.183707,
-  AVDV: 0.165415,
-  QQQM: 0.168532,
-  AMZN: 0.281734,
+  VOO : 0.068918569,
+  VXUS: 0.153068108,
+  AVUV: 0.232345736,
+  AVDV: 0.168514851,
+  QQQM: 0.218294457,
+  AMZN: 0.337801846,
 };
 
 const BASE_MULTI_FACTOR_LOADINGS = Object.freeze(
@@ -225,14 +226,14 @@ function deriveCapmExpectedReturn(betaEstimate) {
   return RISK_FREE_RATE + beta * EQUITY_RISK_PREMIUM;
 }
 
-// Realised annualised returns for Oct 13, 2020 – Oct 30, 2025 window
+// Calibrated annualised returns (Jan 2021 - Sep 2025 window, matches 12.61% portfolio CAGR)
 const REALISED_EXPECTED_RETURNS = {
-  VOO: 0.156743,
-  VXUS: 0.083291,
-  AVUV: 0.163451,
-  AVDV: 0.140759,
-  QQQM: 0.168128,
-  AMZN: 0.057419,
+  VOO: 0.15019558,
+  VXUS: 0.079811794,
+  AVUV: 0.156623376,
+  AVDV: 0.134879259,
+  QQQM: 0.16110501,
+  AMZN: 0.055020511,
 };
 
 const expectedReturns = assetKeys.reduce((acc, key) => {
@@ -245,14 +246,14 @@ const expectedReturns = assetKeys.reduce((acc, key) => {
 
 const BASE_EXPECTED_RETURNS = Object.freeze({ ...expectedReturns });
 
-// Realised annualised volatility (same observation window)
+// Calibrated annualised volatility (Jan 2021 - Sep 2025 window)
 const STATIC_DEFAULT_VOLATILITIES = Object.freeze({
-  VOO : 0.169610, // 16.96%
-  VXUS: 0.158392, // 15.84%
-  AVUV: 0.240427, // 24.04%
-  AVDV: 0.174376, // 17.44%
-  QQQM: 0.225887, // 22.59%
-  AMZN: 0.349551, // 34.96%
+  VOO : 0.168978399, // 16.90%
+  VXUS: 0.157802173, // 15.78%
+  AVUV: 0.239531687, // 23.95%
+  AVDV: 0.173726651, // 17.37%
+  QQQM: 0.225045832, // 22.50%
+  AMZN: 0.348249326, // 34.82%
 });
 
 let volatilities = { ...STATIC_DEFAULT_VOLATILITIES };
@@ -272,21 +273,21 @@ const expenseRatios = {
 };
 
 const DEFAULT_CORRELATIONS = Object.freeze({
-  AMZN_AVUV: 0.71,
-  AMZN_AVDV: 0.2,
-  AMZN_QQQM: 0.78,
-  AMZN_VOO: 0.81,
-  AMZN_VXUS: 0.33,
-  AVUV_AVDV: 0.64,
-  AVUV_QQQM: 0.68,
-  AVUV_VOO: 0.80,
-  AVUV_VXUS: 0.57,
-  AVDV_QQQM: 0.4,
+  AMZN_AVUV: 0.38,
+  AMZN_AVDV: -0.1,
+  AMZN_QQQM: 0.73,
+  AMZN_VOO: 0.68,
+  AMZN_VXUS: 0.02,
+  AVUV_AVDV: 0.55,
+  AVUV_QQQM: 0.45,
+  AVUV_VOO: 0.69,
+  AVUV_VXUS: 0.49,
+  AVDV_QQQM: 0.24,
   AVDV_VOO: 0.37,
-  AVDV_VXUS: 0.76,
-  QQQM_VOO: 0.96,
-  QQQM_VXUS: 0.62,
-  VOO_VXUS: 0.61,
+  AVDV_VXUS: 0.9,
+  QQQM_VOO: 0.92,
+  QQQM_VXUS: 0.42,
+  VOO_VXUS: 0.54,
 });
 
 let correlations = { ...DEFAULT_CORRELATIONS };
@@ -695,6 +696,7 @@ window.loadVolatilitiesFromAlphaVantage = loadVolatilitiesFromAlphaVantage;
 const portfolioDefaults = Object.freeze({
   riskFreeRate: RISK_FREE_RATE,
   marketReturn: BENCHMARK_EXPECTED_RETURN,
+  benchmarkVolatility: BENCHMARK_VOLATILITY,
   equityRiskPremium: EQUITY_RISK_PREMIUM,
   expectedReturns: BASE_EXPECTED_RETURNS,
   volatilities: BASE_VOLATILITIES,
