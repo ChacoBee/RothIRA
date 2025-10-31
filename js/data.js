@@ -13,24 +13,6 @@ let initialStockData = {
     exposureCategory: 'us',
     assetClass: 'equity',
   },
-  QQQM: {
-    target: 10.0,
-    currentValue: 10.0,
-    currentPercent: 10.0,
-    sector: 'Technology',
-    region: 'United States',
-    exposureCategory: 'us',
-    assetClass: 'equity',
-  },
-  SMH: {
-    target: 5.0,
-    currentValue: 5.0,
-    currentPercent: 5.0,
-    sector: 'Technology',
-    region: 'Global',
-    exposureCategory: 'us',
-    assetClass: 'equity',
-  },
   VXUS: {
     target: 30.0,
     currentValue: 30.0,
@@ -49,14 +31,23 @@ let initialStockData = {
     exposureCategory: 'us',
     assetClass: 'equity',
   },
-  IBIT: {
-    target: 2.0,
-    currentValue: 2.0,
-    currentPercent: 2.0,
-    sector: 'Digital Assets',
-    region: 'Global',
-    exposureCategory: 'alternative',
-    assetClass: 'alternative',
+  AVDV: {
+    target: 10.0,
+    currentValue: 10.0,
+    currentPercent: 10.0,
+    sector: 'International Small Cap Value',
+    region: 'Global ex-US',
+    exposureCategory: 'international',
+    assetClass: 'equity',
+  },
+  QQQM: {
+    target: 7.0,
+    currentValue: 7.0,
+    currentPercent: 7.0,
+    sector: 'Technology',
+    region: 'United States',
+    exposureCategory: 'us',
+    assetClass: 'equity',
   },
   AMZN: {
     target: 3.0,
@@ -171,11 +162,10 @@ const EQUITY_RISK_PREMIUM = Math.max(0, BENCHMARK_EXPECTED_RETURN - RISK_FREE_RA
 
 const assetBetas = {
   VOO: 1.0,
-  QQQM: 1.2,
-  SMH: 1.3,
   VXUS: 0.9,
   AVUV: 1.1,
-  IBIT: 1.5,
+  AVDV: 1.05,
+  QQQM: 1.2,
   AMZN: 1.4,
 };
 
@@ -185,20 +175,18 @@ const factorNames = ['MKT', 'SMB', 'HML', 'MOM'];
 
 // const multiFactorLoadings = {
 //   VOO: { MKT: 1.0, SMB: -0.1, HML: 0.0, MOM: 0.12 },
-//   QQQM: { MKT: 1.15, SMB: -0.25, HML: -0.35, MOM: 0.3 },
-//   SMH: { MKT: 1.25, SMB: -0.3, HML: -0.2, MOM: 0.45 },
 //   VXUS: { MKT: 0.95, SMB: 0.05, HML: 0.12, MOM: 0.08 },
 //   AVUV: { MKT: 1.05, SMB: 0.7, HML: 0.4, MOM: -0.05 },
-//   IBIT: { MKT: 1.6, SMB: 0.35, HML: -0.45, MOM: 0.85 },
+//   AVDV: { MKT: 1.15, SMB: 0.65, HML: 0.45, MOM: -0.08 },
+//   QQQM: { MKT: 1.15, SMB: -0.25, HML: -0.35, MOM: 0.3 },
 //   AMZN: { MKT: 1.3, SMB: -0.2, HML: -0.3, MOM: 0.52 },
 // };
 const multiFactorLoadings = {
   VOO:  { MKT: 1.00, SMB: -0.10, HML:  0.00, MOM: 0.10 },
-  QQQM: { MKT: 1.10, SMB: -0.30, HML: -0.35, MOM: 0.25 },
-  SMH:  { MKT: 1.82, SMB: -0.25, HML: -0.20, MOM: 0.45 },
   VXUS: { MKT: 0.80, SMB:  0.05, HML:  0.10, MOM: 0.10 },
   AVUV: { MKT: 1.46, SMB:  0.80, HML:  0.50, MOM: -0.05 },
-  IBIT: { MKT: 0.83, SMB:  0.35, HML: -0.45, MOM: 0.85 },
+  AVDV: { MKT: 1.25, SMB:  0.75, HML:  0.55, MOM: -0.08 },
+  QQQM: { MKT: 1.10, SMB: -0.30, HML: -0.35, MOM: 0.25 },
   AMZN: { MKT: 1.84, SMB: -0.20, HML: -0.30, MOM: 0.50 },
 };
 
@@ -218,11 +206,10 @@ const factorCovariances = {
 
 const assetResidualVols = {
   VOO: 0.0000,
-  QQQM: 0.07306,
-  SMH: 0.15077,
   VXUS: 0.15077,
   AVUV: 0.12090,
-  IBIT: 0.54477,
+  AVDV: 0.13840,
+  QQQM: 0.08350,
   AMZN: 0.25138,
 };
 
@@ -260,13 +247,12 @@ const expectedReturns = assetKeys.reduce((acc, key) => {
 const BASE_EXPECTED_RETURNS = Object.freeze({ ...expectedReturns });
 
 const STATIC_DEFAULT_VOLATILITIES = Object.freeze({
-  VOO: 0.1337, // 13,37%
-  QQQM: 0.1676, // 16,76%
-  SMH: 0.2862, // 28,62%
-  VXUS: 0.1384, // 13,84%
-  AVUV: 0.2295, // 22,95%
-  IBIT: 0.556, // 55,6%
-  AMZN: 0.352, // 35,2%
+  VOO: 0.1337, // 13.37%
+  VXUS: 0.1384, // 13.84%
+  AVUV: 0.2295, // 22.95%
+  AVDV: 0.2140, // 21.40%
+  QQQM: 0.1820, // 18.20%
+  AMZN: 0.3520, // 35.20%
 });
 
 let volatilities = { ...STATIC_DEFAULT_VOLATILITIES };
@@ -278,35 +264,28 @@ const BASE_VOLATILITIES = Object.freeze({ ...STATIC_DEFAULT_VOLATILITIES });
 
 const expenseRatios = {
   VOO: 0.0003, // 0.03%
-  QQQM: 0.0015, // 0.15%
-  SMH: 0.0035, // 0.35%
-  VXUS: 0.0005, // 0.05%
+  VXUS: 0.0007, // 0.07%
   AVUV: 0.0025, // 0.25%
-  IBIT: 0.0025, // 0.25%
+  AVDV: 0.0025, // 0.25%
+  QQQM: 0.0015, // 0.15%
   AMZN: 0.0, // Direct equity, no fund expense
 };
 
 const DEFAULT_CORRELATIONS = Object.freeze({
   AMZN_AVUV: 0.36,
-  AMZN_IBIT: 0.25,
+  AMZN_AVDV: 0.32,
   AMZN_QQQM: 0.81,
-  AMZN_SMH: 0.68,
   AMZN_VOO: 0.67,
   AMZN_VXUS: 0.38,
-  AVUV_IBIT: 0.2,
+  AVUV_AVDV: 0.74,
   AVUV_QQQM: 0.54,
-  AVUV_SMH: 0.52,
   AVUV_VOO: 0.83,
   AVUV_VXUS: 0.67,
-  IBIT_QQQM: 0.25,
-  IBIT_SMH: 0.225,
-  IBIT_VOO: 0.2,
-  IBIT_VXUS: 0.2,
-  QQQM_SMH: 0.88,
+  AVDV_QQQM: 0.62,
+  AVDV_VOO: 0.78,
+  AVDV_VXUS: 0.75,
   QQQM_VOO: 0.92,
   QQQM_VXUS: 0.69,
-  SMH_VOO: 0.79,
-  SMH_VXUS: 0.68,
   VOO_VXUS: 0.8,
 });
 
@@ -790,17 +769,14 @@ let tvWidget = null; // Cache for the TradingView widget instance
 // TradingView Symbol Mapping
 // Use exchange-prefixed symbols that the embedded TradingView widget accepts.
 function getTradingViewSymbol(ticker) {
-  if (["VOO", "AVUV"].includes(ticker)) {
+  if (["VOO", "AVUV", "AVDV"].includes(ticker)) {
     return `AMEX:${ticker}`;
   }
-  if (["QQQM", "SMH", "VXUS"].includes(ticker)) {
+  if (["QQQM", "VXUS"].includes(ticker)) {
     return `NASDAQ:${ticker}`;
   }
   if (ticker === "AMZN") {
     return `NASDAQ:AMZN`;
-  }
-  if (ticker === "IBIT") {
-    return `NASDAQ:IBIT`; // Use IBIT ETF symbol
   }
   return ticker; // Default fallback
 }
@@ -831,11 +807,6 @@ const stockDetailsContent = {
     pros: "Ultra-low 0.03% expense ratio preserves net returns. Broad diversification lowers single-stock risk. Ideal anchor for passive accumulation.",
     cons: "Can lag growth-tilted funds during tech-led rallies. Offers limited downside protection when US markets sell off.",
   },
-  QQQM: {
-    desc: "Tracks the NASDAQ-100 with 100 non-financial tech leaders. High-octane growth sleeve powering the hangar's innovation exposure.",
-    pros: "Heavy exposure to cloud, AI, and platform giants. Lower fee than legacy QQQ. Historically outperforms during technology bull cycles.",
-    cons: "Higher volatility than broad market funds. Concentration risk if mega-cap tech stumbles or regulation tightens.",
-  },
   VXUS: {
     desc: "Broad international ETF covering developed and emerging markets outside the US. Adds regional diversification and reduces home-market bias.",
     pros: "Captures cycles when Europe or Asia outpace the US. Helps hedge dollar weakness. Expands opportunity set across countries and sectors.",
@@ -846,19 +817,19 @@ const stockDetailsContent = {
     pros: "Diversifies factor exposure beyond mega-cap growth. Historically rebounds when the value factor regains leadership. Adds a disciplined, tax-aware smart-beta sleeve.",
     cons: "More volatile than blue-chip ETFs and can trail in growth-led markets. Smaller fund size requires monitoring liquidity and spreads.",
   },
-  SMH: {
-    desc: "VanEck Semiconductor ETF covering global chip leaders. Tactical sleeve aimed at AI, cloud computing, and high-performance hardware trends.",
-    pros: "High structural growth as chips power every digital initiative. Among the highest-margin industries in technology.",
-    cons: "Industry cycles can be sharp with demand swings and inventory gluts. Sensitive to geopolitical tensions around fabrication hubs.",
+  AVDV: {
+    desc: "Avantis international small-cap value ETF drawing from developed markets outside the US. Extends the value tilt into non-US small caps.",
+    pros: "Broad global reach beyond domestic holdings. Captures value and size factors abroad while remaining tax-efficient. Complements VXUS with deeper factor exposure.",
+    cons: "Currency swings and geopolitical shocks can drive larger drawdowns. Trading spreads can widen during low-liquidity sessions.",
+  },
+  QQQM: {
+    desc: "Tracks the NASDAQ-100 with 100 non-financial tech leaders. High-octane growth sleeve powering the hangar's innovation exposure.",
+    pros: "Heavy exposure to cloud, AI, and platform giants. Lower fee than legacy QQQ. Historically outperforms during technology bull cycles.",
+    cons: "Higher volatility than broad market funds. Concentration risk if mega-cap tech stumbles or regulation tightens.",
   },
   AMZN: {
     desc: "Direct equity stake in Amazon across e-commerce, AWS cloud, and logistics. Single-stock satellite delivering outsized growth potential.",
     pros: "Exposure to a dominant platform with multiple growth engines. Optionality across advertising, media, and AI services.",
     cons: "Single-company risk is elevated; performance hinges on management execution. Valuation multiples can compress quickly in risk-off regimes.",
-  },
-  IBIT: {
-    desc: "Spot Bitcoin ETF providing regulated access to digital asset exposure. High-beta diversifier with low correlation to traditional equities.",
-    pros: "Captures upside from Bitcoin adoption and macro hedging demand. Delivers custodied access without wallet management.",
-    cons: "Extreme price volatility and regulatory uncertainty. Short trading history leaves drawdown behavior unpredictable.",
   },
 };

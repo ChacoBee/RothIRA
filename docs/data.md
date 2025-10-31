@@ -39,7 +39,7 @@
 - `loadVolatilitiesFromAlphaVantage(options)`: tương tự correlation nhưng lưu vào `window.volatilities`, `window.volatilitiesLastUpdated`, đồng thời cache trong localStorage (`VOLATILITY_CACHE_KEY`).
 
 ## 7. Tiện ích hiển thị & hỗ trợ TradingView
-- `getTradingViewSymbol(ticker)`: chuyển mã (ví dụ VOO → AMEX:VOO, SMH → NASDAQ:SMH…).
+- `getTradingViewSymbol(ticker)`: chuyển mã (ví dụ VOO → AMEX:VOO, QQQM → NASDAQ:QQQM…).
 - `formatCurrency()`, `formatPercent()` dùng chung cho nhiều file (định dạng USD hoặc % với 2 chữ số thập phân).
 
 ## 8. Luồng khởi động (initializeData)

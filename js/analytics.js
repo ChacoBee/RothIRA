@@ -7,11 +7,10 @@ const portfolioAssetBetas =
     ? assetBetas
     : {
         VOO: 1.0,
-        QQQM: 1.2,
-        SMH: 1.3,
         VXUS: 0.9,
         AVUV: 1.1,
-        IBIT: 1.5,
+        AVDV: 1.05,
+        QQQM: 1.2,
         AMZN: 1.4,
       };
 
@@ -20,11 +19,10 @@ const portfolioExpenseRatios =
     ? expenseRatios
     : {
         VOO: 0.0003,
-        QQQM: 0.0015,
-        SMH: 0.0035,
-        VXUS: 0.0005,
+        VXUS: 0.0007,
         AVUV: 0.0025,
-        IBIT: 0.0025,
+        AVDV: 0.0025,
+        QQQM: 0.0015,
         AMZN: 0.0,
       };
 

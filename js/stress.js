@@ -35,12 +35,11 @@ function applyStressScenario(scenario, severity) {
   assetKeys.forEach(key => {
     const currentValue = getCurrentAssetValues()[key];
     const beta = key === 'VOO' ? 1.0
-      : key === 'QQQM' ? 1.2
-      : key === 'SMH' ? 1.3
       : key === 'VXUS' ? 0.9
       : key === 'AVUV' ? 1.1
+      : key === 'AVDV' ? 1.05
+      : key === 'QQQM' ? 1.2
       : key === 'AMZN' ? 1.4
-      : key === 'IBIT' ? 1.5
       : 1.0;
 
     // Apply stress based on beta and scenario

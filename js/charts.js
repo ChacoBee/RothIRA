@@ -277,20 +277,18 @@ function updateAllocationChart(labels, data, title, totalPercent) {
         data: data,
         backgroundColor: [
           "#0f766e", // deep teal (VOO)
-          "#1d4ed8", // royal blue (QQQM)
-          "#6d28d9", // deep violet (SMH)
           "#b91c1c", // crimson (VXUS)
           "#b45309", // burnt orange (AVUV)
-          "#be123c", // magenta wine (IBIT)
+          "#0ea5e9", // vivid sky (AVDV)
+          "#1d4ed8", // royal blue (QQQM)
           "#7c2d12", // dark copper (AMZN)
         ],
         hoverBackgroundColor: [
           "#14b8a6",
-          "#2563eb",
-          "#7c3aed",
           "#dc2626",
           "#d97706",
-          "#e11d48",
+          "#38bdf8",
+          "#2563eb",
           "#9a3412",
         ],
         borderColor: isDarkMode

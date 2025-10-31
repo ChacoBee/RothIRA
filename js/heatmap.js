@@ -44,7 +44,7 @@
         "Kiểm tra các cổ phiếu cloud/AI quan trọng nếu nhiệt map chuyển đỏ.",
       ],
       week: [
-        "Xu hướng tuần phản ánh momentum công nghệ – phù hợp với các ETF QQQM/SMH trong danh mục.",
+        "Xu hướng tuần phản ánh momentum công nghệ – phù hợp với các ETF QQQM và cổ phiếu AMZN trong danh mục.",
         "Cân nhắc khóa lợi nhuận nếu đà tăng quá nóng so với mục tiêu rủi ro.",
       ],
     },
@@ -63,8 +63,8 @@
   const HEATMAP_PORTFOLIO_MEMBERSHIP = {
     sp500: ["VOO", "AMZN"],
     dow30: ["VOO", "AMZN"],
-    nasdaq100: ["QQQM", "SMH", "AMZN"],
-    russell2000: ["AVUV"],
+    nasdaq100: ["QQQM", "AMZN"],
+    russell2000: ["AVUV", "AVDV"],
   };
 
   const WATCHLIST_STORAGE_KEY = "heatmapWatchlist";

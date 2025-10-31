@@ -14,11 +14,10 @@ const aiAssetBetas =
       ? assetBetas
       : {
           VOO: 1,
-          QQQM: 1.15,
-          SMH: 1.3,
           VXUS: 0.9,
           AVUV: 1.1,
-          IBIT: 1.6,
+          AVDV: 1.05,
+          QQQM: 1.2,
           AMZN: 1.4,
         };
 
@@ -129,8 +128,8 @@ const CORE_GUARDRAIL_FLOOR = 5;
 const SATELLITE_GUARDRAIL_MULTIPLIER = 0.25;
 const HIGH_VOL_GUARDRAIL_MULTIPLIER = 0.5;
 const SMALL_POSITION_THRESHOLD = 3.5;
-const HIGH_VOL_TICKERS = new Set(["AMZN", "IBIT"]);
-const CRYPTO_TICKERS = new Set(["IBIT"]);
+const HIGH_VOL_TICKERS = new Set(["AMZN", "QQQM"]);
+const CRYPTO_TICKERS = new Set();
 const CRYPTO_ABSOLUTE_CAP = 5;
 const GUARDRAIL_SCORE_TIERS = [
   { max: 0.5, score: 100 },
@@ -751,7 +750,7 @@ function computeLiquidityScore(metrics) {
   }
 
   const singleNames = ["AMZN"];
-  const thematicNames = ["IBIT", "SMH"];
+  const thematicNames = ["QQQM", "AMZN"];
   let singleWeight = 0;
   let thematicWeight = 0;
   let etfWeight = 0;
@@ -875,10 +874,10 @@ function buildPortfolioHealth(metrics, actions) {
 
   const techExposure = computeExposure({
     VOO: 0.3,
-    QQQM: 0.65,
-    SMH: 1.0,
+    QQQM: 0.7,
     VXUS: 0.12,
     AVUV: 0.08,
+    AVDV: 0.05,
     AMZN: 1.0,
   });
   if (techExposure > 35) {
@@ -891,18 +890,18 @@ function buildPortfolioHealth(metrics, actions) {
     );
   }
 
-  const semisExposure = computeExposure({
-    SMH: 1.0,
-    QQQM: 0.18,
-    VOO: 0.12,
+  const innovationExposure = computeExposure({
+    QQQM: 0.85,
+    AMZN: 1.0,
+    VOO: 0.18,
   });
-  if (semisExposure > 15) {
+  if (innovationExposure > 28) {
     guardrailBreaches.push(
-      `Semiconductor exposure ${semisExposure.toFixed(1)}% exceeds the ~15% guideline.`
+      `Innovation sleeve ${innovationExposure.toFixed(1)}% exceeds the ~28% guideline.`
     );
-  } else if (semisExposure > 13) {
+  } else if (innovationExposure > 25) {
     guardrailAlerts.push(
-      `Semiconductor exposure ${semisExposure.toFixed(1)}% is approaching the 15% guideline.`
+      `Innovation sleeve ${innovationExposure.toFixed(1)}% is approaching the 28% guideline.`
     );
   }
 
@@ -1155,7 +1154,7 @@ function buildStrategicAdvice(metrics, actions) {
     ? `${leadingAction.asset} is ${leadingAction.deviation}% ${leadingAction.deviation > 0 ? "over" : "under"} target.`
     : "All positions remain inside the drift tolerance band.";
 
-  const growthWeight = ["QQQM", "SMH", "IBIT", "AMZN"].reduce(
+  const growthWeight = ["QQQM", "AMZN"].reduce(
     (acc, asset) => acc + safeNumber(metrics.targetFractions[asset]),
     0
   );
@@ -1204,7 +1203,7 @@ function buildStrategicAdvice(metrics, actions) {
           : "Continue automated deposits and quarterly reviews.",
       actions: [
         "Confirm contribution schedule (monthly or quarterly) is automated.",
-        "Document thesis for thematic holdings (SMH, IBIT) to revisit annually.",
+        "Document thesis for thematic holdings (QQQM, AMZN) to revisit annually.",
         "Set calendar reminder for year-end tax and Roth paperwork review.",
       ],
     },
@@ -1224,7 +1223,7 @@ function buildRiskManagement(metrics, actions) {
       steps: [
         "Review emergency fund and Roth withdrawal contingencies.",
         "Document rebalancing triggers for a 10% market slide.",
-        "Check stop gaps for concentrated positions (IBIT, individual stock).",
+        "Check stop gaps for concentrated positions (AMZN and other single-stock sleeves).",
       ],
     },
     {
@@ -1244,7 +1243,7 @@ function buildRiskManagement(metrics, actions) {
       description: "Track macro triggers that would change allocation quickly.",
       steps: [
         "Set alerts for Fed policy shifts and recession probability models.",
-        "Watch semiconductor and AI earnings; tie to SMH/QQQM exposure.",
+        "Watch semiconductor and AI earnings; tie to QQQM/AMZN exposure.",
         "Revisit international thesis if USD trend breaks 200-day moving average.",
       ],
     },
@@ -1280,24 +1279,24 @@ function buildMarketInsights(metrics) {
   insights.push({
     theme: "Theme Radar",
     insight:
-      metrics.targetFractions.IBIT
-        ? "Digital asset allocation introduces non-correlated risk."
-        : "No digital asset sleeve detected; optional diversifier if desired.",
+      metrics.targetFractions.AVDV
+        ? "International value sleeve adds differentiated factor exposure."
+        : "Consider an international value sleeve to broaden factor diversification.",
     items: [
       {
-        label: "AI and Semiconductors",
+        label: "AI and Cloud Momentum",
         detail:
-          "SMH remains sensitive to supply chain and policy headlines. Monitor earnings momentum.",
+          "QQQM and AMZN carry the innovation tilt. Track earnings momentum and policy headlines for mega-cap tech.",
       },
       {
-        label: "Small Cap Value",
+        label: "Value Factors",
         detail:
-          "AVUV adds factor diversification. Confirm liquidity before large allocations.",
+          "AVUV and AVDV balance the growth sleeve with value and size exposure. Keep contributions spread across both regions.",
       },
       {
-        label: "Mega Cap Concentration",
+        label: "Global Balance",
         detail:
-          "QQQM and AMZN concentrate tech exposure. Ensure thesis covers regulation and margin risks.",
+          "VXUS plus AVDV diversify away from US mega-caps. Revisit thesis if dollar strength returns.",
       },
     ],
   });
