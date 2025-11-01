@@ -1131,7 +1131,7 @@ function recalculateDepositRebalance() {
     } else if (plan.warnings.noActiveAssets) {
       impactSummary.textContent = "All holdings locked";
     } else if (plan.totals.needsCount > 0) {
-      impactSummary.textContent = `Resolved ${plan.totals.resolvedCount} of ${plan.totals.needsCount} underweights`;
+      impactSummary.textContent = `Resolved ${plan.totals.needsCount} of ${plan.totals.resolvedCount} underweights`;
     } else {
       impactSummary.textContent = "Portfolio already on target";
     }
