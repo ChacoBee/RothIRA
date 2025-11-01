@@ -2,7 +2,7 @@
 
 /**
  * Creates or re-initializes the TradingView widget.
- * @param {string} fullSymbol - The full symbol string (e.g., 'NASDAQ:QQQM').
+ * @param {string} fullSymbol - The full symbol string (e.g., 'AMEX:SPMO').
  * @param {string} theme - 'dark' or 'light'.
  */
 function createTradingViewWidget(fullSymbol, theme) {
@@ -42,7 +42,7 @@ function createTradingViewWidget(fullSymbol, theme) {
 
 /**
  * Creates a mini TradingView widget for section 4.
- * @param {string} fullSymbol - The full symbol string (e.g., 'NASDAQ:QQQM').
+ * @param {string} fullSymbol - The full symbol string (e.g., 'AMEX:SPMO').
  * @param {string} theme - 'dark' or 'light'.
  */
 function createMiniTradingViewWidget(fullSymbol, theme) {

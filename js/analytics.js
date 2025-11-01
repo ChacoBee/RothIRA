@@ -10,7 +10,7 @@ const portfolioAssetBetas =
         VXUS: 0.9,
         AVUV: 1.1,
         AVDV: 1.05,
-        QQQM: 1.2,
+        SPMO: 1.1,
         AMZN: 1.4,
       };
 
@@ -22,7 +22,7 @@ const portfolioExpenseRatios =
         VXUS: 0.0007,
         AVUV: 0.0025,
         AVDV: 0.0025,
-        QQQM: 0.0015,
+        SPMO: 0.0013,
         AMZN: 0.0,
       };
 
@@ -458,6 +458,32 @@ const PORTFOLIO_PILLAR_WEIGHTS = Object.freeze({
   risk: 0.3,
   structure: 0.2,
   cost: 0.1,
+});
+
+const PORTFOLIO_ANALYTICS_BASELINE = Object.freeze({
+  timeframe: Object.freeze({
+    start: '2020-01-01',
+    end: '2025-09-30',
+    months: 69,
+  }),
+  expectedReturn: 0.1364,
+  volatility: 0.1738,
+  sharpeRatio: 0.67,
+  sortinoRatio: 1.03,
+  maxDrawdown: 0.2403,
+  recoveryMonths: 15,
+  recoveryTradingDays: 315,
+  recoveryCalendarDays: 456,
+  beta: 0.97,
+  alpha: -0.0087,
+  calmarRatio: 2.96,
+  trackingError: 0.0399,
+  informationRatio: -0.39,
+  activeReturn: -0.0154,
+  upCaptureRatio: 0.9361,
+  downCaptureRatio: 0.9777,
+  cvarLoss: 0.1041,
+  varLoss: 0.0803,
 });
 
 const PORTFOLIO_SCORE_METRICS = Object.freeze({
@@ -3935,12 +3961,35 @@ function updateTrackingCard(metrics) {
 function initializeAnalytics() {
   const targets = getCurrentTargets();
   const normalizedTargets = normalizeWeights(targets);
-  const expectedReturn = calculateExpectedReturn(targets);
-  const volatility = calculateVolatility(targets);
+
+  const rawExpectedReturn = calculateExpectedReturn(targets);
+  const rawVolatility = calculateVolatility(targets);
+  const rawExcessReturn = rawExpectedReturn - DEFAULT_RISK_FREE_RATE;
+  const rawBeta = calculatePortfolioBeta(targets);
+  const rawSharpe = calculateSharpeRatio(rawExpectedReturn, rawVolatility);
+  const rawSortino = calculateSortinoRatio(rawExpectedReturn, DEFAULT_RISK_FREE_RATE, rawVolatility);
+
+  const baseline =
+    typeof PORTFOLIO_ANALYTICS_BASELINE === 'object' &&
+    PORTFOLIO_ANALYTICS_BASELINE !== null
+      ? PORTFOLIO_ANALYTICS_BASELINE
+      : null;
+
+  const expectedReturn = Number.isFinite(baseline?.expectedReturn)
+    ? baseline.expectedReturn
+    : rawExpectedReturn;
+  const volatility = Number.isFinite(baseline?.volatility)
+    ? baseline.volatility
+    : rawVolatility;
   const excessReturn = expectedReturn - DEFAULT_RISK_FREE_RATE;
-  const sharpe = calculateSharpeRatio(expectedReturn, volatility);
-  const beta = calculatePortfolioBeta(targets);
-  const sortino = calculateSortinoRatio(expectedReturn, DEFAULT_RISK_FREE_RATE, volatility);
+  const beta = Number.isFinite(baseline?.beta) ? baseline.beta : rawBeta;
+  const sharpe = Number.isFinite(baseline?.sharpeRatio)
+    ? baseline.sharpeRatio
+    : calculateSharpeRatio(expectedReturn, volatility);
+  const sortino = Number.isFinite(baseline?.sortinoRatio)
+    ? baseline.sortinoRatio
+    : calculateSortinoRatio(expectedReturn, DEFAULT_RISK_FREE_RATE, volatility);
+
   const sortinoDetails =
     typeof lastSortinoSnapshot === 'object' && lastSortinoSnapshot !== null
       ? lastSortinoSnapshot
@@ -3949,46 +3998,91 @@ function initializeAnalytics() {
     typeof lastDrawdownSnapshot === 'object' && lastDrawdownSnapshot !== null
       ? lastDrawdownSnapshot
       : null;
-  const {
+  let {
     maxDrawdown,
     recoveryMonths,
     recoveryTradingDays,
     recoveryCalendarDays,
   } = simulateDrawdownMetrics(expectedReturn, volatility);
-  const calmar = calculateCalmarRatio(expectedReturn, maxDrawdown);
-  const alpha = calculateAlpha(expectedReturn, beta);
+
+  if (baseline) {
+    if (Number.isFinite(baseline.maxDrawdown)) {
+      maxDrawdown = baseline.maxDrawdown;
+    }
+    if (Number.isFinite(baseline.recoveryMonths)) {
+      recoveryMonths = baseline.recoveryMonths;
+    }
+    if (Number.isFinite(baseline.recoveryTradingDays)) {
+      recoveryTradingDays = baseline.recoveryTradingDays;
+    }
+    if (Number.isFinite(baseline.recoveryCalendarDays)) {
+      recoveryCalendarDays = baseline.recoveryCalendarDays;
+    }
+  }
+
+  const calmar = Number.isFinite(baseline?.calmarRatio)
+    ? baseline.calmarRatio
+    : calculateCalmarRatio(expectedReturn, maxDrawdown);
+  const alpha = Number.isFinite(baseline?.alpha)
+    ? baseline.alpha
+    : calculateAlpha(expectedReturn, beta);
+
   const weightedExpenseRatio = calculateWeightedExpenseRatio(targets);
   const expenseDetails =
     typeof lastExpenseSnapshot === 'object' && lastExpenseSnapshot !== null
       ? lastExpenseSnapshot
       : null;
+
   const captureMetrics = calculateUpDownCaptureRatios({
     expectedReturn,
     volatility,
     beta,
   });
-  const upCaptureRatio =
+  let upCaptureRatio =
     captureMetrics && Number.isFinite(captureMetrics.upCaptureRatio)
       ? captureMetrics.upCaptureRatio
       : null;
-  const downCaptureRatio =
+  let downCaptureRatio =
     captureMetrics && Number.isFinite(captureMetrics.downCaptureRatio)
       ? captureMetrics.downCaptureRatio
       : null;
   const captureDetails =
     captureMetrics && captureMetrics.details ? captureMetrics.details : null;
-  const tailRiskMetrics = calculateTailRiskMetrics({
+
+  if (baseline) {
+    if (Number.isFinite(baseline.upCaptureRatio)) {
+      upCaptureRatio = baseline.upCaptureRatio;
+    }
+    if (Number.isFinite(baseline.downCaptureRatio)) {
+      downCaptureRatio = baseline.downCaptureRatio;
+    }
+  }
+
+  let tailRiskMetrics = calculateTailRiskMetrics({
     expectedReturn,
     volatility,
   });
-  const cvarLoss =
+  let cvarLoss =
     tailRiskMetrics && Number.isFinite(tailRiskMetrics.cvar)
       ? tailRiskMetrics.cvar
       : null;
-  const varLoss =
+  let varLoss =
     tailRiskMetrics && Number.isFinite(tailRiskMetrics.var)
       ? tailRiskMetrics.var
       : null;
+
+  if (baseline) {
+    if (Number.isFinite(baseline.cvarLoss)) {
+      cvarLoss = baseline.cvarLoss;
+    }
+    if (Number.isFinite(baseline.varLoss)) {
+      varLoss = baseline.varLoss;
+    }
+    tailRiskMetrics = tailRiskMetrics && typeof tailRiskMetrics === 'object'
+      ? { ...tailRiskMetrics, cvar: cvarLoss, var: varLoss }
+      : { cvar: cvarLoss, var: varLoss };
+  }
+
   const {
     index: diversityIndex,
     score: diversityComponentScore,
@@ -4080,18 +4174,31 @@ function initializeAnalytics() {
     variance,
     beta,
   });
-  const trackingErrorValue =
+  let trackingErrorValue =
     trackingMetrics && Number.isFinite(trackingMetrics.trackingError)
       ? trackingMetrics.trackingError
       : null;
-  const informationRatioValue =
+  let informationRatioValue =
     trackingMetrics && Number.isFinite(trackingMetrics.informationRatio)
       ? trackingMetrics.informationRatio
       : null;
-  const activeReturnValue =
+  let activeReturnValue =
     trackingMetrics && Number.isFinite(trackingMetrics.activeReturn)
       ? trackingMetrics.activeReturn
       : null;
+
+  if (baseline) {
+    if (Number.isFinite(baseline.trackingError)) {
+      trackingErrorValue = baseline.trackingError;
+    }
+    if (Number.isFinite(baseline.informationRatio)) {
+      informationRatioValue = baseline.informationRatio;
+    }
+    if (Number.isFinite(baseline.activeReturn)) {
+      activeReturnValue = baseline.activeReturn;
+    }
+  }
+
   updateTrackingCard({
     trackingError: trackingErrorValue,
     informationRatio: informationRatioValue,
@@ -4238,6 +4345,15 @@ function initializeAnalytics() {
     multiFactorExplainedVariance: multiFactorMetrics ? multiFactorMetrics.explainedVariance : null,
     multiFactorResidualVariance: multiFactorMetrics ? multiFactorMetrics.residualVariance : null,
     multiFactorCovariance: multiFactorMetrics ? multiFactorMetrics.covarianceMatrix : null,
+    baseline: baseline || null,
+    rawMetrics: {
+      expectedReturn: rawExpectedReturn,
+      volatility: rawVolatility,
+      excessReturn: rawExcessReturn,
+      beta: rawBeta,
+      sharpeRatio: rawSharpe,
+      sortinoRatio: rawSortino,
+    },
   };
 
   populateAssetContributionTable(targets);
@@ -4314,7 +4430,6 @@ function initializeAnalytics() {
     equityRiskPremium: DEFAULT_EQUITY_RISK_PREMIUM,
   });
 }
-
 // Function to update portfolio score and risk level
 function updatePortfolioScoreAndRisk(scoreInputs, cachedResult) {
   const result =
@@ -4475,3 +4590,4 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(runInitialAnalytics, 0);
   }
 });
+

@@ -39,7 +39,7 @@
 - `loadVolatilitiesFromAlphaVantage(options)`: tương tự correlation nhưng lưu vào `window.volatilities`, `window.volatilitiesLastUpdated`, đồng thời cache trong localStorage (`VOLATILITY_CACHE_KEY`).
 
 ## 7. Tiện ích hiển thị & hỗ trợ TradingView
-- `getTradingViewSymbol(ticker)`: chuyển mã (ví dụ VOO → AMEX:VOO, QQQM → NASDAQ:QQQM…).
+- `getTradingViewSymbol(ticker)`: chuyển mã (ví dụ VOO → AMEX:VOO, SPMO → AMEX:SPMO, VXUS → NASDAQ:VXUS…).
 - `formatCurrency()`, `formatPercent()` dùng chung cho nhiều file (định dạng USD hoặc % với 2 chữ số thập phân).
 
 ## 8. Luồng khởi động (initializeData)
@@ -52,3 +52,4 @@
 ## 9. Ghi chú mở rộng
 - Nếu cần thay đổi hạ tầng data (ví dụ chuyển sang API khác), chỉ cần sửa các hàm lấy dữ liệu trong file này, `analytics.js` và `ai-recommendations.js` sẽ tự dùng kết quả mới.
 - Khi thêm ticker hoặc nhân tố mới, cập nhật các object gốc (`initialStockData`, `assetBetas`, `multiFactorLoadings`, `factorCovariances`, `expenseRatios`, `STATIC_DEFAULT_VOLATILITIES`, `correlations`) để giữ tính nhất quán.
+- PORTFOLIO_ANALYTICS_BASELINE: baseline analytics overrides (Jan 2020 - Sep 2025) sourced from Portfolio Visualizer share 54R2TPH2RMIYFrqqISF1ws so section 7 cards mirror that backtest.

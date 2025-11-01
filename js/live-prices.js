@@ -1,4 +1,4 @@
-const LIVE_PRICE_TICKERS = ["VOO", "VXUS", "AVUV", "AVDV", "QQQM", "AMZN"];
+const LIVE_PRICE_TICKERS = ["VOO", "VXUS", "AVUV", "AVDV", "SPMO", "AMZN"];
 const LIVE_PRICE_CSV_PATH =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vRwZrG7ms2qeaAEqYcpHs_kaE7cOwuGvU0d4G0fTSXPUL5wgHk3mPdhpJlEHeUaZw/pub?output=csv';
 let livePriceTimer = null;

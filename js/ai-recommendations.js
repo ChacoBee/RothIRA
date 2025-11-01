@@ -17,7 +17,7 @@ const aiAssetBetas =
           VXUS: 0.9,
           AVUV: 1.1,
           AVDV: 1.05,
-          QQQM: 1.2,
+          SPMO: 1.15,
           AMZN: 1.4,
         };
 
@@ -128,7 +128,7 @@ const CORE_GUARDRAIL_FLOOR = 5;
 const SATELLITE_GUARDRAIL_MULTIPLIER = 0.25;
 const HIGH_VOL_GUARDRAIL_MULTIPLIER = 0.5;
 const SMALL_POSITION_THRESHOLD = 3.5;
-const HIGH_VOL_TICKERS = new Set(["AMZN", "QQQM"]);
+const HIGH_VOL_TICKERS = new Set(["AMZN", "SPMO"]);
 const CRYPTO_TICKERS = new Set();
 const CRYPTO_ABSOLUTE_CAP = 5;
 const GUARDRAIL_SCORE_TIERS = [
@@ -750,7 +750,7 @@ function computeLiquidityScore(metrics) {
   }
 
   const singleNames = ["AMZN"];
-  const thematicNames = ["QQQM", "AMZN"];
+const thematicNames = ["SPMO", "AMZN"];
   let singleWeight = 0;
   let thematicWeight = 0;
   let etfWeight = 0;
@@ -874,7 +874,7 @@ function buildPortfolioHealth(metrics, actions) {
 
   const techExposure = computeExposure({
     VOO: 0.3,
-    QQQM: 0.7,
+    SPMO: 0.58,
     VXUS: 0.12,
     AVUV: 0.08,
     AVDV: 0.05,
@@ -890,18 +890,18 @@ function buildPortfolioHealth(metrics, actions) {
     );
   }
 
-  const innovationExposure = computeExposure({
-    QQQM: 0.85,
-    AMZN: 1.0,
-    VOO: 0.18,
+  const momentumExposure = computeExposure({
+    SPMO: 0.85,
+    AMZN: 0.9,
+    VOO: 0.2,
   });
-  if (innovationExposure > 28) {
+  if (momentumExposure > 28) {
     guardrailBreaches.push(
-      `Innovation sleeve ${innovationExposure.toFixed(1)}% exceeds the ~28% guideline.`
+      `Momentum sleeve ${momentumExposure.toFixed(1)}% exceeds the ~28% guideline.`
     );
-  } else if (innovationExposure > 25) {
+  } else if (momentumExposure > 25) {
     guardrailAlerts.push(
-      `Innovation sleeve ${innovationExposure.toFixed(1)}% is approaching the 28% guideline.`
+      `Momentum sleeve ${momentumExposure.toFixed(1)}% is approaching the 28% guideline.`
     );
   }
 
@@ -1154,7 +1154,7 @@ function buildStrategicAdvice(metrics, actions) {
     ? `${leadingAction.asset} is ${leadingAction.deviation}% ${leadingAction.deviation > 0 ? "over" : "under"} target.`
     : "All positions remain inside the drift tolerance band.";
 
-  const growthWeight = ["QQQM", "AMZN"].reduce(
+  const growthWeight = ["SPMO", "AMZN"].reduce(
     (acc, asset) => acc + safeNumber(metrics.targetFractions[asset]),
     0
   );
@@ -1186,7 +1186,7 @@ function buildStrategicAdvice(metrics, actions) {
           ? "Moderate growth tilt to keep volatility contained."
           : "You can lean slightly more into growth if risk tolerance allows.",
       actions: [
-        "Revisit VOO versus QQQM weights before the next major contribution.",
+        "Revisit VOO versus SPMO weights before the next major contribution.",
         "Use scenario lab to model 20% drawdown and recovery timing.",
         "Track factor sleeves (AVUV alongside the core ETFs) to maintain diversification.",
       ],
@@ -1203,7 +1203,7 @@ function buildStrategicAdvice(metrics, actions) {
           : "Continue automated deposits and quarterly reviews.",
       actions: [
         "Confirm contribution schedule (monthly or quarterly) is automated.",
-        "Document thesis for thematic holdings (QQQM, AMZN) to revisit annually.",
+        "Document thesis for thematic holdings (SPMO, AMZN) to revisit annually.",
         "Set calendar reminder for year-end tax and Roth paperwork review.",
       ],
     },
@@ -1243,7 +1243,7 @@ function buildRiskManagement(metrics, actions) {
       description: "Track macro triggers that would change allocation quickly.",
       steps: [
         "Set alerts for Fed policy shifts and recession probability models.",
-        "Watch semiconductor and AI earnings; tie to QQQM/AMZN exposure.",
+        "Watch momentum drivers like tech and industrials; tie to SPMO/AMZN exposure.",
         "Revisit international thesis if USD trend breaks 200-day moving average.",
       ],
     },
@@ -1286,7 +1286,7 @@ function buildMarketInsights(metrics) {
       {
         label: "AI and Cloud Momentum",
         detail:
-          "QQQM and AMZN carry the innovation tilt. Track earnings momentum and policy headlines for mega-cap tech.",
+          "SPMO and AMZN carry the momentum tilt. Track earnings momentum and policy headlines shaping leadership sectors.",
       },
       {
         label: "Value Factors",

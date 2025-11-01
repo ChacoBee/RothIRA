@@ -216,13 +216,13 @@
               <div>
                 <p class="stat-card__label">Portfolio score</p>
                 <div class="stat-card__value">
-                  <span id="portfolioScore">9.0</span>
+                  <span id="portfolioScore">--</span>
                   <span class="stat-card__unit">/10</span>
                 </div>
               </div>
             </div>
             <p class="stat-card__description">
-              Strong structure with growth focus
+              Live signal updates after telemetry loads
             </p>
             <div class="stat-card__progress">
               <div
@@ -231,8 +231,8 @@
                 role="progressbar"
                 aria-valuemin="0"
                 aria-valuemax="10"
-                aria-valuenow="9"
-                style="width: 90%"
+                aria-valuenow="0"
+                style="width: 0%"
               ></div>
             </div>
           </article>
@@ -1213,7 +1213,7 @@
               <span>Snowball Analytics</span>
             </a>
             <a
-              href="https://totalrealreturns.com/s/VOO,VXUS,AVUV,AVDV,QQQM,AMZN"
+              href="https://totalrealreturns.com/s/VOO,VXUS,AVUV,AVDV,SPMO,AMZN"
               target="_blank"
               rel="noopener noreferrer"
               class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-amber-300/70 dark:border-amber-500/50 text-amber-700 dark:text-amber-200 hover:border-amber-400 hover:text-amber-300 transition"
@@ -1268,7 +1268,7 @@
                 class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-900/30 border border-emerald-500/30 text-emerald-600 dark:text-emerald-200 text-xs font-semibold"
               >
                 <span class="uppercase tracking-wide text-[10px] text-emerald-400 dark:text-emerald-200/80"
-                  >Today&apos;s Gain</span
+                  >Total Return</span
                 >
                 <span
                   id="livePriceSummaryGain"
@@ -2007,6 +2007,9 @@
             <div>
               <p class="analysis-hud__eyebrow">Neo Zeon Telemetry Feed</p>
               <h3 class="analysis-hud__title">Mission Metric Console</h3>
+              <p class="analysis-hud__meta text-xs text-slate-500 dark:text-slate-400">
+                Baseline backtest Jan&nbsp;2020&nbsp;&ndash;&nbsp;Sep&nbsp;2025 (Portfolio Visualizer)
+              </p>
             </div>
             <div class="flex items-center gap-3">
               <button

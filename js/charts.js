@@ -280,7 +280,7 @@ function updateAllocationChart(labels, data, title, totalPercent) {
           "#b91c1c", // crimson (VXUS)
           "#b45309", // burnt orange (AVUV)
           "#0ea5e9", // vivid sky (AVDV)
-          "#1d4ed8", // royal blue (QQQM)
+          "#1d4ed8", // royal blue (SPMO)
           "#7c2d12", // dark copper (AMZN)
         ],
         hoverBackgroundColor: [

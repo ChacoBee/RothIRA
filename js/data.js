@@ -5,9 +5,9 @@ const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
 // Sample Data (Based on your Sheet) - Will be updated with real data
 let initialStockData = {
   VOO: {
-    target: 40.0,
-    currentValue: 40.0,
-    currentPercent: 40.0,
+    target: 37.0,
+    currentValue: 37.0,
+    currentPercent: 37.0,
     sector: 'Core US',
     region: 'United States',
     exposureCategory: 'us',
@@ -40,11 +40,11 @@ let initialStockData = {
     exposureCategory: 'international',
     assetClass: 'equity',
   },
-  QQQM: {
-    target: 7.0,
-    currentValue: 7.0,
-    currentPercent: 7.0,
-    sector: 'Technology',
+  SPMO: {
+    target: 10.0,
+    currentValue: 10.0,
+    currentPercent: 10.0,
+    sector: 'Momentum Large Cap',
     region: 'United States',
     exposureCategory: 'us',
     assetClass: 'equity',
@@ -166,7 +166,7 @@ const assetBetas = {
   VXUS: 0.62,
   AVUV: 0.8,
   AVDV: 0.37,
-  QQQM: 0.97,
+  SPMO: 1.1,
   AMZN: 0.81,
 };
 
@@ -179,7 +179,7 @@ const multiFactorLoadings = {
   VXUS: { MKT: 0.80, SMB:  0.05, HML:  0.10, MOM: 0.10 },
   AVUV: { MKT: 1.46, SMB:  0.80, HML:  0.50, MOM: -0.05 },
   AVDV: { MKT: 1.25, SMB:  0.75, HML:  0.55, MOM: -0.08 },
-  QQQM: { MKT: 1.10, SMB: -0.30, HML: -0.35, MOM: 0.25 },
+  SPMO: { MKT: 1.05, SMB: -0.20, HML: -0.10, MOM: 0.78 },
   AMZN: { MKT: 1.84, SMB: -0.20, HML: -0.30, MOM: 0.50 },
 };
 
@@ -196,7 +196,7 @@ const assetResidualVols = {
   VXUS: 0.153068108,
   AVUV: 0.232345736,
   AVDV: 0.168514851,
-  QQQM: 0.218294457,
+  SPMO: 0.205113247,
   AMZN: 0.337801846,
 };
 
@@ -232,7 +232,7 @@ const REALISED_EXPECTED_RETURNS = {
   VXUS: 0.079811794,
   AVUV: 0.156623376,
   AVDV: 0.134879259,
-  QQQM: 0.16110501,
+  SPMO: 0.158704512,
   AMZN: 0.055020511,
 };
 
@@ -252,7 +252,7 @@ const STATIC_DEFAULT_VOLATILITIES = Object.freeze({
   VXUS: 0.157802173, // 15.78%
   AVUV: 0.239531687, // 23.95%
   AVDV: 0.173726651, // 17.37%
-  QQQM: 0.225045832, // 22.50%
+  SPMO: 0.219845221, // 21.98%
   AMZN: 0.348249326, // 34.82%
 });
 
@@ -268,25 +268,25 @@ const expenseRatios = {
   VXUS: 0.0005, // 0.05%
   AVUV: 0.0025, // 0.25%
   AVDV: 0.0036, // 0.36%
-  QQQM: 0.0015, // 0.15%
+  SPMO: 0.0013, // 0.13%
   AMZN: 0.0, // Direct equity, no fund expense
 };
 
 const DEFAULT_CORRELATIONS = Object.freeze({
   AMZN_AVUV: 0.38,
   AMZN_AVDV: -0.1,
-  AMZN_QQQM: 0.73,
+  AMZN_SPMO: 0.65,
   AMZN_VOO: 0.68,
   AMZN_VXUS: 0.02,
   AVUV_AVDV: 0.55,
-  AVUV_QQQM: 0.45,
+  AVUV_SPMO: 0.52,
   AVUV_VOO: 0.69,
   AVUV_VXUS: 0.49,
-  AVDV_QQQM: 0.24,
+  AVDV_SPMO: 0.31,
   AVDV_VOO: 0.37,
   AVDV_VXUS: 0.9,
-  QQQM_VOO: 0.92,
-  QQQM_VXUS: 0.42,
+  SPMO_VOO: 0.88,
+  SPMO_VXUS: 0.41,
   VOO_VXUS: 0.54,
 });
 
@@ -771,11 +771,11 @@ let tvWidget = null; // Cache for the TradingView widget instance
 // TradingView Symbol Mapping
 // Use exchange-prefixed symbols that the embedded TradingView widget accepts.
 function getTradingViewSymbol(ticker) {
-  if (["VOO", "AVUV", "AVDV"].includes(ticker)) {
+  if (["VOO", "AVUV", "AVDV", "SPMO"].includes(ticker)) {
     return `AMEX:${ticker}`;
   }
-  if (["QQQM", "VXUS"].includes(ticker)) {
-    return `NASDAQ:${ticker}`;
+  if (ticker === "VXUS") {
+    return `NASDAQ:VXUS`;
   }
   if (ticker === "AMZN") {
     return `NASDAQ:AMZN`;
@@ -824,10 +824,10 @@ const stockDetailsContent = {
     pros: "Broad global reach beyond domestic holdings. Captures value and size factors abroad while remaining tax-efficient. Complements VXUS with deeper factor exposure.",
     cons: "Currency swings and geopolitical shocks can drive larger drawdowns. Trading spreads can widen during low-liquidity sessions.",
   },
-  QQQM: {
-    desc: "Tracks the NASDAQ-100 with 100 non-financial tech leaders. High-octane growth sleeve powering the hangar's innovation exposure.",
-    pros: "Heavy exposure to cloud, AI, and platform giants. Lower fee than legacy QQQ. Historically outperforms during technology bull cycles.",
-    cons: "Higher volatility than broad market funds. Concentration risk if mega-cap tech stumbles or regulation tightens.",
+  SPMO: {
+    desc: "Invesco S&P 500 Momentum ETF capturing large-cap US names with sustained price strength and overweighting recent winners.",
+    pros: "Systematic momentum tilt boosts exposure to leadership sectors. Maintains diversification across the S&P 500 while adding tactical offence. Moderate 0.13% fee.",
+    cons: "Momentum factor can whipsaw during regime shifts. Portfolio may lag broader market when leadership rotates back to value or defensives.",
   },
   AMZN: {
     desc: "Direct equity stake in Amazon across e-commerce, AWS cloud, and logistics. Single-stock satellite delivering outsized growth potential.",

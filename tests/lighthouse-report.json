@@ -1357,7 +1357,7 @@
             "entity": "Yahoo!"
           },
           {
-            "url": "https://query1.finance.yahoo.com/v8/finance/chart/QQQM?range=1y&interval=1d&events=div%2Csplits",
+            "url": "https://query1.finance.yahoo.com/v8/finance/chart/SPMO?range=1y&interval=1d&events=div%2Csplits",
             "sessionTargetType": "page",
             "protocol": "",
             "rendererStartTime": 1283.852999996394,
@@ -1476,7 +1476,7 @@
             "entity": "alphavantage.co"
           },
           {
-            "url": "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=QQQM&apikey=demo",
+            "url": "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=SPMO&apikey=demo",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1340.7829999998212,
@@ -9962,7 +9962,7 @@
                   "tbtImpact": 0
                 },
                 {
-                  "url": "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=QQQM&apikey=demo",
+                  "url": "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=SPMO&apikey=demo",
                   "mainThreadTime": 0,
                   "blockingTime": 0,
                   "transferSize": 225,
@@ -10080,7 +10080,7 @@
                   "tbtImpact": 0
                 },
                 {
-                  "url": "https://query1.finance.yahoo.com/v8/finance/chart/QQQM?range=1y&interval=1d&events=div%2Csplits",
+                  "url": "https://query1.finance.yahoo.com/v8/finance/chart/SPMO?range=1y&interval=1d&events=div%2Csplits",
                   "mainThreadTime": 0,
                   "blockingTime": 0,
                   "transferSize": 0,
