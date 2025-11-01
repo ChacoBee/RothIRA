@@ -248,12 +248,12 @@ const BASE_EXPECTED_RETURNS = Object.freeze({ ...expectedReturns });
 
 // Calibrated annualised volatility (Jan 2021 - Sep 2025 window)
 const STATIC_DEFAULT_VOLATILITIES = Object.freeze({
-  VOO : 0.168978399, // 16.90%
-  VXUS: 0.157802173, // 15.78%
-  AVUV: 0.239531687, // 23.95%
-  AVDV: 0.173726651, // 17.37%
-  SPMO: 0.219845221, // 21.98%
-  AMZN: 0.348249326, // 34.82%
+  VOO : 0.1337, 
+  VXUS: 0.1393,
+  AVUV: 0.2295, 
+  AVDV: 0.148, 
+  SPMO: 0.1937, 
+  AMZN: 0.32, 
 });
 
 let volatilities = { ...STATIC_DEFAULT_VOLATILITIES };
@@ -273,21 +273,21 @@ const expenseRatios = {
 };
 
 const DEFAULT_CORRELATIONS = Object.freeze({
-  AMZN_AVUV: 0.38,
-  AMZN_AVDV: -0.1,
-  AMZN_SPMO: 0.65,
-  AMZN_VOO: 0.68,
-  AMZN_VXUS: 0.02,
-  AVUV_AVDV: 0.55,
-  AVUV_SPMO: 0.52,
-  AVUV_VOO: 0.69,
-  AVUV_VXUS: 0.49,
-  AVDV_SPMO: 0.31,
-  AVDV_VOO: 0.37,
-  AVDV_VXUS: 0.9,
-  SPMO_VOO: 0.88,
-  SPMO_VXUS: 0.41,
-  VOO_VXUS: 0.54,
+  AMZN_AVUV: 0.36,
+  AMZN_AVDV: 0.29,
+  AMZN_SPMO: 0.57,
+  AMZN_VOO: 0.64,
+  AMZN_VXUS: 0.38,
+  AVUV_AVDV: 0.85,
+  AVUV_SPMO: 0.63,  
+  AVUV_VOO: 0.81,
+  AVUV_VXUS: 0.79,
+  AVDV_SPMO: 0.65,
+  AVDV_VOO: 0.82,
+  AVDV_VXUS: 0.96,
+  SPMO_VOO: 0.89,
+  SPMO_VXUS: 0.69,
+  VOO_VXUS: 0.85,
 });
 
 let correlations = { ...DEFAULT_CORRELATIONS };

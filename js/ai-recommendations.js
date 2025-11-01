@@ -1501,6 +1501,382 @@ function mapScoreVisuals(score) {
   };
 }
 
+function firstFinite(...values) {
+  for (let i = 0; i < values.length; i += 1) {
+    const value = Number(values[i]);
+    if (Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function formatPercentValue(value, digits = 2) {
+  if (!Number.isFinite(value)) {
+    return "--";
+  }
+  const percent = value * 100;
+  if (typeof formatPercent === "function") {
+    return formatPercent(percent);
+  }
+  return `${percent.toFixed(digits)}%`;
+}
+
+function formatTimeframeLabel(timeframe) {
+  if (!timeframe || !timeframe.start || !timeframe.end) {
+    return null;
+  }
+  const startDate = new Date(timeframe.start);
+  const endDate = new Date(timeframe.end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return null;
+  }
+  const formatter =
+    typeof Intl !== "undefined" && Intl.DateTimeFormat
+      ? new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" })
+      : null;
+  const startLabel = formatter ? formatter.format(startDate) : startDate.toISOString().slice(0, 10);
+  const endLabel = formatter ? formatter.format(endDate) : endDate.toISOString().slice(0, 10);
+  return `${startLabel} \u2013 ${endLabel}`;
+}
+
+function deriveStatusFromScore(score) {
+  if (!Number.isFinite(score)) {
+    return {
+      status: "Data pending",
+      color: "yellow",
+      priorityLevel: "Monitor",
+      priorityColor: "medium-green",
+    };
+  }
+  if (score < 60) {
+    return {
+      status: "Critical",
+      color: "red",
+      priorityLevel: "Critical",
+      priorityColor: "dark-red",
+    };
+  }
+  if (score < 80) {
+    return {
+      status: "Watch",
+      color: "yellow",
+      priorityLevel: "High",
+      priorityColor: "medium-green",
+    };
+  }
+  return {
+    status: "Healthy",
+    color: "green",
+    priorityLevel: "Monitor",
+    priorityColor: "light-green",
+  };
+}
+
+function buildBaselineDescription(timeframe, metrics, analytics) {
+  const pieces = [];
+  const timeframeLabel = formatTimeframeLabel(timeframe);
+  if (timeframeLabel) {
+    pieces.push(`Baseline ${timeframeLabel}`);
+  }
+  const cagrLabel = Number.isFinite(metrics.expectedReturn)
+    ? `CAGR ${formatPercentValue(metrics.expectedReturn)}`
+    : null;
+  const volLabel = Number.isFinite(metrics.volatility)
+    ? `vol ${formatPercentValue(metrics.volatility)}`
+    : null;
+  const sharpeLabel = Number.isFinite(metrics.sharpe)
+    ? `Sharpe ${metrics.sharpe.toFixed(2)}`
+    : null;
+  const betaLabel = Number.isFinite(metrics.beta)
+    ? `beta ${metrics.beta.toFixed(2)}`
+    : null;
+  const drawdownLabel = Number.isFinite(metrics.maxDrawdown)
+    ? `max drawdown ${formatPercentValue(Math.abs(metrics.maxDrawdown))}`
+    : null;
+  const cvarLabel = Number.isFinite(metrics.cvarLoss)
+    ? `CVaR(95%) ${formatPercentValue(Math.abs(metrics.cvarLoss))}`
+    : null;
+  const trackingLabel = Number.isFinite(metrics.trackingError)
+    ? `TE ${formatPercentValue(metrics.trackingError)}`
+    : null;
+  const infoLabel = Number.isFinite(metrics.informationRatio)
+    ? `IR ${metrics.informationRatio.toFixed(2)}`
+    : null;
+
+  const summaryParts = [cagrLabel, volLabel, sharpeLabel, betaLabel, drawdownLabel]
+    .filter(Boolean)
+    .join(" \u00b7 ");
+  const riskParts = [cvarLabel, trackingLabel, infoLabel].filter(Boolean).join(" | ");
+
+  if (summaryParts) {
+    pieces.push(summaryParts);
+  }
+  if (riskParts) {
+    pieces.push(riskParts);
+  }
+
+  if (!pieces.length && analytics && analytics.timeframe) {
+    const altLabel = formatTimeframeLabel(analytics.timeframe);
+    if (altLabel) {
+      pieces.push(`Backtest window ${altLabel}`);
+    }
+  }
+
+  return pieces.join(": ").replace(/\s+/g, " ").trim();
+}
+
+function deriveWatchlistFromAnalytics(analytics, metrics) {
+  const watchlist = [];
+  const trackingError = firstFinite(
+    analytics?.trackingError,
+    metrics?.trackingError
+  );
+  const informationRatio = firstFinite(
+    analytics?.informationRatio,
+    metrics?.informationRatio
+  );
+  if (Number.isFinite(trackingError)) {
+    const irLabel = Number.isFinite(informationRatio)
+      ? informationRatio.toFixed(2)
+      : "--";
+    watchlist.push(
+      `Tracking error ${formatPercentValue(trackingError)} vs benchmark (IR ${irLabel}).`
+    );
+  }
+
+  const cvar = firstFinite(metrics?.cvarLoss, analytics?.cvarLoss);
+  if (Number.isFinite(cvar)) {
+    watchlist.push(`Tail risk CVaR(95%) ${formatPercentValue(Math.abs(cvar))}.`);
+  }
+
+  const upCapture = analytics?.upCaptureRatio;
+  const downCapture = analytics?.downCaptureRatio;
+  if (Number.isFinite(upCapture) && Number.isFinite(downCapture)) {
+    watchlist.push(
+      `Capture ratios: up ${formatPercentValue(upCapture)} / down ${formatPercentValue(downCapture)} vs S&P 500.`
+    );
+  }
+
+  const recoveryMonths = firstFinite(metrics?.recoveryMonths, analytics?.recoveryMonths);
+  const recoveryTradingDays = firstFinite(
+    metrics?.recoveryTradingDays,
+    analytics?.recoveryTradingDays
+  );
+  if (Number.isFinite(recoveryMonths) && recoveryMonths > 0) {
+    const tradingLabel = Number.isFinite(recoveryTradingDays)
+      ? `${Math.round(recoveryTradingDays)} trading days`
+      : `${Math.round(recoveryMonths * (252 / 12))} trading days`;
+    watchlist.push(`Recovery window ~${recoveryMonths.toFixed(0)} months (${tradingLabel}).`);
+  }
+
+  return watchlist.slice(0, 4);
+}
+
+function applyAnalyticsBaselineToRecommendations(recommendations) {
+  if (
+    typeof window === "undefined" ||
+    !window.latestAnalyticsScores ||
+    !recommendations ||
+    !recommendations.metrics
+  ) {
+    return recommendations;
+  }
+
+  const analytics = window.latestAnalyticsScores;
+  const baseline = analytics.baseline || null;
+  const metrics = recommendations.metrics;
+
+  metrics.expectedReturn = firstFinite(
+    baseline?.expectedReturn,
+    analytics.expectedReturn,
+    metrics.expectedReturn
+  );
+  metrics.volatility = firstFinite(
+    baseline?.volatility,
+    analytics.volatility,
+    metrics.volatility
+  );
+  metrics.sharpe = firstFinite(
+    baseline?.sharpeRatio,
+    analytics.sharpeRatio,
+    metrics.sharpe
+  );
+  metrics.beta = firstFinite(baseline?.beta, analytics.beta, metrics.beta);
+  metrics.sortino = firstFinite(analytics.sortinoRatio, metrics.sortino);
+  metrics.maxDrawdown = firstFinite(
+    baseline?.maxDrawdown,
+    analytics.maxDrawdown,
+    metrics.maxDrawdown
+  );
+  metrics.recoveryMonths = firstFinite(
+    baseline?.recoveryMonths,
+    analytics.recoveryMonths,
+    metrics.recoveryMonths
+  );
+  metrics.recoveryTradingDays = firstFinite(
+    baseline?.recoveryTradingDays,
+    analytics.recoveryTradingDays,
+    metrics.recoveryTradingDays
+  );
+  metrics.recoveryCalendarDays = firstFinite(
+    baseline?.recoveryCalendarDays,
+    analytics.recoveryCalendarDays,
+    metrics.recoveryCalendarDays
+  );
+  metrics.cvarLoss = firstFinite(
+    baseline?.cvarLoss,
+    analytics.cvarLoss,
+    metrics.cvarLoss
+  );
+  metrics.varLoss = firstFinite(
+    baseline?.varLoss,
+    analytics.varLoss,
+    metrics.varLoss
+  );
+  metrics.expenseRatio = firstFinite(
+    analytics.expenseRatio,
+    metrics.expenseRatio
+  );
+  metrics.trackingError = firstFinite(
+    analytics.trackingError,
+    metrics.trackingError
+  );
+  metrics.informationRatio = firstFinite(
+    analytics.informationRatio,
+    metrics.informationRatio
+  );
+  metrics.activeReturn = firstFinite(
+    analytics.activeReturn,
+    metrics.activeReturn
+  );
+  metrics.tailRiskDetails =
+    analytics.tailRiskDetails || metrics.tailRiskDetails || null;
+  metrics.captureDetails =
+    analytics.captureDetails || metrics.captureDetails || null;
+
+  const updatedHealth = buildPortfolioHealth(
+    metrics,
+    recommendations.immediateActions || []
+  );
+
+  const score100 = firstFinite(
+    updatedHealth.score,
+    analytics.portfolioScore100,
+    analytics.portfolioScore ? analytics.portfolioScore * 10 : null
+  );
+  if (Number.isFinite(score100)) {
+    updatedHealth.score = clamp(score100, 0, 100);
+  }
+
+  const statusConfig = deriveStatusFromScore(updatedHealth.score);
+  updatedHealth.status = statusConfig.status;
+  updatedHealth.color = statusConfig.color;
+  updatedHealth.priorityLevel = statusConfig.priorityLevel;
+  updatedHealth.priorityColor = statusConfig.priorityColor;
+
+  const description = buildBaselineDescription(
+    baseline?.timeframe || analytics.timeframe || baseline,
+    metrics,
+    analytics
+  );
+  if (description) {
+    updatedHealth.description = description;
+  }
+
+  const liquiditySnapshot = computeLiquidityScore(metrics);
+
+  if (updatedHealth.components && analytics.componentScores?.metricScores) {
+    const metricScores = analytics.componentScores.metricScores;
+    const componentMap = updatedHealth.components;
+
+    if (componentMap.allocation && Number.isFinite(metricScores.expectedReturn)) {
+      componentMap.allocation.score = metricScores.expectedReturn;
+      componentMap.allocation.note = `Growth sleeve targeting ${formatPercentValue(metrics.expectedReturn)} CAGR with beta ${Number.isFinite(metrics.beta) ? metrics.beta.toFixed(2) : "--"}.`;
+    }
+
+    if (componentMap.diversification && Number.isFinite(metricScores.diversityIndex)) {
+      componentMap.diversification.score = metricScores.diversityIndex;
+      const effective = analytics.diversityDetails?.effectiveHoldings;
+      const corr = analytics.diversityDetails?.averagePairwiseCorrelation;
+      const details = [];
+      if (Number.isFinite(effective)) {
+        details.push(`Effective holdings ${effective.toFixed(1)}`);
+      }
+      if (Number.isFinite(corr)) {
+        details.push(`Avg correlation ${formatPercentValue(corr)}`);
+      }
+      componentMap.diversification.note =
+        details.length > 0 ? `${details.join(" \u00b7 ")}.` : componentMap.diversification.note;
+    }
+
+    if (componentMap.cost && Number.isFinite(metricScores.expenseRatio)) {
+      componentMap.cost.score = metricScores.expenseRatio;
+      componentMap.cost.note = `Weighted ER ${formatPercentValue(metrics.expenseRatio ?? 0)}.`;
+    }
+
+    if (componentMap.risk && Number.isFinite(metricScores.volatility)) {
+      componentMap.risk.score = metricScores.volatility;
+      const maxDrawdownLabel = Number.isFinite(metrics.maxDrawdown)
+        ? formatPercentValue(Math.abs(metrics.maxDrawdown))
+        : "--";
+      componentMap.risk.note = `Vol ${formatPercentValue(metrics.volatility)} vs target ${formatPercentValue(PHS_RISK_TARGET_VOL)}; max drawdown ${maxDrawdownLabel}.`;
+    }
+
+    if (componentMap.performance && Number.isFinite(metricScores.sharpeRatio)) {
+      componentMap.performance.score = metricScores.sharpeRatio;
+      const sortinoLabel = Number.isFinite(metrics.sortino)
+        ? metrics.sortino.toFixed(2)
+        : "--";
+      componentMap.performance.note = `Sharpe ${Number.isFinite(metrics.sharpe) ? metrics.sharpe.toFixed(2) : "--"}, Sortino ${sortinoLabel}.`;
+    }
+
+    if (componentMap.liquidity) {
+      componentMap.liquidity.score = liquiditySnapshot.score;
+      componentMap.liquidity.note = `ETF sleeve ${(safeNumber(liquiditySnapshot.etfWeight, 0) * 100).toFixed(0)}%, single-name ${(safeNumber(liquiditySnapshot.singleWeight, 0) * 100).toFixed(0)}%.`;
+    }
+
+    if (componentMap.guardrail) {
+      const trackingLabel = Number.isFinite(metrics.trackingError)
+        ? formatPercentValue(metrics.trackingError)
+        : "--";
+      const irLabel = Number.isFinite(metrics.informationRatio)
+        ? metrics.informationRatio.toFixed(2)
+        : "--";
+      componentMap.guardrail.note = `Tracking error ${trackingLabel}, IR ${irLabel}.`;
+    }
+
+    if (componentMap.total) {
+      componentMap.total.score = updatedHealth.score;
+      const guardrailScoreLabel =
+        componentMap.guardrail && Number.isFinite(componentMap.guardrail.score)
+          ? componentMap.guardrail.score.toFixed(1)
+          : "--";
+      const guardrailNote = componentMap.guardrail?.note
+        ? componentMap.guardrail.note
+        : `Guardrail score ${guardrailScoreLabel}.`;
+      const pillarLabel = Number.isFinite(componentMap.total.weight)
+        ? `Blend: ${(Math.max(0, 1 - (componentMap.guardrail?.weight ?? 0)) * 100).toFixed(0)}% pillars + ${((componentMap.guardrail?.weight ?? 0) * 100).toFixed(0)}% guardrail.`
+        : "Blend of pillar and guardrail components.";
+      componentMap.total.note = `${guardrailNote} ${pillarLabel}`;
+    }
+  }
+
+  const analyticsWatchlist = deriveWatchlistFromAnalytics(analytics, metrics);
+  if (analyticsWatchlist.length) {
+    updatedHealth.watchlist = analyticsWatchlist;
+  }
+
+  recommendations.metrics = metrics;
+  recommendations.portfolioHealth = updatedHealth;
+  recommendations.analyticsBaseline = {
+    analytics,
+    timeframe: baseline?.timeframe || analytics.timeframe || null,
+  };
+
+  return recommendations;
+}
+
 function updatePortfolioHealth(health) {
   const container = document.getElementById("ai-portfolio-health");
   if (!container) return;
@@ -1907,6 +2283,7 @@ function updateAllocationAIReview(existingRecommendations) {
       DEFAULT_EXPECTED_RETURNS,
       DEFAULT_VOLATILITIES
     );
+    recommendations = applyAnalyticsBaselineToRecommendations(recommendations);
     latestAIRecommendations = recommendations;
   }
 
@@ -1981,12 +2358,13 @@ function updateAIRecommendationsSection(options = {}) {
 
   try {
     const { targets, currentValues } = collectPortfolioSnapshot();
-    const recommendations = aiEngine.analyzePortfolio(
+    let recommendations = aiEngine.analyzePortfolio(
       targets,
       currentValues,
       DEFAULT_EXPECTED_RETURNS,
       DEFAULT_VOLATILITIES
     );
+    recommendations = applyAnalyticsBaselineToRecommendations(recommendations);
     latestAIRecommendations = recommendations;
 
     updatePortfolioHealth(recommendations.portfolioHealth);
