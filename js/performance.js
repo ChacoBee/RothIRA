@@ -3,7 +3,10 @@
 let performanceChart = null;
 let currentPeriod = 1; // 1, 5, 10, 20, 30, 35 years
 
-const BENCHMARK_SYMBOL = "^GSPC";
+const PERFORMANCE_BENCHMARK_SYMBOL =
+  typeof BENCHMARK_SYMBOL === "string" && BENCHMARK_SYMBOL
+    ? BENCHMARK_SYMBOL
+    : "^GSPC";
 const FALLBACK_STARTING_VALUE = 10000;
 const HISTORICAL_CACHE = new Map();
 const RANGE_CONFIG = [
@@ -171,7 +174,11 @@ async function prepareHistoricalPerformance(years) {
   });
 
   const assetSeries = await Promise.all(assetSeriesPromises);
-  const benchmarkSeries = await fetchHistoricalSeries(BENCHMARK_SYMBOL, range, interval);
+  const benchmarkSeries = await fetchHistoricalSeries(
+    PERFORMANCE_BENCHMARK_SYMBOL,
+    range,
+    interval
+  );
 
   const commonTimestamps = getCommonTimestamps([
     ...assetSeries.map((item) => item.series),
