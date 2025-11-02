@@ -5,18 +5,18 @@ const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
 // Sample Data (Based on your Sheet) - Will be updated with real data
 let initialStockData = {
   VOO: {
-    target: 37.0,
-    currentValue: 37.0,
-    currentPercent: 37.0,
+    target: 45.0,
+    currentValue: 45.0,
+    currentPercent: 45.0,
     sector: 'Core US',
     region: 'United States',
     exposureCategory: 'us',
     assetClass: 'equity',
   },
   VXUS: {
-    target: 30.0,
-    currentValue: 30.0,
-    currentPercent: 30.0,
+    target: 20.0,
+    currentValue: 20.0,
+    currentPercent: 20.0,
     sector: 'International Multi-Sector',
     region: 'Global ex-US',
     exposureCategory: 'international',
@@ -50,9 +50,9 @@ let initialStockData = {
     assetClass: 'equity',
   },
   AMZN: {
-    target: 3.0,
-    currentValue: 3.0,
-    currentPercent: 3.0,
+    target: 5.0,
+    currentValue: 5.0,
+    currentPercent: 5.0,
     sector: 'Consumer Discretionary',
     region: 'United States',
     exposureCategory: 'us',
