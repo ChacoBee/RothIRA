@@ -157,17 +157,17 @@ const REBALANCE_THRESHOLD = 5.0; // Deviation threshold
 
 // Core market assumptions used across analytics modules
 const RISK_FREE_RATE = 0.0265; // 2.65% annual risk-free rate (matches Sharpe ratio assumptions)
-const BENCHMARK_EXPECTED_RETURN = 0.1444; // Vanguard 500 Index CAGR (Jan 2021-Sep 2025)
-const BENCHMARK_VOLATILITY = 0.1548; // Vanguard 500 Index annualised stdev (Jan 2021-Sep 2025)
+const BENCHMARK_EXPECTED_RETURN = 0.1475; // Vanguard Total Stock Market ETF CAGR (Jan 2020-Oct 2025)
+const BENCHMARK_VOLATILITY = 0.1791; // Vanguard Total Stock Market ETF annualised stdev (Jan 2020-Oct 2025)
 const EQUITY_RISK_PREMIUM = Math.max(0, BENCHMARK_EXPECTED_RETURN - RISK_FREE_RATE);
 
 const assetBetas = {
   VOO: 1.0,
-  VXUS: 0.62,
-  AVUV: 0.8,
-  AVDV: 0.37,
-  SPMO: 1.1,
-  AMZN: 0.81,
+  VXUS: 0.8,
+  AVUV: 1.02,
+  AVDV: 0.95,
+  SPMO: 1.02,
+  AMZN: 1.1,
 };
 
 const BASE_ASSET_BETAS = Object.freeze({ ...assetBetas });
@@ -226,14 +226,14 @@ function deriveCapmExpectedReturn(betaEstimate) {
   return RISK_FREE_RATE + beta * EQUITY_RISK_PREMIUM;
 }
 
-// Calibrated annualised returns (Jan 2021 - Sep 2025 window, matches 12.61% portfolio CAGR)
+// Calibrated annualised returns (Jan 2020 - Oct 2025 window, matches Portfolio Visualizer backtest)
 const REALISED_EXPECTED_RETURNS = {
-  VOO: 0.15019558,
-  VXUS: 0.079811794,
-  AVUV: 0.156623376,
-  AVDV: 0.134879259,
-  SPMO: 0.158704512,
-  AMZN: 0.055020511,
+  VOO: 0.1545,
+  VXUS: 0.0822,
+  AVUV: 0.1245,
+  AVDV: 0.1172,
+  SPMO: 0.2147,
+  AMZN: 0.1813,
 };
 
 const expectedReturns = assetKeys.reduce((acc, key) => {
@@ -246,14 +246,14 @@ const expectedReturns = assetKeys.reduce((acc, key) => {
 
 const BASE_EXPECTED_RETURNS = Object.freeze({ ...expectedReturns });
 
-// Calibrated annualised volatility (Jan 2021 - Sep 2025 window)
+// Calibrated annualised volatility (Jan 2020 - Oct 2025 window)
 const STATIC_DEFAULT_VOLATILITIES = Object.freeze({
-  VOO : 0.1337, 
-  VXUS: 0.1393,
-  AVUV: 0.2295, 
-  AVDV: 0.148, 
-  SPMO: 0.1937, 
-  AMZN: 0.32, 
+  VOO: 0.1739,
+  VXUS: 0.1676,
+  AVUV: 0.2744,
+  AVDV: 0.2054,
+  SPMO: 0.1857,
+  AMZN: 0.3219,
 });
 
 let volatilities = { ...STATIC_DEFAULT_VOLATILITIES };
