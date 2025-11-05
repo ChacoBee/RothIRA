@@ -2639,6 +2639,137 @@
           </div>
         </div>
 
+        <div
+          id="livePortfolioChartCard"
+          class="card card--lifted border border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-slate-900/70 rounded-2xl shadow-lg mt-10 overflow-hidden"
+        >
+          <div class="px-6 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p
+                class="text-xs uppercase tracking-wide text-sky-500 dark:text-sky-300 font-semibold"
+              >
+                Live Equity Curve
+              </p>
+              <h3 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                Roth IRA Portfolio
+              </h3>
+              <p
+                id="livePortfolioChartStatus"
+                class="text-xs text-gray-500 dark:text-gray-400 mt-1"
+              >
+                Waiting for Google Sheets data...
+              </p>
+            </div>
+            <div class="flex flex-col items-end gap-2">
+              <div class="text-right">
+                <p
+                  id="livePortfolioTotalValue"
+                  class="text-4xl font-semibold tracking-tight text-gray-900 dark:text-gray-100"
+                >
+                  --
+                </p>
+                <p
+                  id="livePortfolioTotalChange"
+                  class="text-sm font-medium"
+                >
+                  --
+                </p>
+              </div>
+              <button
+                type="button"
+                id="livePortfolioResetBtn"
+                class="inline-flex items-center gap-1.5 rounded-full border border-slate-300 dark:border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300 hover:border-emerald-400/60 hover:text-emerald-400 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:ring-offset-2 focus:ring-offset-slate-900/50"
+              >
+                <svg
+                  class="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path d="M3 12a9 9 0 1115.9 5.9" />
+                  <path d="M3 12h4" />
+                  <path d="M3 16v-4" />
+                </svg>
+                <span>Reset history</span>
+              </button>
+            </div>
+          </div>
+          <div class="px-6 pb-6">
+            <div
+              class="flex flex-wrap items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400"
+              role="group"
+              aria-label="Equity range selector"
+            >
+              <button
+                type="button"
+                class="live-equity-range-btn px-3 py-1.5 rounded-full border border-transparent bg-transparent text-gray-400 dark:text-gray-500 hover:text-emerald-400 hover:border-emerald-400/40 transition-colors"
+                data-range="1D"
+              >
+                1D
+              </button>
+              <button
+                type="button"
+                class="live-equity-range-btn px-3 py-1.5 rounded-full border border-transparent bg-transparent text-gray-400 dark:text-gray-500 hover:text-emerald-400 hover:border-emerald-400/40 transition-colors"
+                data-range="1W"
+              >
+                1W
+              </button>
+              <button
+                type="button"
+                class="live-equity-range-btn px-3 py-1.5 rounded-full border border-transparent bg-transparent text-gray-400 dark:text-gray-500 hover:text-emerald-400 hover:border-emerald-400/40 transition-colors"
+                data-range="1M"
+              >
+                1M
+              </button>
+              <button
+                type="button"
+                class="live-equity-range-btn px-3 py-1.5 rounded-full border border-transparent bg-transparent text-gray-400 dark:text-gray-500 hover:text-emerald-400 hover:border-emerald-400/40 transition-colors"
+                data-range="3M"
+              >
+                3M
+              </button>
+              <button
+                type="button"
+                class="live-equity-range-btn px-3 py-1.5 rounded-full border border-transparent bg-transparent text-gray-400 dark:text-gray-500 hover:text-emerald-400 hover:border-emerald-400/40 transition-colors"
+                data-range="YTD"
+              >
+                YTD
+              </button>
+              <button
+                type="button"
+                class="live-equity-range-btn px-3 py-1.5 rounded-full border border-transparent bg-transparent text-gray-400 dark:text-gray-500 hover:text-emerald-400 hover:border-emerald-400/40 transition-colors"
+                data-range="1Y"
+              >
+                1Y
+              </button>
+              <button
+                type="button"
+                class="live-equity-range-btn px-3 py-1.5 rounded-full border border-transparent bg-transparent text-gray-400 dark:text-gray-500 hover:text-emerald-400 hover:border-emerald-400/40 transition-colors"
+                data-range="ALL"
+              >
+                ALL
+              </button>
+            </div>
+            <div
+              class="mt-4 relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-900/90 dark:bg-slate-950/70 px-4 py-6"
+              style="min-height: 280px"
+            >
+              <canvas id="livePortfolioChart" class="w-full h-full"></canvas>
+              <p
+                id="livePortfolioChartEmpty"
+                class="absolute inset-0 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 text-center px-6"
+              >
+                Waiting for enough data to draw the equity curve. Keep the page open while the Google Sheets feed syncs.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <!-- Advanced Portfolio Insights & Recommendations -->
         <div
           class="mb-8 p-6 rounded-2xl border card bg-gradient-to-br from-blue-50/30 via-indigo-50/20 to-purple-50/30 dark:from-blue-900/10 dark:via-indigo-900/5 dark:to-purple-900/10 relative overflow-hidden"
@@ -4241,6 +4372,7 @@
     <script src="js/performance.js" defer></script>
     <script src="js/deposit-tracker.js" defer></script>
     <script src="js/live-prices.js" defer></script>
+    <script src="js/live-portfolio-chart.js" defer></script>
     <script src="js/app.js" defer></script>
     <button
       type="button"

@@ -502,10 +502,10 @@ async function fetchAndRenderLivePrices(options = {}) {
       });
     }
 
-    window.livePriceSheetData = { rows: quoteMap, totals };
+    window.livePriceSheetData = { rows: quoteMap, totals, lastUpdated: now };
     document.dispatchEvent(
       new CustomEvent("livePriceSheetUpdated", {
-        detail: { rows: quoteMap, totals },
+        detail: { rows: quoteMap, totals, lastUpdated: now },
       })
     );
   } catch (error) {
