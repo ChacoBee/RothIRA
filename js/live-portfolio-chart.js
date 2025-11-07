@@ -93,6 +93,25 @@
   const MAX_HISTORY_AGE_MS = 400 * 24 * 60 * 60 * 1000; // ~400 days
   const RANGE_ORDER = ["1D", "1W", "1M", "3M", "YTD", "1Y", "ALL"];
 
+  const MARKET_TIMEZONE = "America/New_York";
+  const MARKET_OPEN_MINUTES = 9 * 60 + 30;
+  const MARKET_CLOSE_MINUTES = 16 * 60;
+  const MARKET_ACTIVE_WEEKDAYS = new Set(["mon", "tue", "wed", "thu", "fri"]);
+  const MARKET_TIME_FORMATTER = (() => {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: MARKET_TIMEZONE,
+        hour12: false,
+        weekday: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      console.warn("Falling back to local timezone for market-hours detection:", error);
+      return null;
+    }
+  })();
+
   const ACTIVE_BTN_CLASSES = [
     "bg-emerald-500/15",
     "text-emerald-400",
@@ -182,6 +201,59 @@
       minute: "2-digit",
       second: "2-digit",
     });
+  }
+
+  function getMarketClockParts(timestamp) {
+    if (
+      !MARKET_TIME_FORMATTER ||
+      typeof MARKET_TIME_FORMATTER.formatToParts !== "function" ||
+      !Number.isFinite(timestamp)
+    ) {
+      return null;
+    }
+    try {
+      const parts = MARKET_TIME_FORMATTER.formatToParts(timestamp);
+      return parts.reduce((acc, part) => {
+        if (part.type !== "literal") {
+          acc[part.type] = part.value;
+        }
+        return acc;
+      }, {});
+    } catch (error) {
+      console.warn("Unable to derive market time parts:", error);
+      return null;
+    }
+  }
+
+  function isWithinMarketHours(timestamp) {
+    if (!Number.isFinite(timestamp)) return false;
+    if (!MARKET_TIME_FORMATTER) return true;
+    const clock = getMarketClockParts(timestamp);
+    if (!clock || !clock.weekday) return true;
+    const normalizedWeekday = String(clock.weekday).slice(0, 3).toLowerCase();
+    if (!MARKET_ACTIVE_WEEKDAYS.has(normalizedWeekday)) {
+      return false;
+    }
+    const hour = Number(clock.hour);
+    const minute = Number(clock.minute);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+      return true;
+    }
+    const minutesOfDay = hour * 60 + minute;
+    return (
+      minutesOfDay >= MARKET_OPEN_MINUTES &&
+      minutesOfDay <= MARKET_CLOSE_MINUTES
+    );
+  }
+
+  function filterMarketEntries(entries) {
+    if (!Array.isArray(entries) || !entries.length) return [];
+    return entries.filter(
+      (entry) =>
+        entry &&
+        Number.isFinite(entry.timestamp) &&
+        isWithinMarketHours(entry.timestamp)
+    );
   }
 
   function loadHistory() {
@@ -413,11 +485,18 @@
     if (!history.length) return [];
     const config = RANGE_CONFIG[rangeKey] || RANGE_CONFIG["1D"];
     const startTime = config.getStart(Date.now());
-    let filtered = history.filter((entry) => entry.timestamp >= startTime);
-    if (filtered.length < 2) {
-      filtered = history.slice(-Math.min(history.length, 200));
+    const inRange = history.filter((entry) => entry.timestamp >= startTime);
+    let filtered = filterMarketEntries(inRange);
+    if (filtered.length) {
+      return filtered;
     }
-    return filtered;
+
+    const marketHistory = filterMarketEntries(history);
+    if (marketHistory.length) {
+      return marketHistory.slice(-Math.min(marketHistory.length, 200));
+    }
+
+    return history.slice(-Math.min(history.length, 200));
   }
 
   function formatRangeTick(rangeKey, timestamp) {
