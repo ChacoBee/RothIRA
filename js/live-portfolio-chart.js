@@ -142,7 +142,6 @@
     totalValue: null,
     totalChange: null,
     rangeButtons: [],
-    resetButton: null,
   };
 
   function isDarkModeActive() {
@@ -684,7 +683,6 @@
     dom.totalValue = document.getElementById("livePortfolioTotalValue");
     dom.totalChange = document.getElementById("livePortfolioTotalChange");
     dom.rangeButtons = Array.from(document.querySelectorAll(".live-equity-range-btn"));
-    dom.resetButton = document.getElementById("livePortfolioResetBtn");
 
     RANGE_ORDER.forEach((key) => {
       if (!RANGE_CONFIG[key]) {
@@ -696,11 +694,6 @@
     ensureChart();
     bindRangeButtons();
     updateRangeButtons();
-    if (dom.resetButton) {
-      dom.resetButton.addEventListener("click", () => {
-        resetHistory();
-      });
-    }
     hydrateFromWindow();
   });
 
