@@ -2692,6 +2692,89 @@ h3,
   background-image: linear-gradient(90deg, #52d0d3, #1c3344);
 }
 
+@media (max-width: 768px) {
+  .live-price-table thead {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+  }
+
+  .live-price-table,
+  .live-price-table tbody,
+  .live-price-table tr,
+  .live-price-table th,
+  .live-price-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .live-price-table tr {
+    margin-bottom: 1rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-border-light, rgba(126, 138, 162, 0.42));
+    border-radius: 0.85rem;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 16px 32px -24px rgba(15, 23, 42, 0.9);
+  }
+
+  .live-price-table tfoot {
+    display: block;
+    margin-top: 1.25rem;
+  }
+
+  .dark-mode .live-price-table tr {
+    background: rgba(6, 9, 18, 0.94);
+    border-color: rgba(82, 208, 220, 0.28);
+    box-shadow: 0 16px 32px -24px rgba(82, 208, 220, 0.4);
+  }
+
+  .live-price-table th[scope="row"] {
+    font-size: 1rem;
+    text-align: left !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    margin-bottom: 0.65rem;
+    padding-bottom: 0.65rem;
+  }
+
+  .live-price-table td {
+    text-align: left !important;
+    padding: 0.4rem 0;
+  }
+
+  .live-price-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-neutral, #9faed6);
+    margin-bottom: 0.1rem;
+  }
+
+  .dark-mode .live-price-table td::before {
+    color: rgba(224, 231, 255, 0.72);
+  }
+
+  .live-price-table [data-label] .flex {
+    justify-content: space-between;
+  }
+
+  .live-price-table tfoot tr {
+    margin-bottom: 0;
+    padding: 1rem;
+  }
+
+  .live-price-table tfoot td,
+  .live-price-table tfoot th {
+    font-weight: 600;
+  }
+}
+
 .fancy-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 106, 26, 0.6) rgba(15, 23, 42, 0.15);

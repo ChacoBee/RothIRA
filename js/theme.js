@@ -1,4 +1,16 @@
 // --- THEME TOGGLE LOGIC ---
+function updateThemeToggleA11yState(isDark) {
+  const toggleBtn = document.getElementById("themeToggleBtn");
+  if (!toggleBtn) {
+    return;
+  }
+  toggleBtn.setAttribute("aria-pressed", isDark ? "true" : "false");
+  toggleBtn.setAttribute(
+    "aria-label",
+    isDark ? "Switch to light theme" : "Switch to dark theme"
+  );
+}
+
 function toggleTheme() {
   const htmlEl = document.documentElement;
   const moonIcon = document.getElementById("moonIcon");
@@ -17,6 +29,8 @@ function toggleTheme() {
     moonIcon.classList.add("hidden");
     sunIcon.classList.remove("hidden");
   }
+
+  updateThemeToggleA11yState(isDarkMode);
 
   // Update charts and UI colors
   updatePortfolioMetrics();
@@ -62,6 +76,8 @@ function loadTheme() {
     document.getElementById("moonIcon").classList.remove("hidden");
     document.getElementById("sunIcon").classList.add("hidden");
   }
+
+  updateThemeToggleA11yState(isDarkMode);
 
   // Initialize the full TradingView widget immediately with the correct theme
   const initialSymbol = getTradingViewSymbol("VOO");

@@ -25,9 +25,9 @@ function initializeLivePriceTest() {
     const row = document.createElement("tr");
     row.id = `live-price-row-${ticker}`;
     row.innerHTML = `
-      <td class="px-4 py-3 font-semibold">${ticker}</td>
-      <td class="px-4 py-3 text-right" data-field="totalInvested">--</td>
-      <td class="px-4 py-3 text-right">
+      <th scope="row" class="px-4 py-3 font-semibold text-left">${ticker}</th>
+      <td class="px-4 py-3 text-right" data-field="totalInvested" data-label="Total invested ($)">--</td>
+      <td class="px-4 py-3 text-right" data-label="Held %">
         <div class="flex items-center justify-end gap-2">
           <div class="w-20 h-2.5 rounded-full bg-slate-200/70 dark:bg-slate-700 overflow-hidden">
             <div class="h-full bg-sky-400 dark:bg-sky-500 transition-all duration-500" data-field="heldBar" style="width: 0%"></div>
@@ -35,10 +35,10 @@ function initializeLivePriceTest() {
           <span data-field="held">--</span>
         </div>
       </td>
-      <td class="px-4 py-3 text-right" data-field="shares">--</td>
-      <td class="px-4 py-3 text-right" data-field="price">--</td>
-      <td class="px-4 py-3 text-right" data-field="currentValue">--</td>
-      <td class="px-4 py-3 text-right">
+      <td class="px-4 py-3 text-right" data-field="shares" data-label="Shares held">--</td>
+      <td class="px-4 py-3 text-right" data-field="price" data-label="Stock price ($)">--</td>
+      <td class="px-4 py-3 text-right" data-field="currentValue" data-label="Current value ($)">--</td>
+      <td class="px-4 py-3 text-right" data-label="Current %">
         <div class="flex items-center justify-end gap-2">
           <div class="w-20 h-2.5 rounded-full bg-slate-200/70 dark:bg-slate-700 overflow-hidden">
             <div class="h-full bg-emerald-400 dark:bg-emerald-500 transition-all duration-500" data-field="currentBar" style="width: 0%"></div>
@@ -46,10 +46,10 @@ function initializeLivePriceTest() {
           <span data-field="currentPercent">--</span>
         </div>
       </td>
-      <td class="px-4 py-3 text-right" data-field="gain">--</td>
-      <td class="px-4 py-3 text-right" data-field="gainPercent">--</td>
-      <td class="px-4 py-3 text-right" data-field="yield">--</td>
-      <td class="px-4 py-3 text-right" data-field="totalReturn">--</td>
+      <td class="px-4 py-3 text-right" data-field="gain" data-label="Gain/loss ($)">--</td>
+      <td class="px-4 py-3 text-right" data-field="gainPercent" data-label="Gain/loss (%)">--</td>
+      <td class="px-4 py-3 text-right" data-field="yield" data-label="Yield income ($)">--</td>
+      <td class="px-4 py-3 text-right" data-field="totalReturn" data-label="Total return ($)">--</td>
     `;
     tbody.appendChild(row);
   });
@@ -252,7 +252,7 @@ async function fetchAndRenderLivePrices(options = {}) {
       const quote = quoteMap[ticker];
       if (!row) return;
 
-       row.classList.remove(...highlightClassesToClear);
+      row.classList.remove(...highlightClassesToClear);
 
       const totalInvestedEl = row.querySelector('[data-field="totalInvested"]');
       const heldEl = row.querySelector('[data-field="held"]');
