@@ -1252,8 +1252,8 @@
               </p>
               <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Alpha Vantage access</h3>
               <p class="text-sm text-gray-600 dark:text-gray-400">
-                Thêm API key cá nhân của bạn để mở khóa dữ liệu realtime (giá, tương quan, biến động). Khóa chỉ được
-                lưu cục bộ và có thể xóa bất kỳ lúc nào.
+                Add your personal API key to unlock realtime data (prices, correlations, volatility). Keys stay on this
+                device and can be removed at any moment.
               </p>
             </div>
             <form id="alphaKeyForm" class="space-y-4" autocomplete="off">
@@ -1278,18 +1278,18 @@
                     autocomplete="off"
                     autocapitalize="none"
                     spellcheck="false"
-                    placeholder="Nhập khóa cá nhân (ví dụ: ABC123...)"
+                    placeholder="Enter personal key (e.g. ABC123...)"
                   />
                   <button
                     type="button"
                     id="alphaKeyToggleBtn"
                     class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition"
                   >
-                    Hiện
+                    Show
                   </button>
                 </div>
                 <p id="alphaKeyStatus" class="text-xs text-gray-500 dark:text-gray-400">
-                  Chưa có khóa tùy chỉnh - dashboard sẽ giữ nguyên dữ liệu mẫu.
+                  No custom key yet — dashboard remains on demo data.
                 </p>
               </div>
               <div class="flex flex-wrap gap-3">
@@ -1297,17 +1297,124 @@
                   type="submit"
                   class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  Lưu khóa
+                  Save key
                 </button>
                 <button
                   type="button"
                   id="alphaKeyClearBtn"
                   class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-semibold border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                 >
-                  Xóa khóa
+                  Clear key
                 </button>
               </div>
             </form>
+          </article>
+
+          <article
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-5 space-y-4"
+          >
+            <div class="space-y-1">
+              <p class="text-xs font-semibold tracking-widest uppercase text-amber-500 dark:text-amber-300">
+                Rebalance Protocol
+              </p>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Annual Rebalance Clock</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Lock in a fixed 01/01 rebalance (or any date you choose), track the countdown, buffer warnings, and mark
+                completion so the next cycle is always ready.
+              </p>
+            </div>
+
+            <div class="space-y-4">
+              <div
+                class="rounded-xl border border-gray-200 dark:border-gray-700 bg-slate-50/60 dark:bg-slate-900/40 p-4 space-y-3"
+              >
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                      Countdown to next window
+                    </p>
+                    <p
+                      id="rebalanceCountdownPrimary"
+                      class="text-3xl md:text-4xl font-semibold text-emerald-500 dark:text-emerald-300"
+                    >
+                      --
+                    </p>
+                    <p id="rebalanceCountdownSecondary" class="text-xs text-gray-500 dark:text-gray-400">
+                      No schedule yet
+                    </p>
+                  </div>
+                  <div class="text-right">
+                    <span
+                      id="rebalanceBufferBadge"
+                      class="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-600 dark:border-emerald-400/40 dark:bg-emerald-600/10 dark:text-emerald-300"
+                      >Ðang theo dõi</span
+                    >
+                  </div>
+                </div>
+                <div class="h-2 rounded-full bg-gray-200/80 dark:bg-gray-700/80 overflow-hidden">
+                  <span
+                    id="rebalanceYearProgress"
+                    class="block h-full bg-gradient-to-r from-emerald-400 to-sky-400 transition-all duration-500"
+                    style="width: 0%"
+                  ></span>
+                </div>
+                <div class="flex flex-wrap gap-4 text-xs text-gray-600 dark:text-gray-300">
+                  <div>
+                    <p class="uppercase tracking-widest text-[10px] text-slate-400 dark:text-slate-500">Next window</p>
+                    <p id="rebalanceNextDateLabel" class="font-semibold text-gray-800 dark:text-gray-100">--</p>
+                  </div>
+                  <div>
+                    <p class="uppercase tracking-widest text-[10px] text-slate-400 dark:text-slate-500">Last completed</p>
+                    <p id="rebalanceLastDoneLabel" class="font-semibold text-gray-800 dark:text-gray-100">--</p>
+                  </div>
+                </div>
+              </div>
+
+              <form
+                id="rebalanceScheduleForm"
+                class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end bg-slate-50/40 dark:bg-slate-900/30 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
+              >
+                <div class="space-y-1">
+                  <label for="rebalanceTargetInput" class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                    Annual target date
+                  </label>
+                  <input
+                    type="date"
+                    id="rebalanceTargetInput"
+                    class="styled-input w-full text-sm p-2 rounded-md border border-gray-300 dark:border-gray-600 focus:border-amber-500 dark:focus:border-amber-400 transition-colors"
+                  />
+                </div>
+                <div class="space-y-1">
+                  <label for="rebalanceBufferInput" class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                    Warning buffer (days)
+                  </label>
+                  <input
+                    type="number"
+                    id="rebalanceBufferInput"
+                    min="0"
+                    max="60"
+                    class="styled-input w-full text-sm p-2 rounded-md border border-gray-300 dark:border-gray-600 focus:border-amber-500 dark:focus:border-amber-400 transition-colors"
+                    placeholder="3"
+                  />
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    type="submit"
+                    id="rebalanceScheduleSaveBtn"
+                    class="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                  >
+                    Save schedule
+                  </button>
+                  <button
+                    type="button"
+                    id="rebalanceMarkCompleteBtn"
+                    class="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                  >
+                    Mark completed
+                  </button>
+                </div>
+              </form>
+            </div>
           </article>
         </div>
 
@@ -1737,9 +1844,6 @@
                     <option value="floor">Whole shares (round down)</option>
                     <option value="nearest">Whole shares (nearest share)</option>
                   </select>
-                  <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                    Use live prices to convert dollar targets into share counts and control rounding.
-                  </p>
                 </div>
                 <button
                   id="calculateDepositAllocationBtn"
@@ -3149,7 +3253,7 @@
                 Portfolio Health Assessment
               </h3>
               <p class="text-sm text-gray-600 dark:text-gray-300">
-                Portfolio Health Score (PHS) = Σ (pillar weight × pillar score). Pillar scores run on a 0&ndash;100 scale with weights: Allocation fit 20%, Diversification 15%, Cost efficiency 15%, Risk vs. budget 20%, Performance quality 15%, Liquidity &amp; implementation 10%, Tax efficiency 5%.
+                Portfolio Health Score (PHS) = S (pillar weight × pillar score). Pillar scores run on a 0&ndash;100 scale with weights: Allocation fit 20%, Diversification 15%, Cost efficiency 15%, Risk vs. budget 20%, Performance quality 15%, Liquidity &amp; implementation 10%, Tax efficiency 5%.
               </p>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 max-w-md">
@@ -4460,6 +4564,7 @@
     </button>
   </body>
 </html>
+
 
 
 
