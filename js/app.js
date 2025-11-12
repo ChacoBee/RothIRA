@@ -2,6 +2,7 @@ const REBALANCE_CLOCK_STORAGE_KEY = "hangar.rebalanceClock.v1";
 const DEFAULT_REBALANCE_CLOCK_STATE = {
   targetMonth: 1,
   targetDay: 1,
+  targetYear: new Date().getFullYear(),
   bufferDays: 3,
   lastCompletedISO: null,
   checklist: {},
@@ -620,13 +621,60 @@ function initializeRebalanceClockPanel() {
     });
   };
 
+  const formatDateForInput = (date) => {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+      return "";
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const parseDateInputValue = (value) => {
+    if (typeof value !== "string") {
+      return null;
+    }
+    const parts = value.split("-");
+    if (parts.length !== 3) {
+      return null;
+    }
+    const [yearStr, monthStr, dayStr] = parts;
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+    if (
+      !Number.isInteger(year) ||
+      !Number.isInteger(month) ||
+      !Number.isInteger(day) ||
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > 31
+    ) {
+      return null;
+    }
+    const checkDate = new Date(Date.UTC(year, month - 1, day));
+    if (
+      checkDate.getUTCFullYear() !== year ||
+      checkDate.getUTCMonth() !== month - 1 ||
+      checkDate.getUTCDate() !== day
+    ) {
+      return null;
+    }
+    return { year, month, day };
+  };
+
   const computeNextTargetDate = () => {
     const state = loadState();
     const now = new Date();
-    let year = now.getFullYear();
-    let candidate = new Date(year, (state.targetMonth || 1) - 1, state.targetDay || 1, 9, 0, 0);
-    if (candidate <= now) {
-      candidate = new Date(year + 1, (state.targetMonth || 1) - 1, state.targetDay || 1, 9, 0, 0);
+    const targetMonthIndex = Math.max(0, (Number(state.targetMonth) || 1) - 1);
+    const targetDay = Math.max(1, Number(state.targetDay) || 1);
+    let year = Number.isFinite(state.targetYear) ? state.targetYear : now.getFullYear();
+    let candidate = new Date(year, targetMonthIndex, targetDay, 9, 0, 0);
+    while (candidate <= now) {
+      year += 1;
+      candidate = new Date(year, targetMonthIndex, targetDay, 9, 0, 0);
     }
     return candidate;
   };
@@ -640,14 +688,13 @@ function initializeRebalanceClockPanel() {
 
   const updateInputsFromState = () => {
     const state = loadState();
-    const now = new Date();
-    const inputYear = now.getFullYear();
-    const targetDate = new Date(inputYear, (state.targetMonth || 1) - 1, state.targetDay || 1);
-    if (!Number.isNaN(targetDate.getTime())) {
-      const iso = targetDate.toISOString().split("T")[0];
-      targetInput.value = iso;
+    const targetDate = computeNextTargetDate();
+    if (targetDate && !Number.isNaN(targetDate.getTime())) {
+      targetInput.value = formatDateForInput(targetDate);
+    } else {
+      targetInput.value = "";
     }
-    bufferInput.value = Number.isFinite(state.bufferDays) ? state.bufferDays : 3;
+    bufferInput.value = Number.isFinite(state.bufferDays) ? state.bufferDays : DEFAULT_REBALANCE_CLOCK_STATE.bufferDays;
   };
 
   const renderChecklist = () => {
@@ -741,8 +788,8 @@ function initializeRebalanceClockPanel() {
       showFeedback("Pick a valid target date before saving.", "error");
       return;
     }
-    const parsed = new Date(dateValue);
-    if (Number.isNaN(parsed.getTime())) {
+    const parsed = parseDateInputValue(dateValue);
+    if (!parsed) {
       showFeedback("Target date is invalid.", "error");
       return;
     }
@@ -751,11 +798,13 @@ function initializeRebalanceClockPanel() {
       bufferValue = DEFAULT_REBALANCE_CLOCK_STATE.bufferDays;
     }
     const state = loadState();
-    state.targetMonth = parsed.getMonth() + 1;
-    state.targetDay = parsed.getDate();
+    state.targetYear = parsed.year;
+    state.targetMonth = parsed.month;
+    state.targetDay = parsed.day;
     state.bufferDays = Math.min(60, Math.round(bufferValue));
     persistState();
     updateCountdownUi();
+    updateInputsFromState();
     showFeedback("Annual rebalance schedule saved.");
   });
 
