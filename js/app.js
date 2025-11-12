@@ -373,6 +373,7 @@ window.addEventListener("DOMContentLoaded", () => {
     initialElSan.addEventListener("input", sanitizeInitialInput);
   }
 
+  initializeAlphaVantageKeyForm();
   updatePortfolioMetrics();
   updateStockDetails("VOO"); // Load VOO details and set VOO as default chart
   runSimulation();
@@ -403,4 +404,101 @@ function updateRiskLevelBar() {
 
     riskLevelBar.style.width = width;
   }
+}
+
+function initializeAlphaVantageKeyForm() {
+  const form = document.getElementById("alphaKeyForm");
+  const manager = window.AlphaVantageKeyManager;
+  if (!form || !manager) {
+    return;
+  }
+
+  const input = document.getElementById("alphaKeyInput");
+  const statusEl = document.getElementById("alphaKeyStatus");
+  const badgeEl = document.getElementById("alphaKeyStatusBadge");
+  const clearBtn = document.getElementById("alphaKeyClearBtn");
+  const toggleBtn = document.getElementById("alphaKeyToggleBtn");
+
+  if (!input || !statusEl || !badgeEl) {
+    return;
+  }
+
+  const demoBadgeClasses = ["bg-slate-100", "dark:bg-slate-900", "text-slate-600", "dark:text-slate-300"];
+  const customBadgeClasses = ["bg-emerald-500/15", "dark:bg-emerald-500/10", "text-emerald-700", "dark:text-emerald-200"];
+  let revealKey = false;
+
+  const showKeyFeedback = (message, state = "success") => {
+    if (typeof window.showActionFeedback === "function") {
+      window.showActionFeedback(message, { state, autoHide: 2600 });
+    }
+  };
+
+  const refreshBadgeState = (isDemo) => {
+    demoBadgeClasses.forEach((cls) => badgeEl.classList.toggle(cls, isDemo));
+    customBadgeClasses.forEach((cls) => badgeEl.classList.toggle(cls, !isDemo));
+    badgeEl.textContent = isDemo ? "Demo" : "Custom";
+  };
+
+  const refreshStatus = () => {
+    const isDemo = typeof manager.isDemo === "function" ? manager.isDemo() : false;
+    input.value = isDemo ? "" : manager.getKey() || "";
+    refreshBadgeState(isDemo);
+    if (isDemo) {
+      statusEl.textContent =
+        "Chưa có khóa tùy chỉnh - giới hạn ở dữ liệu Alpha Vantage demo (IBM, tối đa 5 yêu cầu/phút).";
+    } else {
+      statusEl.textContent =
+        "Khóa cá nhân đã được lưu cục bộ. Mọi request Alpha Vantage sẽ dùng khóa này cho tới khi bạn xoá.";
+    }
+  };
+
+  const refreshVisibility = () => {
+    input.type = revealKey ? "text" : "password";
+    if (toggleBtn) {
+      toggleBtn.textContent = revealKey ? "Ẩn" : "Hiện";
+    }
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const nextKey = (input.value || "").trim();
+    if (!nextKey) {
+      manager.clearKey();
+      refreshStatus();
+      refreshVisibility();
+      showKeyFeedback("Đã xoá khóa Alpha Vantage. Dashboard quay lại chế độ demo.", "info");
+      return;
+    }
+    manager.setKey(nextKey);
+    refreshStatus();
+    refreshVisibility();
+    showKeyFeedback("Đã lưu khóa Alpha Vantage cho phiên làm việc này.", "success");
+  });
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      manager.clearKey();
+      input.value = "";
+      refreshStatus();
+      refreshVisibility();
+      showKeyFeedback("Đã xoá khóa Alpha Vantage. Dashboard quay lại chế độ demo.", "info");
+    });
+  }
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      revealKey = !revealKey;
+      refreshVisibility();
+    });
+  }
+
+  window.addEventListener("alpha-vantage-key-changed", () => {
+    refreshStatus();
+    refreshVisibility();
+  });
+
+  refreshStatus();
+  refreshVisibility();
 }

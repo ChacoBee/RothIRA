@@ -1,6 +1,171 @@
 // Alpha Vantage API Configuration
-const ALPHA_VANTAGE_API_KEY = 'AI3FRQ1IZHG3GTO1'; // Use 'demo' for free tier, replace with your key for production
 const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
+const ALPHA_VANTAGE_KEY_STORAGE_KEY = 'hangar.alphaVantageKey';
+const ALPHA_VANTAGE_KEY_QUERY_PARAMS = ['alphaKey', 'alphaVantageKey'];
+const ALPHA_VANTAGE_DEMO_KEY = 'demo';
+const ALPHA_VANTAGE_KEY_EVENT = 'alpha-vantage-key-changed';
+
+function sanitizeAlphaVantageKey(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function readStoredAlphaVantageKey() {
+  if (typeof localStorage === 'undefined') {
+    return '';
+  }
+  try {
+    return sanitizeAlphaVantageKey(localStorage.getItem(ALPHA_VANTAGE_KEY_STORAGE_KEY) || '');
+  } catch (error) {
+    console.warn('Unable to read Alpha Vantage key from storage', error);
+    return '';
+  }
+}
+
+function persistAlphaVantageKey(value) {
+  if (typeof localStorage === 'undefined') {
+    return;
+  }
+  try {
+    if (!value || value === ALPHA_VANTAGE_DEMO_KEY) {
+      localStorage.removeItem(ALPHA_VANTAGE_KEY_STORAGE_KEY);
+    } else {
+      localStorage.setItem(ALPHA_VANTAGE_KEY_STORAGE_KEY, value);
+    }
+  } catch (error) {
+    console.warn('Unable to persist Alpha Vantage key', error);
+  }
+}
+
+function discoverAlphaVantageKey() {
+  let resolved = '';
+  let source = 'fallback';
+
+  if (typeof window !== 'undefined') {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      for (let i = 0; i < ALPHA_VANTAGE_KEY_QUERY_PARAMS.length; i += 1) {
+        const candidate = sanitizeAlphaVantageKey(params.get(ALPHA_VANTAGE_KEY_QUERY_PARAMS[i]));
+        if (candidate) {
+          resolved = candidate;
+          source = 'query';
+          persistAlphaVantageKey(candidate);
+          break;
+        }
+      }
+    } catch (error) {
+      console.warn('Unable to read Alpha Vantage key from query string', error);
+    }
+
+    if (!resolved) {
+      const stored = readStoredAlphaVantageKey();
+      if (stored) {
+        resolved = stored;
+        source = 'storage';
+      }
+    }
+
+    if (!resolved && window.APP_CONFIG && window.APP_CONFIG.marketData) {
+      const configKey = sanitizeAlphaVantageKey(window.APP_CONFIG.marketData.alphaVantageKey);
+      if (configKey) {
+        resolved = configKey;
+        source = 'config';
+      }
+    }
+  }
+
+  if (!resolved) {
+    resolved = ALPHA_VANTAGE_DEMO_KEY;
+  }
+
+  return { key: resolved, source };
+}
+
+function isAlphaVantageDemoKey(value) {
+  return !value || value.toLowerCase() === ALPHA_VANTAGE_DEMO_KEY;
+}
+
+let alphaVantageKeyState = discoverAlphaVantageKey();
+
+function dispatchAlphaVantageEvent(detailExtra) {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+    return;
+  }
+  try {
+    window.dispatchEvent(
+      new CustomEvent(ALPHA_VANTAGE_KEY_EVENT, {
+        detail: {
+          key: alphaVantageKeyState.key,
+          isDemo: isAlphaVantageDemoKey(alphaVantageKeyState.key),
+          source: alphaVantageKeyState.source,
+          ...(detailExtra || {}),
+        },
+      })
+    );
+  } catch (error) {
+    console.warn('Alpha Vantage key event dispatch failed', error);
+  }
+}
+
+function getAlphaVantageApiKey() {
+  return alphaVantageKeyState.key || ALPHA_VANTAGE_DEMO_KEY;
+}
+
+function isAlphaVantageConfigured() {
+  return !isAlphaVantageDemoKey(getAlphaVantageApiKey());
+}
+
+function setAlphaVantageApiKey(newKey, source = 'user', options = {}) {
+  const sanitized = sanitizeAlphaVantageKey(newKey);
+  const isDemo = isAlphaVantageDemoKey(sanitized);
+  alphaVantageKeyState = {
+    key: isDemo ? ALPHA_VANTAGE_DEMO_KEY : sanitized,
+    source: isDemo ? 'demo' : source,
+  };
+
+  if (options.persist !== false) {
+    persistAlphaVantageKey(isDemo ? '' : sanitized);
+  }
+
+  if (options.emitEvent !== false) {
+    dispatchAlphaVantageEvent();
+  }
+
+  return alphaVantageKeyState.key;
+}
+
+function clearAlphaVantageApiKey(options = {}) {
+  if (options.persist !== false) {
+    persistAlphaVantageKey('');
+  }
+  return setAlphaVantageApiKey('', 'fallback', { ...options, persist: false });
+}
+
+const AlphaVantageKeyManager = {
+  getKey() {
+    return getAlphaVantageApiKey();
+  },
+  isDemo() {
+    return !isAlphaVantageConfigured();
+  },
+  getSource() {
+    return alphaVantageKeyState.source;
+  },
+  setKey(value) {
+    return setAlphaVantageApiKey(value, 'user');
+  },
+  clearKey() {
+    return clearAlphaVantageApiKey();
+  },
+};
+
+if (typeof window !== 'undefined') {
+  window.AlphaVantageKeyManager = AlphaVantageKeyManager;
+  if (!isAlphaVantageConfigured()) {
+    console.info(
+      '[Alpha Vantage] Chưa có API key tuỳ chỉnh, dashboard sẽ dùng dữ liệu tĩnh cho đến khi bạn thêm key.'
+    );
+  }
+}
 
 // Sample Data (Based on your Sheet) - Will be updated with real data
 let initialStockData = {
@@ -72,6 +237,9 @@ window.defaultTargetAllocations = { ...defaultTargetAllocations };
 
 // Function to fetch real-time stock data from Alpha Vantage
 async function fetchStockData(symbol) {
+  if (!isAlphaVantageConfigured()) {
+    return null;
+  }
   try {
     const historicalSeries = await fetchDailyAdjustedSeries(symbol);
     const latestPoint = Array.isArray(historicalSeries)
@@ -81,7 +249,9 @@ async function fetchStockData(symbol) {
       return latestPoint.price;
     }
 
-    const url = `${ALPHA_VANTAGE_BASE_URL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
+    const apiKey = encodeURIComponent(getAlphaVantageApiKey());
+    const encodedSymbol = encodeURIComponent(symbol);
+    const url = `${ALPHA_VANTAGE_BASE_URL}?function=GLOBAL_QUOTE&symbol=${encodedSymbol}&apikey=${apiKey}`;
     const data = await fetchAlphaVantageJson(url);
 
     if (data['Global Quote'] && data['Global Quote']['05. price']) {
@@ -98,6 +268,10 @@ async function fetchStockData(symbol) {
 
 // Function to update stock data with real market prices
 async function updateStockDataWithRealPrices() {
+  if (!isAlphaVantageConfigured()) {
+    console.info('[Alpha Vantage] Bỏ qua đồng bộ giá trực tiếp vì chưa có API key tùy chỉnh.');
+    return initialStockData;
+  }
   const tickers = Object.keys(initialStockData);
   for (let i = 0; i < tickers.length; i += 1) {
     const ticker = tickers[i];
@@ -407,6 +581,9 @@ async function fetchAlphaVantageJson(url, attempt = 0) {
 }
 
 async function fetchDailyAdjustedSeries(symbol, options = {}) {
+  if (!isAlphaVantageConfigured()) {
+    return [];
+  }
   const allowCacheRead = options?.useCache !== false;
   const allowCacheWrite = options?.cacheResult !== false;
   const cacheKey = `${SERIES_CACHE_PREFIX}${symbol}`;
@@ -421,7 +598,9 @@ async function fetchDailyAdjustedSeries(symbol, options = {}) {
     }
   }
 
-  const url = `${ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}&outputsize=compact`;
+  const apiKey = encodeURIComponent(getAlphaVantageApiKey());
+  const encodedSymbol = encodeURIComponent(symbol);
+  const url = `${ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${encodedSymbol}&apikey=${apiKey}&outputsize=compact`;
   const json = await fetchAlphaVantageJson(url);
   const series = json && json['Time Series (Daily)'];
   if (!series || typeof series !== 'object') {
@@ -588,6 +767,15 @@ async function buildCorrelationMatrixFromAlphaVantage(symbols, options = {}) {
 }
 
 async function loadCorrelationsFromAlphaVantage(options = {}) {
+  if (!isAlphaVantageConfigured()) {
+    correlations = { ...DEFAULT_CORRELATIONS };
+    if (typeof window !== 'undefined') {
+      window.correlations = correlations;
+      window.correlationsLastUpdated = Date.now();
+    }
+    console.info('[Alpha Vantage] Bỏ qua cập nhật ma trận tương quan vì chưa có API key hợp lệ.');
+    return correlations;
+  }
   const symbols = Array.isArray(assetKeys) ? assetKeys : null;
   if (!symbols || !symbols.length) {
     return correlations;
@@ -650,6 +838,15 @@ async function buildVolatilityMapFromAlphaVantage(symbols, options = {}) {
 }
 
 async function loadVolatilitiesFromAlphaVantage(options = {}) {
+  if (!isAlphaVantageConfigured()) {
+    volatilities = { ...STATIC_DEFAULT_VOLATILITIES };
+    if (typeof window !== 'undefined') {
+      window.volatilities = volatilities;
+      window.volatilitiesLastUpdated = Date.now();
+    }
+    console.info('[Alpha Vantage] Bỏ qua cập nhật volatility vì chưa có API key hợp lệ.');
+    return volatilities;
+  }
   const symbols = Array.isArray(assetKeys) ? assetKeys : null;
   if (!symbols || !symbols.length) {
     return volatilities;
