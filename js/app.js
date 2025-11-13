@@ -89,18 +89,20 @@ window.addEventListener("DOMContentLoaded", () => {
     runSimulation();
   });
 
-  document
-    .getElementById("calculateRebalanceBtn")
-    .addEventListener("click", updatePortfolioMetrics);
-  // When user explicitly clicks Calculate Rebalance, save the current Target % to localStorage
-  document
-    .getElementById("calculateRebalanceBtn")
-    .addEventListener("click", () => {
+  const calculateRebalanceBtn = document.getElementById("calculateRebalanceBtn");
+  if (calculateRebalanceBtn) {
+    calculateRebalanceBtn.addEventListener("click", () => {
+      window.__lastRebalanceTrigger = "manual";
+      updatePortfolioMetrics();
+    });
+    // When user explicitly clicks Calculate Rebalance, save the current Target % to localStorage
+    calculateRebalanceBtn.addEventListener("click", () => {
       // Small timeout to allow updatePortfolioMetrics to finish DOM updates first
       setTimeout(() => {
         saveTargetsToLocalStorage();
       }, 50);
     });
+  }
   document
     .getElementById("themeToggleBtn")
     .addEventListener("click", toggleTheme);

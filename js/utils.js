@@ -476,6 +476,10 @@ function loadTargetsFromLocalStorage() {
 // --- Refresh charts and computed metrics ---
 
 function updatePortfolioMetrics() {
+  const triggerType =
+    typeof window !== "undefined" && window.__lastRebalanceTrigger === "manual"
+      ? "manual"
+      : "auto";
 
   const activeThreshold = getActiveRebalanceThreshold();
 
@@ -1240,6 +1244,35 @@ function updatePortfolioMetrics() {
     needsRebalance: isRebalancingNeeded,
 
   });
+  updateDriftMonitorDisplay({
+    totalHoldings: assetKeys.length,
+    holdingsWithinTolerance,
+    cumulativeDrift: totalAbsDrift,
+    guardrail: activeThreshold,
+    topDrifts,
+    needsAttention: isRebalancingNeeded,
+  });
+
+  if (typeof document !== "undefined" && typeof document.dispatchEvent === "function") {
+    document.dispatchEvent(
+      new CustomEvent("rebalanceRunCompleted", {
+        detail: {
+          timestamp: Date.now(),
+          threshold: activeThreshold,
+          totalBuy: totalBuyAmount,
+          totalSell: totalSellAmount,
+          holdingsWithinGuardrail: holdingsWithinTolerance,
+          totalHoldings: assetKeys.length,
+          needsRebalance: isRebalancingNeeded,
+          userInitiated: triggerType === "manual",
+        },
+      })
+    );
+  }
+  if (typeof window !== "undefined") {
+    window.__lastRebalanceTrigger = "auto";
+  }
+
 
 
 
@@ -2367,6 +2400,143 @@ function initializeMetricDropdownToggles() {
 
 }
 
+function updateDriftMonitorDisplay(metrics) {
+  const totalHoldings = Number(metrics?.totalHoldings) || 0;
+  const holdingsWithinTolerance = Math.min(
+    totalHoldings,
+    Math.max(0, Number(metrics?.holdingsWithinTolerance) || 0)
+  );
+  const holdingsOutOfBounds = Math.max(0, totalHoldings - holdingsWithinTolerance);
+  const cumulativeDrift = Number(metrics?.cumulativeDrift) || 0;
+  const guardrail = Number(metrics?.guardrail) || 0;
+  const needsAttention = Boolean(metrics?.needsAttention);
+  const topDrifts = Array.isArray(metrics?.topDrifts) ? metrics.topDrifts : [];
+  const percentInBounds =
+    totalHoldings > 0 ? Math.max(0, Math.min(100, (holdingsWithinTolerance / totalHoldings) * 100)) : 0;
 
+  const gaugeRing = document.getElementById("driftGaugeRing");
+  const gaugeValue = document.getElementById("driftGaugeValue");
+  const gaugeCaption = document.getElementById("driftGaugeCaption");
+  const guardrailChip = document.getElementById("driftGuardrailChip");
+  const monitorStatus = document.getElementById("driftMonitorStatus");
+  const inBoundsCountEl = document.getElementById("driftInBoundsCount");
+  const inBoundsPercentEl = document.getElementById("driftInBoundsPercent");
+  const outBoundsCountEl = document.getElementById("driftOutBoundsCount");
+  const outBoundsPercentEl = document.getElementById("driftOutBoundsPercent");
+  const cumulativeValueEl = document.getElementById("driftCumulativeValue");
+  const cumulativeNoteEl = document.getElementById("driftCumulativeNote");
+  const offenderListEl = document.getElementById("driftOffenderList");
 
+  const statusText =
+    totalHoldings > 0
+      ? `${holdingsWithinTolerance}/${totalHoldings} squads inside the ${guardrail.toFixed(1)}% guardrail.`
+      : "Load holdings to activate guardrail monitoring.";
+  if (monitorStatus) {
+    monitorStatus.textContent = statusText;
+  }
 
+  if (inBoundsCountEl) {
+    inBoundsCountEl.textContent = totalHoldings > 0 ? holdingsWithinTolerance : "--";
+  }
+  if (inBoundsPercentEl) {
+    inBoundsPercentEl.textContent =
+      totalHoldings > 0 ? `${holdingsWithinTolerance}/${totalHoldings} squads` : "No holdings";
+  }
+  if (outBoundsCountEl) {
+    outBoundsCountEl.textContent = totalHoldings > 0 ? holdingsOutOfBounds : "--";
+  }
+  if (outBoundsPercentEl) {
+    outBoundsPercentEl.textContent =
+      totalHoldings > 0 ? `${holdingsOutOfBounds} outside tolerance` : "Awaiting scan";
+  }
+  if (cumulativeValueEl) {
+    cumulativeValueEl.textContent =
+      totalHoldings > 0 ? formatPercent(cumulativeDrift) : "--";
+  }
+  if (cumulativeNoteEl) {
+    if (!totalHoldings) {
+      cumulativeNoteEl.textContent = "Enter holdings in Module 6A to enable monitoring.";
+    } else if (needsAttention) {
+      cumulativeNoteEl.textContent = "Guardrail breached — review buy/sell list.";
+    } else {
+      cumulativeNoteEl.textContent = "All squads resting comfortably inside the guardrail.";
+    }
+  }
+
+  if (guardrailChip) {
+    guardrailChip.textContent = `Guardrail ${guardrail > 0 ? `${guardrail.toFixed(1)}%` : "--"}`;
+  }
+
+  const gaugeColor =
+    percentInBounds >= 85
+      ? "#10b981"
+      : percentInBounds >= 65
+      ? "#fbbf24"
+      : "#f87171";
+  if (gaugeRing) {
+    const remainder = 100 - percentInBounds;
+    gaugeRing.style.background = `conic-gradient(${gaugeColor} ${percentInBounds}%, rgba(148,163,184,0.25) ${percentInBounds}% ${percentInBounds + remainder}%)`;
+  }
+  if (gaugeValue) {
+    gaugeValue.textContent = `${percentInBounds.toFixed(0)}%`;
+  }
+  if (gaugeCaption) {
+    gaugeCaption.textContent =
+      percentInBounds >= 85 ? "Stable" : percentInBounds >= 65 ? "Watch" : "Critical";
+  }
+
+  if (offenderListEl) {
+    offenderListEl.innerHTML = "";
+    if (!topDrifts.length || totalHoldings === 0) {
+      const placeholder = document.createElement("p");
+      placeholder.className = "text-xs text-slate-500 dark:text-slate-400";
+      placeholder.textContent =
+        totalHoldings === 0
+          ? "No holdings loaded yet."
+          : "No significant drift detected. Tighten the guardrail to surface minor deviations.";
+      offenderListEl.appendChild(placeholder);
+    } else {
+      topDrifts.slice(0, 3).forEach((entry) => {
+        const card = document.createElement("div");
+        card.className = "drift-offender-card";
+        const label = document.createElement("div");
+        label.className = "drift-offender-card__label";
+        label.textContent = entry.key;
+
+        const friendlyName =
+          (typeof window !== "undefined" &&
+            window.initialStockData &&
+            window.initialStockData[entry.key] &&
+            window.initialStockData[entry.key].name) ||
+          "";
+
+        const meta = document.createElement("div");
+        meta.className = "text-xs text-slate-500 dark:text-slate-400";
+        meta.textContent = `Target ${entry.target.toFixed(1)}% • Current ${entry.currentPercent.toFixed(1)}%`;
+
+        const badge = document.createElement("span");
+        badge.className = `drift-offender-card__delta ${
+          entry.drift >= 0
+            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"
+            : "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200"
+        }`;
+        badge.textContent = `${entry.drift >= 0 ? "+" : ""}${entry.drift.toFixed(2)}%`;
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "flex flex-col gap-1";
+        wrapper.appendChild(label);
+        if (friendlyName && friendlyName !== entry.key) {
+          const nameEl = document.createElement("span");
+          nameEl.className = "drift-offender-card__name";
+          nameEl.textContent = friendlyName;
+          wrapper.appendChild(nameEl);
+        }
+        wrapper.appendChild(meta);
+
+        card.appendChild(wrapper);
+        card.appendChild(badge);
+        offenderListEl.appendChild(card);
+      });
+    }
+  }
+}

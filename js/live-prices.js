@@ -505,7 +505,7 @@ async function fetchAndRenderLivePrices(options = {}) {
     window.livePriceSheetData = { rows: quoteMap, totals, lastUpdated: now };
     document.dispatchEvent(
       new CustomEvent("livePriceSheetUpdated", {
-        detail: { rows: quoteMap, totals, lastUpdated: now },
+        detail: { rows: quoteMap, totals, lastUpdated: now, userInitiated },
       })
     );
   } catch (error) {

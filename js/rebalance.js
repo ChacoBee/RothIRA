@@ -642,6 +642,21 @@ function calculateDepositAllocation(isAutoUpdate = false) {
       JSON.stringify(allocationSaveObj)
     );
   } catch (e) {}
+
+  if (typeof window !== "undefined") {
+    window.latestDepositPlanTotals = plan.totals;
+  }
+  if (typeof document !== "undefined" && typeof document.dispatchEvent === "function") {
+    document.dispatchEvent(
+      new CustomEvent("depositAllocationPlanUpdated", {
+        detail: {
+          plan,
+          totals: plan.totals,
+          generatedAt: Date.now(),
+        },
+      })
+    );
+  }
 }
 
 const REBALANCE_DEPOSIT_STORAGE_KEY = "rebalanceDepositAmount";
@@ -1154,5 +1169,17 @@ function recalculateDepositRebalance() {
       parts.push("Enter a deposit and run the helper to deploy cash.");
     }
     impactNote.textContent = parts.join(" - ");
+  }
+
+  if (typeof document !== "undefined" && typeof document.dispatchEvent === "function") {
+    document.dispatchEvent(
+      new CustomEvent("rebalanceDepositPlanUpdated", {
+        detail: {
+          plan,
+          totals: plan.totals,
+          generatedAt: Date.now(),
+        },
+      })
+    );
   }
 }

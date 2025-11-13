@@ -1545,6 +1545,115 @@
           </div>
         </div>
 
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+          <article
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-5 space-y-4"
+          >
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+                  Guardrail Status
+                </p>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Drift Monitor</h3>
+                <p id="driftMonitorStatus" class="text-sm text-slate-500 dark:text-slate-400">
+                  Awaiting first calculation.
+                </p>
+              </div>
+              <div class="drift-gauge" role="img" aria-live="polite" aria-label="Holdings inside guardrail">
+                <div class="drift-gauge__ring" id="driftGaugeRing">
+                  <div class="drift-gauge__mask">
+                    <span id="driftGaugeValue" class="drift-gauge__value">0%</span>
+                    <span id="driftGaugeCaption" class="drift-gauge__caption">No data</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+              <div class="drift-stat">
+                <dt>Within guardrail</dt>
+                <dd id="driftInBoundsCount">--</dd>
+                <small id="driftInBoundsPercent">-- of fleet</small>
+              </div>
+              <div class="drift-stat">
+                <dt>Outliers</dt>
+                <dd id="driftOutBoundsCount">--</dd>
+                <small id="driftOutBoundsPercent">Need attention</small>
+              </div>
+              <div class="drift-stat">
+                <dt>Cumulative drift</dt>
+                <dd id="driftCumulativeValue">--</dd>
+                <small id="driftCumulativeNote">Run module 6A</small>
+              </div>
+            </dl>
+            <div>
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-[11px] font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+                  Priority offenders
+                </p>
+                <span
+                  id="driftGuardrailChip"
+                  class="inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:border-amber-400/60 dark:bg-amber-500/20 dark:text-amber-200"
+                >
+                  Guardrail --
+                </span>
+              </div>
+              <div id="driftOffenderList" class="drift-offender-list mt-2" aria-live="polite">
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  Launch a rebalance scan to surface top drifts instantly.
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-5 space-y-4"
+          >
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+                  Event Timeline
+                </p>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Hangar Activity Log</h3>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span
+                  id="logisticsActivityStatus"
+                  class="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 font-semibold text-slate-500 dark:text-slate-300"
+                >
+                  Waiting for actions
+                </span>
+                <button
+                  id="activityLogClearBtn"
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-600 px-2.5 py-1 font-semibold text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            <ul id="logisticsActivityList" class="ops-log-list" aria-live="polite">
+              <li class="ops-log-empty">
+                <span>No actions recorded yet. Run a refresh or rebalance to populate the feed.</span>
+              </li>
+            </ul>
+            <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+              <span
+                id="activityLogHint"
+                class="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1"
+              >
+                Feed tracks refreshes, guardrail scans, deposits, and helper runs.
+              </span>
+              <button
+                id="activityLogExportBtn"
+                type="button"
+                class="inline-flex items-center gap-1 font-semibold text-sky-600 dark:text-sky-300 hover:underline"
+              >
+                Copy summary
+              </button>
+            </div>
+          </article>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- 6A: REBALANCE TOOL -->
           <div
@@ -1966,10 +2075,11 @@
                     >
                       Targets rescale automatically when totals deviate from 100%.
                     </p>
-                  </div>
                 </div>
               </div>
+
             </div>
+          </div>
 
             <!-- 6C: DEPOSIT REBALANCING HELPER -->
             <div
@@ -4538,6 +4648,7 @@
     <script src="js/performance.js" defer></script>
     <script src="js/live-prices.js" defer></script>
     <script src="js/live-portfolio-chart.js" defer></script>
+    <script src="js/logistics-ops.js" defer></script>
     <script src="js/app.js" defer></script>
     <button
       type="button"
