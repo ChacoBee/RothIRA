@@ -14,11 +14,12 @@ const aiAssetBetas =
       ? assetBetas
       : {
           VOO: 1,
-          VXUS: 0.9,
-          AVUV: 1.1,
-          AVDV: 1.05,
-          SPMO: 1.15,
-          AMZN: 1.4,
+          VXUS: 0.82,
+          AVUV: 1.27,
+          AVDV: 0.96,
+          SPMO: 0.94,
+          SCHD: 0.83,
+          AMZN: 1.19,
         };
 
 const DEFAULT_EXPECTED_RETURNS =
@@ -878,6 +879,7 @@ function buildPortfolioHealth(metrics, actions) {
     VXUS: 0.12,
     AVUV: 0.08,
     AVDV: 0.05,
+    SCHD: 0.2,
     AMZN: 1.0,
   });
   if (techExposure > 35) {
@@ -1244,6 +1246,7 @@ function buildRiskManagement(metrics, actions) {
       steps: [
         "Set alerts for Fed policy shifts and recession probability models.",
         "Watch momentum drivers like tech and industrials; tie to SPMO/AMZN exposure.",
+        "If rate volatility re-accelerates, stress test SCHD's dividend thesis before adding more.",
         "Revisit international thesis if USD trend breaks 200-day moving average.",
       ],
     },
@@ -1292,6 +1295,11 @@ function buildMarketInsights(metrics) {
         label: "Value Factors",
         detail:
           "AVUV and AVDV balance the growth sleeve with value and size exposure. Keep contributions spread across both regions.",
+      },
+      {
+        label: "Dividend Quality",
+        detail:
+          "SCHD provides a defensive income sleeve. Track payout ratios and rate trends before rotating capital away from it.",
       },
       {
         label: "Global Balance",

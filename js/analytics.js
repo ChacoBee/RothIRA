@@ -5,24 +5,26 @@ const DEFAULT_RISK_FREE_RATE =
 const portfolioAssetBetas =
   typeof assetBetas === 'object' && assetBetas !== null
     ? assetBetas
-    : {
+: {
         VOO: 1.0,
-        VXUS: 0.9,
-        AVUV: 1.1,
-        AVDV: 1.05,
-        SPMO: 1.1,
-        AMZN: 1.4,
+        VXUS: 0.82,
+        AVUV: 1.27,
+        AVDV: 0.96,
+        SPMO: 0.94,
+        SCHD: 0.83,
+        AMZN: 1.19,
       };
 
 const portfolioExpenseRatios =
   typeof expenseRatios === 'object' && expenseRatios !== null
     ? expenseRatios
-    : {
+: {
         VOO: 0.0003,
         VXUS: 0.0007,
         AVUV: 0.0025,
         AVDV: 0.0025,
         SPMO: 0.0013,
+        SCHD: 0.0006,
         AMZN: 0.0,
       };
 
@@ -460,30 +462,32 @@ const PORTFOLIO_PILLAR_WEIGHTS = Object.freeze({
   cost: 0.1,
 });
 
+// Baseline metrics calibrated to the 2020-01-01 → 2025-10-31 backtest
+// from https://www.portfoliovisualizer.com/backtest-portfolio?s=y&sl=6W1yX8KkDA9w26IU6Jrljm
 const PORTFOLIO_ANALYTICS_BASELINE = Object.freeze({
   timeframe: Object.freeze({
     start: '2020-01-01',
     end: '2025-10-31',
     months: 70,
   }),
-  expectedReturn: 0.1461,
-  volatility: 0.1744,
-  sharpeRatio: 0.72,
-  sortinoRatio: 1.12,
-  maxDrawdown: 0.2392,
+  expectedReturn: 0.1436,
+  volatility: 0.1732,
+  sharpeRatio: 0.71,
+  sortinoRatio: 1.10,
+  maxDrawdown: 0.2351,
   recoveryMonths: 15,
   recoveryTradingDays: 315,
   recoveryCalendarDays: 456,
-  beta: 0.96,
-  alpha: 0.0037,
-  calmarRatio: 2.91,
-  trackingError: 0.0265,
-  informationRatio: -0.05,
-  activeReturn: -0.0014,
-  upCaptureRatio: 0.956,
-  downCaptureRatio: 0.9465,
-  cvarLoss: 0.1031,
-  varLoss: 0.0834,
+  beta: 0.98,
+  alpha: -0.0052,
+  calmarRatio: 2.79,
+  trackingError: 0.0324,
+  informationRatio: -0.30,
+  activeReturn: -0.0096,
+  upCaptureRatio: 0.9548,
+  downCaptureRatio: 0.9788,
+  cvarLoss: 0.1024,
+  varLoss: 0.0825,
 });
 
 const PORTFOLIO_SCORE_METRICS = Object.freeze({

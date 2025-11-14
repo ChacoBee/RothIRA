@@ -281,6 +281,7 @@ function updateAllocationChart(labels, data, title, totalPercent) {
           "#b45309", // burnt orange (AVUV)
           "#0ea5e9", // vivid sky (AVDV)
           "#1d4ed8", // royal blue (SPMO)
+          "#4d7c0f", // dividend green (SCHD)
           "#7c2d12", // dark copper (AMZN)
         ],
         hoverBackgroundColor: [
@@ -289,6 +290,7 @@ function updateAllocationChart(labels, data, title, totalPercent) {
           "#d97706",
           "#38bdf8",
           "#2563eb",
+          "#65a30d",
           "#9a3412",
         ],
         borderColor: isDarkMode

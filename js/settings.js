@@ -9,9 +9,9 @@
 
   const defaultHoldings = {
     VOO: {
-      target: 45,
-      currentValue: 45,
-      currentPercent: 45,
+      target: 40,
+      currentValue: 40,
+      currentPercent: 40,
       sector: "Core US",
       region: "United States",
       exposureCategory: "us",
@@ -49,6 +49,15 @@
       currentValue: 10,
       currentPercent: 10,
       sector: "Momentum Large Cap",
+      region: "United States",
+      exposureCategory: "us",
+      assetClass: "equity",
+    },
+    SCHD: {
+      target: 5,
+      currentValue: 5,
+      currentPercent: 5,
+      sector: "Dividend Quality",
       region: "United States",
       exposureCategory: "us",
       assetClass: "equity",

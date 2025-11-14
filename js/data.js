@@ -170,9 +170,9 @@ if (typeof window !== 'undefined') {
 // Sample Data (Based on your Sheet) - Will be updated with real data
 let initialStockData = {
   VOO: {
-    target: 45.0,
-    currentValue: 45.0,
-    currentPercent: 45.0,
+    target: 40.0,
+    currentValue: 40.0,
+    currentPercent: 40.0,
     sector: 'Core US',
     region: 'United States',
     exposureCategory: 'us',
@@ -210,6 +210,15 @@ let initialStockData = {
     currentValue: 10.0,
     currentPercent: 10.0,
     sector: 'Momentum Large Cap',
+    region: 'United States',
+    exposureCategory: 'us',
+    assetClass: 'equity',
+  },
+  SCHD: {
+    target: 5.0,
+    currentValue: 5.0,
+    currentPercent: 5.0,
+    sector: 'Dividend Quality',
     region: 'United States',
     exposureCategory: 'us',
     assetClass: 'equity',
@@ -331,17 +340,18 @@ const REBALANCE_THRESHOLD = 5.0; // Deviation threshold
 
 // Core market assumptions used across analytics modules
 const RISK_FREE_RATE = 0.0265; // 2.65% annual risk-free rate (matches Sharpe ratio assumptions)
-const BENCHMARK_EXPECTED_RETURN = 0.1475; // Vanguard Total Stock Market ETF CAGR (Jan 2020-Oct 2025)
-const BENCHMARK_VOLATILITY = 0.1791; // Vanguard Total Stock Market ETF annualised stdev (Jan 2020-Oct 2025)
+const BENCHMARK_EXPECTED_RETURN = 0.1532; // S&P 500 proxy CAGR (Jan 2020-Oct 2025, PV link)
+const BENCHMARK_VOLATILITY = 0.1739; // S&P 500 proxy annualised stdev (Jan 2020-Oct 2025)
 const EQUITY_RISK_PREMIUM = Math.max(0, BENCHMARK_EXPECTED_RETURN - RISK_FREE_RATE);
 
 const assetBetas = {
   VOO: 1.0,
-  VXUS: 0.8,
-  AVUV: 1.02,
-  AVDV: 0.95,
-  SPMO: 1.02,
-  AMZN: 1.1,
+  VXUS: 0.82,
+  AVUV: 1.27,
+  AVDV: 0.96,
+  SPMO: 0.94,
+  SCHD: 0.83,
+  AMZN: 1.19,
 };
 
 const BASE_ASSET_BETAS = Object.freeze({ ...assetBetas });
@@ -354,6 +364,7 @@ const multiFactorLoadings = {
   AVUV: { MKT: 1.46, SMB:  0.80, HML:  0.50, MOM: -0.05 },
   AVDV: { MKT: 1.25, SMB:  0.75, HML:  0.55, MOM: -0.08 },
   SPMO: { MKT: 1.05, SMB: -0.20, HML: -0.10, MOM: 0.78 },
+  SCHD: { MKT: 0.95, SMB: -0.05, HML:  0.35, MOM: 0.05 },
   AMZN: { MKT: 1.84, SMB: -0.20, HML: -0.30, MOM: 0.50 },
 };
 
@@ -371,6 +382,7 @@ const assetResidualVols = {
   AVUV: 0.232345736,
   AVDV: 0.168514851,
   SPMO: 0.205113247,
+  SCHD: 0.142,
   AMZN: 0.337801846,
 };
 
@@ -400,13 +412,14 @@ function deriveCapmExpectedReturn(betaEstimate) {
   return RISK_FREE_RATE + beta * EQUITY_RISK_PREMIUM;
 }
 
-// Calibrated annualised returns (Jan 2020 - Oct 2025 window, matches Portfolio Visualizer backtest)
+// Calibrated annualised returns (Jan 2020 - Oct 2025 window, matches Portfolio Visualizer backtest at https://www.portfoliovisualizer.com/backtest-portfolio?s=y&sl=6W1yX8KkDA9w26IU6Jrljm)
 const REALISED_EXPECTED_RETURNS = {
   VOO: 0.1545,
   VXUS: 0.0822,
   AVUV: 0.1245,
   AVDV: 0.1172,
   SPMO: 0.2147,
+  SCHD: 0.0954,
   AMZN: 0.1813,
 };
 
@@ -427,6 +440,7 @@ const STATIC_DEFAULT_VOLATILITIES = Object.freeze({
   AVUV: 0.2744,
   AVDV: 0.2054,
   SPMO: 0.1857,
+  SCHD: 0.1702,
   AMZN: 0.3219,
 });
 
@@ -443,22 +457,29 @@ const expenseRatios = {
   AVUV: 0.0025, // 0.25%
   AVDV: 0.0036, // 0.36%
   SPMO: 0.0013, // 0.13%
+  SCHD: 0.0006, // 0.06%
   AMZN: 0.0, // Direct equity, no fund expense
 };
 
 const DEFAULT_CORRELATIONS = Object.freeze({
-  AMZN_AVUV: 0.36,
   AMZN_AVDV: 0.29,
-  AMZN_SPMO: 0.57,
+  AMZN_AVUV: 0.35,
+  AMZN_SCHD: 0.3,
+  AMZN_SPMO: 0.56,
   AMZN_VOO: 0.64,
   AMZN_VXUS: 0.38,
   AVUV_AVDV: 0.85,
-  AVUV_SPMO: 0.63,  
-  AVUV_VOO: 0.81,
-  AVUV_VXUS: 0.79,
+  AVUV_SCHD: 0.88,
+  AVUV_SPMO: 0.63,
+  AVUV_VOO: 0.8,
+  AVUV_VXUS: 0.78,
+  AVDV_SCHD: 0.83,
   AVDV_SPMO: 0.65,
   AVDV_VOO: 0.82,
   AVDV_VXUS: 0.96,
+  SCHD_SPMO: 0.7,
+  SCHD_VOO: 0.84,
+  SCHD_VXUS: 0.8,
   SPMO_VOO: 0.89,
   SPMO_VXUS: 0.69,
   VOO_VXUS: 0.85,
@@ -968,7 +989,7 @@ let tvWidget = null; // Cache for the TradingView widget instance
 // TradingView Symbol Mapping
 // Use exchange-prefixed symbols that the embedded TradingView widget accepts.
 function getTradingViewSymbol(ticker) {
-  if (["VOO", "AVUV", "AVDV", "SPMO"].includes(ticker)) {
+  if (["VOO", "AVUV", "AVDV", "SPMO", "SCHD"].includes(ticker)) {
     return `AMEX:${ticker}`;
   }
   if (ticker === "VXUS") {
@@ -1025,6 +1046,11 @@ const stockDetailsContent = {
     desc: "Invesco S&P 500 Momentum ETF capturing large-cap US names with sustained price strength and overweighting recent winners.",
     pros: "Systematic momentum tilt boosts exposure to leadership sectors. Maintains diversification across the S&P 500 while adding tactical offence. Moderate 0.13% fee.",
     cons: "Momentum factor can whipsaw during regime shifts. Portfolio may lag broader market when leadership rotates back to value or defensives.",
+  },
+  SCHD: {
+    desc: "Schwab US Dividend Equity ETF screens for high-quality dividend payers with durable cash flows and sustainable payout ratios.",
+    pros: "Quality and value tilt tempers volatility while contributing reliable yield. Strict screens avoid weaker balance sheets and keeps turnover low.",
+    cons: "Income focus can lag high-growth markets or early-cycle rallies. Heavy sector tilts (industrials, financials) require monitoring when rates shift quickly.",
   },
   AMZN: {
     desc: "Direct equity stake in Amazon across e-commerce, AWS cloud, and logistics. Single-stock satellite delivering outsized growth potential.",

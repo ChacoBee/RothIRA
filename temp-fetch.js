@@ -1,5 +1,5 @@
 const https = require("https");
-const symbols = ['VOO','VXUS','AVUV','AVDV','SPMO','AMZN'];
+const symbols = ['VOO','VXUS','AVUV','AVDV','SPMO','SCHD','AMZN'];
 let idx=0;
 function fetchSymbol(){
   if(idx>=symbols.length){return;}
