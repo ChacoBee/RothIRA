@@ -1,0 +1,1263 @@
+
+
+      <!-- SECTION 6: ADVANCED REBALANCE & DEPOSIT TOOL -->
+      <section id="advanced-tracker" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">6. Supply Logistics Deck</h2>
+            <p class="section-intro">
+              Stage shipments, allocate spare parts, and manage upgrade budgets across your Gunpla hangar.
+            </p>
+          </div>
+        </div>
+
+        <!-- Compact Reference Data -->
+        <div
+          class="mb-6 p-3 rounded-lg bg-sky-500/10 dark:bg-sky-900/20 border border-sky-400/40 dark:border-sky-600/40"
+        >          <p class="text-sm font-medium text-rose-500 dark:text-cyan-300 mb-1">
+            Reference sheet used by this dashboard for live data connections. Open it if you need to inspect or update source values.
+          </p>
+          <div class="flex flex-wrap items-center gap-3">
+            <a
+              href="https://docs.google.com/spreadsheets/d/1NbkrKzAaiiEik1LGUAPm2GnstT23jDJV/edit?usp=sharing&ouid=104292123868888226876&rtpof=true&sd=true"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-sky-200/70 dark:border-sky-600/40 text-sky-600 dark:text-sky-200 hover:border-sky-300 hover:text-sky-300 transition"
+            >
+              <svg
+                aria-hidden="true"
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6.3 3.2h7.3l4.1 4.1v13.5H6.3c-1.2 0-2.1-.9-2.1-2.1V5.3c0-1.2.9-2.1 2.1-2.1z"
+                  fill="#16a34a"
+                ></path>
+                <path
+                  d="M13.6 3.2l4.1 4.1h-3.2c-.5 0-.9-.4-.9-.9V3.2z"
+                  fill="#4ade80"
+                ></path>
+                <rect x="7.8" y="10" width="8.4" height="1.8" rx=".35" fill="#ffffff"></rect>
+                <rect x="7.8" y="13.2" width="8.4" height="1.8" rx=".35" fill="#ffffff"></rect>
+                <rect x="7.8" y="16.4" width="8.4" height="1.8" rx=".35" fill="#ffffff"></rect>
+              </svg>
+              <span>Google Sheet</span>
+            </a>
+            <a
+              href="https://www.portfoliovisualizer.com/analysis"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-sky-200/70 dark:border-sky-600/40 text-sky-600 dark:text-sky-200 hover:border-sky-300 hover:text-sky-300 transition"
+            >
+              <svg
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 18h16" />
+                <path d="M6 14l3-4 4 3 5-7" />
+              </svg>
+              <span>Portfolio Visualizer</span>
+            </a>
+            <a
+              href="https://robinhood.com/retirement"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-sky-200/70 dark:border-sky-600/40 text-sky-600 dark:text-sky-200 hover:border-sky-300 hover:text-sky-300 transition"
+            >
+              <svg
+                aria-hidden="true"
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3.2" fill="#d7ff00"></rect>
+                <path
+                  d="M12.1 4.4c-3.25 1.83-6.58 5.13-8.53 8.55l3.05-.77c-.38 2.64-1.32 5.34-1.69 7.34 2.99-3.02 5.47-6.33 7.78-10.15l3.46-.86c-.59-1.98-2.27-3.59-4.07-4.11z"
+                  fill="#111111"
+                ></path>
+                <path
+                  d="M8.05 16.6c1.16-2.18 3.07-5.2 5.45-7.66"
+                  stroke="#d7ff00"
+                  stroke-width="1.05"
+                  stroke-linecap="round"
+                ></path>
+              </svg>
+              <span>Robinhood</span>
+            </a>
+            <a
+              href="https://app.koyfin.com/mp/5a-143ppe/summary"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-slate-300/70 dark:border-slate-600/40 text-slate-700 dark:text-slate-200 hover:border-slate-400 hover:text-slate-300 transition"
+            >
+              <svg
+                aria-hidden="true"
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 2.5L21.5 12 12 21.5 2.5 12 12 2.5z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round"
+                ></path>
+                <path
+                  d="M9 15l6-6"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+                <path
+                  d="M9 9h6v6"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+              </svg>
+              <span>Koyfin</span>
+            </a>
+            <a
+              href="https://snowball-analytics.com/public/portfolios/fzyALWvBTO"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-cyan-300/70 dark:border-cyan-600/50 text-cyan-700 dark:text-cyan-200 hover:border-cyan-400 hover:text-cyan-300 transition"
+            >
+              <svg
+                aria-hidden="true"
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <defs>
+                  <linearGradient id="snowballGradient" x1="5" y1="5" x2="19" y2="19" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#60a5fa"></stop>
+                    <stop offset="1" stop-color="#a855f7"></stop>
+                  </linearGradient>
+                </defs>
+                <circle cx="12" cy="12" r="10" fill="url(#snowballGradient)"></circle>
+                <text
+                  x="12"
+                  y="15"
+                  text-anchor="middle"
+                  font-family="Inter, 'Segoe UI', sans-serif"
+                  font-size="10"
+                  font-weight="700"
+                  fill="#ffffff"
+                >
+                  S
+                </text>
+              </svg>
+              <span>Snowball Analytics</span>
+            </a>
+            <a
+              href="https://portfolioslab.com/tools/portfolio-analysis?d=1ec01eb"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-emerald-300/70 dark:border-emerald-600/50 text-emerald-700 dark:text-emerald-200 hover:border-emerald-400 hover:text-emerald-300 transition"
+            >
+              <svg
+                aria-hidden="true"
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="12" cy="12" r="10" fill="#020202"></circle>
+                <path
+                  d="M12 4.5a7.5 7.5 0 1 1-5.303 12.803"
+                  stroke="#2dd4bf"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                ></path>
+                <path
+                  d="M12 4.5a7.5 7.5 0 0 0-7.5 7.5"
+                  stroke="#ffffff"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                ></path>
+                <path
+                  d="M5.5 15.5c2.5-1 4.5-1 6.5 0s4 1 6.5-1"
+                  stroke="#2dd4bf"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+              </svg>
+              <span>Pportfolioslab</span>
+            </a>
+            <a
+              href="https://totalrealreturns.com/s/VOO,VXUS,AVUV,AVDV,SPMO,SCHD,AMZN"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-amber-300/70 dark:border-amber-500/50 text-amber-700 dark:text-amber-200 hover:border-amber-400 hover:text-amber-300 transition"
+            >
+              <svg
+                aria-hidden="true"
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect x="2" y="2" width="20" height="20" rx="4" fill="#3f3f3f"></rect>
+                <rect x="6" y="5" width="12" height="4" rx="0.7" fill="#ff2a2a"></rect>
+                <rect x="6" y="10" width="12" height="4" rx="0.7" fill="#0057ff"></rect>
+                <rect x="6" y="15" width="12" height="4" rx="0.7" fill="#11a63c"></rect>
+              </svg>
+              <span>Total Returns</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+          <article
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-5 space-y-4"
+          >
+            <div class="space-y-1">
+              <p class="text-xs font-semibold tracking-widest uppercase text-sky-500 dark:text-sky-300">
+                API Connections
+              </p>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Alpha Vantage access</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Add your personal API key to unlock realtime data (prices, correlations, volatility). Keys stay on this
+                device and can be removed at any moment.
+              </p>
+            </div>
+            <form id="alphaKeyForm" class="space-y-4" autocomplete="off">
+              <div class="space-y-2">
+                <label
+                  for="alphaKeyInput"
+                  class="text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2"
+                >
+                  Alpha Vantage API key
+                  <span
+                    id="alphaKeyStatusBadge"
+                    class="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300"
+                  >
+                    Demo
+                  </span>
+                </label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="password"
+                    id="alphaKeyInput"
+                    class="flex-1 styled-input text-sm p-2 rounded-md border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                    autocomplete="off"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    placeholder="Enter personal key (e.g. ABC123...)"
+                  />
+                  <button
+                    type="button"
+                    id="alphaKeyToggleBtn"
+                    class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition"
+                  >
+                    Show
+                  </button>
+                </div>
+                <p id="alphaKeyStatus" class="text-xs text-gray-500 dark:text-gray-400">
+                  No custom key yet — dashboard remains on demo data.
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Save key
+                </button>
+                <button
+                  type="button"
+                  id="alphaKeyClearBtn"
+                  class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-semibold border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                >
+                  Clear key
+                </button>
+              </div>
+            </form>
+          </article>
+
+          <article
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-5 space-y-4"
+          >
+            <div class="space-y-1">
+              <p class="text-xs font-semibold tracking-widest uppercase text-amber-500 dark:text-amber-300">
+                Rebalance Protocol
+              </p>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Annual Rebalance Clock</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Lock in a fixed 01/01 rebalance (or any date you choose), track the countdown, buffer warnings, and mark
+                completion so the next cycle is always ready.
+              </p>
+            </div>
+
+            <div class="space-y-4">
+              <div
+                class="rounded-xl border border-gray-200 dark:border-gray-700 bg-slate-50/60 dark:bg-slate-900/40 p-4 space-y-3"
+              >
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                      Countdown to next window
+                    </p>
+                    <p
+                      id="rebalanceCountdownPrimary"
+                      class="text-3xl md:text-4xl font-semibold text-emerald-500 dark:text-emerald-300"
+                    >
+                      --
+                    </p>
+                    <p id="rebalanceCountdownSecondary" class="text-xs text-gray-500 dark:text-gray-400">
+                      No schedule yet
+                    </p>
+                  </div>
+                  <div class="text-right">
+                    <span
+                      id="rebalanceBufferBadge"
+                      class="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-600 dark:border-emerald-400/40 dark:bg-emerald-600/10 dark:text-emerald-300"
+                      >Ðang theo dõi</span
+                    >
+                  </div>
+                </div>
+                <div class="h-2 rounded-full bg-gray-200/80 dark:bg-gray-700/80 overflow-hidden">
+                  <span
+                    id="rebalanceYearProgress"
+                    class="block h-full bg-gradient-to-r from-emerald-400 to-sky-400 transition-all duration-500"
+                    style="width: 0%"
+                  ></span>
+                </div>
+                <div class="flex flex-wrap gap-4 text-xs text-gray-600 dark:text-gray-300">
+                  <div>
+                    <p class="uppercase tracking-widest text-[10px] text-slate-400 dark:text-slate-500">Next window</p>
+                    <p id="rebalanceNextDateLabel" class="font-semibold text-gray-800 dark:text-gray-100">--</p>
+                  </div>
+                  <div>
+                    <p class="uppercase tracking-widest text-[10px] text-slate-400 dark:text-slate-500">Last completed</p>
+                    <p id="rebalanceLastDoneLabel" class="font-semibold text-gray-800 dark:text-gray-100">--</p>
+                  </div>
+                </div>
+              </div>
+
+              <form
+                id="rebalanceScheduleForm"
+                class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end bg-slate-50/40 dark:bg-slate-900/30 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
+              >
+                <div class="space-y-1">
+                  <label for="rebalanceTargetInput" class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                    Annual target date
+                  </label>
+                  <input
+                    type="date"
+                    id="rebalanceTargetInput"
+                    class="styled-input w-full text-sm p-2 rounded-md border border-gray-300 dark:border-gray-600 focus:border-amber-500 dark:focus:border-amber-400 transition-colors"
+                  />
+                </div>
+                <div class="space-y-1">
+                  <label for="rebalanceBufferInput" class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                    Warning buffer (days)
+                  </label>
+                  <input
+                    type="number"
+                    id="rebalanceBufferInput"
+                    min="0"
+                    max="60"
+                    class="styled-input w-full text-sm p-2 rounded-md border border-gray-300 dark:border-gray-600 focus:border-amber-500 dark:focus:border-amber-400 transition-colors"
+                    placeholder="3"
+                  />
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    type="submit"
+                    id="rebalanceScheduleSaveBtn"
+                    class="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                  >
+                    Save schedule
+                  </button>
+                  <button
+                    type="button"
+                    id="rebalanceMarkCompleteBtn"
+                    class="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                  >
+                    Mark completed
+                  </button>
+                </div>
+              </form>
+            </div>
+          </article>
+        </div>
+
+        <div
+          class="mb-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden"
+        >
+          <div
+            class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 px-5 py-4 border-b border-gray-200 dark:border-gray-700"
+          >
+            <div class="space-y-1">
+              <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                Live snapshot from Google Sheets
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                Auto-refreshes every 60 seconds. Trigger a manual sync anytime.
+              </p>
+            </div>
+            <div
+              class="flex flex-wrap items-center gap-3"
+            >
+              <div
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-500/10 dark:bg-sky-900/30 border border-sky-500/30 text-sky-600 dark:text-sky-200 text-xs font-semibold"
+              >
+                <span class="uppercase tracking-wide text-[10px] text-sky-400 dark:text-sky-200/80"
+                  >Total Value</span
+                >
+                <span
+                  id="livePriceSummaryValue"
+                  class="text-sm font-semibold text-slate-900 dark:text-slate-100"
+                  >--</span
+                >
+              </div>
+              <div
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-900/30 border border-emerald-500/30 text-emerald-600 dark:text-emerald-200 text-xs font-semibold"
+              >
+                <span class="uppercase tracking-wide text-[10px] text-emerald-400 dark:text-emerald-200/80"
+                  >Total Return</span
+                >
+                <span
+                  id="livePriceSummaryGain"
+                  class="text-sm font-semibold"
+                  >--</span
+                >
+              </div>
+              <div
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 dark:bg-amber-900/40 border border-amber-500/30 text-amber-600 dark:text-amber-200 text-xs font-semibold"
+              >
+                <span class="uppercase tracking-wide text-[10px] text-amber-400 dark:text-amber-200/80"
+                  >Yield Income</span
+                >
+                <span
+                  id="livePriceSummaryYield"
+                  class="text-sm font-semibold"
+                  >--</span
+                >
+              </div>
+              <span
+                id="livePriceStatus"
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-900/80 text-gray-600 dark:text-gray-300 border border-gray-200/80 dark:border-gray-700/60"
+                >Waiting for data...</span
+              >
+              <button
+                id="livePriceRefreshBtn"
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sky-500/40 text-sky-600 dark:text-sky-200 bg-white/70 dark:bg-slate-900/50 text-xs font-semibold hover:bg-sky-500/10 hover:border-sky-500/70 transition"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  ></path>
+                </svg>
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto live-snapshot-scroll">
+            <table
+              class="live-price-table min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm"
+            >
+              <caption class="sr-only">
+                Live holdings snapshot with invested capital, allocation percentages, gains, losses, and yield
+              </caption>
+              <thead class="bg-gray-50 dark:bg-gray-700/80 backdrop-blur">
+                <tr
+                  class="text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider text-right"
+                >
+                  <th scope="col" class="px-4 py-3 text-left">Ticker</th>
+                  <th scope="col" class="px-4 py-3">Total Invested ($)</th>
+                  <th scope="col" class="px-4 py-3">Held %</th>
+                  <th scope="col" class="px-4 py-3">Shares Held</th>
+                  <th scope="col" class="px-4 py-3">Stock Price ($)</th>
+                  <th scope="col" class="px-4 py-3">Current Value ($)</th>
+                  <th scope="col" class="px-4 py-3">Current %</th>
+                  <th scope="col" class="px-4 py-3">Gain/Loss ($)</th>
+                  <th scope="col" class="px-4 py-3">Gain/Loss (%)</th>
+                  <th scope="col" class="px-4 py-3">Yield Income ($)</th>
+                  <th scope="col" class="px-4 py-3">Total Return ($)</th>
+                </tr>
+              </thead>
+              <tbody
+                id="livePriceRows"
+                class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-100"
+              ></tbody>
+              <tfoot class="bg-gray-100 dark:bg-gray-700 font-semibold text-gray-800 dark:text-gray-100">
+                <tr id="live-price-total-row">
+                  <th scope="row" class="px-4 py-3 text-left">TOTAL</th>
+                  <td class="px-4 py-3 text-right" data-field="totalInvested" data-label="Total invested ($)">--</td>
+                  <td class="px-4 py-3 text-right" data-field="held" data-label="Held %">--</td>
+                  <td class="px-4 py-3 text-right" data-field="shares" data-label="Shares held">--</td>
+                  <td class="px-4 py-3 text-right" data-field="price" data-label="Stock price ($)">--</td>
+                  <td class="px-4 py-3 text-right" data-field="currentValue" data-label="Current value ($)">--</td>
+                  <td class="px-4 py-3 text-right" data-field="currentPercent" data-label="Current %">--</td>
+                  <td class="px-4 py-3 text-right" data-field="gain" data-label="Gain/loss ($)">--</td>
+                  <td class="px-4 py-3 text-right" data-field="gainPercent" data-label="Gain/loss (%)">--</td>
+                  <td class="px-4 py-3 text-right" data-field="yield" data-label="Yield income ($)">--</td>
+                  <td class="px-4 py-3 text-right" data-field="totalReturn" data-label="Total return ($)">--</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+          <article
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-5 space-y-4"
+          >
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+                  Guardrail Status
+                </p>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Drift Monitor</h3>
+                <p id="driftMonitorStatus" class="text-sm text-slate-500 dark:text-slate-400">
+                  Awaiting first calculation.
+                </p>
+              </div>
+              <div class="drift-gauge" role="img" aria-live="polite" aria-label="Holdings inside guardrail">
+                <div class="drift-gauge__ring" id="driftGaugeRing">
+                  <div class="drift-gauge__mask">
+                    <span id="driftGaugeValue" class="drift-gauge__value">0%</span>
+                    <span id="driftGaugeCaption" class="drift-gauge__caption">No data</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+              <div class="drift-stat">
+                <dt>Within guardrail</dt>
+                <dd id="driftInBoundsCount">--</dd>
+                <small id="driftInBoundsPercent">-- of fleet</small>
+              </div>
+              <div class="drift-stat">
+                <dt>Outliers</dt>
+                <dd id="driftOutBoundsCount">--</dd>
+                <small id="driftOutBoundsPercent">Need attention</small>
+              </div>
+              <div class="drift-stat">
+                <dt>Cumulative drift</dt>
+                <dd id="driftCumulativeValue">--</dd>
+                <small id="driftCumulativeNote">Run module 6A</small>
+              </div>
+            </dl>
+            <div>
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-[11px] font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+                  Priority offenders
+                </p>
+                <span
+                  id="driftGuardrailChip"
+                  class="inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:border-amber-400/60 dark:bg-amber-500/20 dark:text-amber-200"
+                >
+                  Guardrail --
+                </span>
+              </div>
+              <div id="driftOffenderList" class="drift-offender-list mt-2" aria-live="polite">
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  Launch a rebalance scan to surface top drifts instantly.
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-5 space-y-4"
+          >
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+                  Event Timeline
+                </p>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Hangar Activity Log</h3>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span
+                  id="logisticsActivityStatus"
+                  class="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 font-semibold text-slate-500 dark:text-slate-300"
+                >
+                  Waiting for actions
+                </span>
+                <button
+                  id="activityLogClearBtn"
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-600 px-2.5 py-1 font-semibold text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            <ul id="logisticsActivityList" class="ops-log-list" aria-live="polite">
+              <li class="ops-log-empty">
+                <span>No actions recorded yet. Run a refresh or rebalance to populate the feed.</span>
+              </li>
+            </ul>
+            <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+              <span
+                id="activityLogHint"
+                class="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1"
+              >
+                Feed tracks refreshes, guardrail scans, deposits, and helper runs.
+              </span>
+              <button
+                id="activityLogExportBtn"
+                type="button"
+                class="inline-flex items-center gap-1 font-semibold text-sky-600 dark:text-sky-300 hover:underline"
+              >
+                Copy summary
+              </button>
+            </div>
+          </article>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- 6A: REBALANCE TOOL -->
+          <div
+            class="rebalance-card bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-4"
+          >
+            <h3
+              class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2"
+            >
+              <svg
+                class="w-5 h-5 text-sky-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                ></path>
+              </svg>
+              Portfolio Tracker & Rebalance
+            </h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Enter current values from your sheet
+              </p>
+
+              <div class="flex flex-wrap gap-2 mb-3">
+                <button
+                  id="rebalanceNormalizeBtn"
+                  type="button"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white/80 dark:bg-slate-900/50 hover:border-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                >
+                  <span>Normalize Targets</span>
+                </button>
+                <button
+                  id="rebalanceResetTargetsBtn"
+                  type="button"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-rose-300 dark:border-rose-600 text-xs font-semibold text-rose-600 dark:text-rose-300 bg-white/80 dark:bg-rose-950/40 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-200 transition"
+                >
+                  <span>Reset to Defaults</span>
+                </button>
+              </div>
+
+              <div class="overflow-x-auto fancy-scrollbar">
+                <table
+                  class="min-w-full divide-y divide-gray-200 dark:divide-gray-600 text-sm"
+                >
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                  <tr
+                    class="text-[11px] md:text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider text-right"
+                  >
+                      <th class="px-2 py-2 text-left">Ticker</th>
+                      <th class="px-2 py-2">Target %</th>
+                      <th class="px-2 py-2">Current ($)</th>
+                      <th class="px-2 py-2">Current %</th>
+                      <th class="px-2 py-2">Drift %</th>
+                      <th class="px-2 py-2">Rebalance ($)</th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="rebalanceInputs"
+                    class="divide-y divide-gray-200 dark:divide-gray-700"
+                  ></tbody>
+                  <tfoot class="bg-gray-100 dark:bg-gray-700 font-semibold">
+                    <tr>
+                      <td class="px-3 py-2 text-left">TOTAL</td>
+                      <td id="totalTarget" class="px-3 py-2 text-right"></td>
+                      <td
+                        id="totalCurrentValue"
+                        class="px-3 py-2 text-right"
+                      ></td>
+                      <td
+                        id="totalCurrentPercent"
+                        class="px-3 py-2 text-right"
+                      ></td>
+                      <td
+                        id="totalDrift"
+                        class="px-3 py-2 text-right text-slate-500"
+                      ></td>
+                      <td id="totalRebalance" class="px-3 py-2 text-right"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+            <button
+              id="calculateRebalanceBtn"
+              class="w-full mt-4 bg-rose-600 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500/50 transition-all duration-200 text-sm"
+            >
+              Update
+            </button>
+
+              <div
+                id="rebalanceResults"
+                class="mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+              >
+                <div class="rebalance-results-content">
+                  <div class="rebalance-results-header flex items-start justify-between gap-3">
+                    <div>
+                      <h4 class="text-xl font-bold text-slate-700 dark:text-slate-200">Rebalance snapshot pending</h4>
+                      <p class="text-xs text-slate-600 dark:text-slate-400">
+                        Run an update to surface buy/sell suggestions. Adjust the guardrail below to change when alerts trigger.
+                      </p>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold uppercase tracking-wide">Idle</span>
+                  </div>
+                  <div class="rebalance-results-scroll fancy-scrollbar">
+                    <div class="flex items-center justify-center h-full">
+                      <p class="text-sm font-medium text-slate-600 dark:text-slate-300 text-center">
+                        Run an update to surface buy/sell suggestions. Adjust the guardrail below to change when alerts trigger.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                id="rebalanceAdvancedTools"
+                class="rebalance-advanced-tools grid grid-cols-1 xl:grid-cols-3 gap-4"
+              >
+                <div
+                  class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/50 p-4 flex flex-col gap-3"
+                >
+                  <div class="flex items-center justify-between">
+                    <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      Control Center
+                    </h4>
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300"
+                    >
+                      Drift tolerance
+                    </span>
+                  </div>
+                  <div>
+                    <label
+                      for="rebalanceToleranceInput"
+                      class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2"
+                    >
+                      Trigger warning at
+                      <span
+                        id="rebalanceToleranceValue"
+                        class="font-semibold text-slate-800 dark:text-slate-100"
+                        >5.0%</span
+                      >
+                    </label>
+                    <input
+                      type="range"
+                      id="rebalanceToleranceInput"
+                      min="1"
+                      max="15"
+                      step="0.5"
+                      class="w-full accent-rose-500"
+                    />
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
+                      Lower the threshold to rebalance sooner, or raise it to allow more drift before firing alerts.
+                    </p>
+                  </div>
+                  <button
+                    id="rebalanceResetControlsBtn"
+                    type="button"
+                    class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-600 dark:text-slate-200 hover:border-slate-400 hover:text-slate-800 dark:hover:text-white transition"
+                  >
+                    Reset controls
+                  </button>
+                </div>
+
+                <div
+                  class="rounded-xl border border-emerald-200/70 dark:border-emerald-700/60 bg-emerald-50/70 dark:bg-emerald-900/30 p-4 flex flex-col gap-3"
+                >
+                  <div class="flex items-center justify-between">
+                    <h4 class="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                      Trade Flow Snapshot
+                    </h4>
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white/70 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-200"
+                    >
+                      Auto-updated
+                    </span>
+                  </div>
+                  <dl class="space-y-2 text-sm">
+                    <div class="flex items-center justify-between">
+                      <dt class="text-emerald-700 dark:text-emerald-200">Buys Required</dt>
+                      <dd
+                        id="rebalanceTotalBuy"
+                        class="font-semibold text-emerald-900 dark:text-emerald-100"
+                      >
+                        $0.00
+                      </dd>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <dt class="text-emerald-700 dark:text-emerald-200">Sells Required</dt>
+                      <dd
+                        id="rebalanceTotalSell"
+                        class="font-semibold text-emerald-900 dark:text-emerald-100"
+                      >
+                        $0.00
+                      </dd>
+                    </div>
+                    <div class="flex items-center justify-between border-t border-emerald-200/70 dark:border-emerald-700/50 pt-2">
+                      <dt class="text-emerald-700 dark:text-emerald-200">Net Cash Flow</dt>
+                      <dd
+                        id="rebalanceNetFlow"
+                        class="font-semibold text-emerald-900 dark:text-emerald-100"
+                      >
+                        $0.00
+                      </dd>
+                    </div>
+                  </dl>
+                  <button
+                    id="rebalanceCopySummaryBtn"
+                    type="button"
+                    class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-emerald-300 dark:border-emerald-600 text-xs font-semibold text-emerald-700 dark:text-emerald-100 hover:border-emerald-400 hover:text-emerald-900 dark:hover:text-white transition"
+                  >
+                    Copy trade summary
+                  </button>
+                </div>
+
+                <div
+                  class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/50 p-4 flex flex-col gap-3"
+                >
+                  <div class="flex items-center justify-between">
+                    <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      Drift Watchlist
+                    </h4>
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300"
+                    >
+                      Top movers
+                    </span>
+                  </div>
+                  <div
+                    id="rebalanceTopDrifts"
+                    class="space-y-2 text-sm text-slate-600 dark:text-slate-300"
+                  >
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                      Update the table to surface the biggest deviations.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-6">
+            <!-- 6B: NEW DEPOSIT ALLOCATION TOOL -->
+            <div
+              class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-4"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2"
+              >
+                <svg
+                  class="w-5 h-5 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  ></path>
+                </svg>
+                Deposit Allocation Tool
+              </h3>
+
+              <div
+                class="grid gap-3 md:grid-cols-[minmax(0,220px)_minmax(0,220px)_auto] md:items-end"
+              >
+                <div>
+                  <label
+                    for="newDepositInput"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1"
+                    >Deposit Amount ($)</label
+                  >
+                  <input
+                    type="number"
+                    id="newDepositInput"
+                    value="500"
+                    min="0"
+                    step="0.01"
+                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-black focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label
+                    for="depositRoundingMode"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1"
+                    >Rounding Mode</label
+                  >
+                  <select
+                    id="depositRoundingMode"
+                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors"
+                  >
+                    <option value="exact">Exact dollars (no rounding)</option>
+                    <option value="floor">Whole shares (round down)</option>
+                    <option value="nearest">Whole shares (nearest share)</option>
+                  </select>
+                </div>
+                <button
+                  id="calculateDepositAllocationBtn"
+                  class="w-full md:w-auto bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 text-sm md:justify-self-end"
+                >
+                  Calculate Allocation
+                </button>
+              </div>
+              <div
+                class="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400"
+              >
+                <span
+                  id="depositPriceStatus"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-200"
+                  >Waiting for live prices...</span
+                >
+                <span
+                  id="depositCalcSummary"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-200/70 dark:bg-gray-700/80 text-gray-600 dark:text-gray-300"
+                  >No allocation calculated yet.</span
+                >
+              </div>
+
+              <div
+                id="depositAllocationResults"
+                class="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+              >
+                <h4
+                  class="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-3"
+                >
+                  Proposed Allocation ($)
+                </h4>
+                <div class="overflow-x-auto">
+                  <table
+                    class="min-w-full divide-y divide-gray-200 dark:divide-gray-600 text-sm"
+                  >
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                      <tr
+                        class="text-[11px] md:text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider text-right"
+                      >
+                        <th class="px-2 py-2 text-left">Ticker</th>
+                        <th class="px-2 py-2">Target %</th>
+                        <th class="px-2 py-2">Price ($)</th>
+                        <th class="px-2 py-2">Raw ($)</th>
+                        <th class="px-2 py-2">Shares</th>
+                        <th class="px-2 py-2">Final ($)</th>
+                      </tr>
+                    </thead>
+                    <tbody
+                      id="depositAllocationRows"
+                      class="divide-y divide-gray-200 dark:divide-gray-700"
+                    ></tbody>
+                    <tfoot class="bg-gray-100 dark:bg-gray-700 font-semibold">
+                      <tr>
+                        <td class="px-2 py-2 text-left">TOTAL</td>
+                        <td
+                          id="totalTargetAlloc"
+                          class="px-2 py-2 text-right"
+                        ></td>
+                        <td
+                          class="px-2 py-2 text-right text-gray-400 dark:text-gray-500"
+                        >
+                          --
+                        </td>
+                        <td
+                          id="totalRawAmount"
+                          class="px-2 py-2 text-right"
+                        ></td>
+                        <td
+                          class="px-2 py-2 text-right text-gray-400 dark:text-gray-500"
+                        >
+                          --
+                        </td>
+                        <td
+                          id="totalAllocatedAmount"
+                          class="px-2 py-2 text-right text-blue-600 dark:text-blue-400"
+                        ></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <div
+                  id="depositAllocationSummary"
+                  class="mt-3 grid gap-3 sm:grid-cols-2"
+                >
+                  <div
+                    class="rounded-lg border border-blue-200 dark:border-blue-800 bg-white/80 dark:bg-blue-900/10 p-3"
+                  >
+                    <p class="text-xs font-semibold text-blue-700 dark:text-blue-200">
+                      Leftover Cash / Shortfall
+                    </p>
+                    <p
+                      id="depositLeftoverAmount"
+                      class="text-lg font-semibold text-blue-800 dark:text-blue-200"
+                    >
+                      $0.00
+                    </p>
+                    <p
+                      id="depositLeftoverNote"
+                      class="text-[11px] text-blue-700/80 dark:text-blue-200/80"
+                    >
+                      Calculated after applying the selected rounding mode.
+                    </p>
+                  </div>
+                  <div
+                    class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/30 p-3"
+                  >
+                    <p class="text-xs font-semibold text-slate-600 dark:text-slate-200">
+                      Allocation Integrity
+                    </p>
+                    <p
+                      id="depositIntegritySummary"
+                      class="text-lg font-semibold text-slate-700 dark:text-slate-100"
+                    >
+                      Waiting for calculation
+                    </p>
+                    <p
+                      id="depositIntegrityNote"
+                      class="text-[11px] text-slate-500 dark:text-slate-400"
+                    >
+                      Targets rescale automatically when totals deviate from 100%.
+                    </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+            <!-- 6C: DEPOSIT REBALANCING HELPER -->
+            <div
+              class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-4"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2"
+              >
+                <svg
+                  class="w-5 h-5 text-amber-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.636 1.006M12 8V6m0 12v-2m8-4a8 8 0 11-16 0 8 8 0 0116 0z"
+                  ></path>
+                </svg>
+                Deposit Rebalancing Helper
+              </h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                Use this helper to distribute fresh supply shipments across squads while staying aligned with mission loadouts. Enter the crate value, confirm target ratios, then run the calculator to see how much to allocate to each unit.
+              </p>
+
+              <div
+                class="grid gap-4 mb-4 md:grid-cols-[minmax(0,220px)_minmax(0,240px)_auto]"
+              >
+                <div class="w-full">
+                  <label
+                    for="rebalanceDepositAmount"
+                    class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1"
+                    >Total Deposit ($)</label
+                  >
+                  <input
+                    type="number"
+                    id="rebalanceDepositAmount"
+                    min="0"
+                    step="0.01"
+                    placeholder="Enter deposit amount"
+                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/60"
+                  />
+                  <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                    Tip: leave the field blank or zero if you do not want the new deposit to touch a holding.
+                  </p>
+                </div>
+                <div class="w-full">
+                  <label
+                    for="rebalanceRoundingMode"
+                    class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1"
+                    >Share Rounding</label
+                  >
+                  <select
+                    id="rebalanceRoundingMode"
+                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/60"
+                  >
+                    <option value="exact">Exact dollars (no rounding)</option>
+                    <option value="floor">Whole shares (round down)</option>
+                    <option value="nearest">Whole shares (nearest)</option>
+                  </select>
+                  <div class="flex items-center gap-2 mt-2">
+                    <input
+                      type="checkbox"
+                      id="rebalanceAutoDistributeCheckbox"
+                      class="h-3.5 w-3.5 rounded border-gray-300 text-amber-500 focus:ring-amber-400"
+                      checked
+                    />
+                    <label
+                      for="rebalanceAutoDistributeCheckbox"
+                      class="text-[11px] font-medium text-gray-500 dark:text-gray-400"
+                      >Auto-spend leftover by target weight</label
+                    >
+                  </div>
+                </div>
+                <button
+                  id="rebalanceDepositCalcBtn"
+                  class="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-md shadow focus:outline-none focus:ring-2 focus:ring-amber-400/60 transition"
+                >
+                  Run Allocation
+                  <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 4v6h6M20 20v-6h-6M5 19a9 9 0 010-14M19 5a9 9 0 010 14"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="overflow-x-auto fancy-scrollbar">
+                <table
+                  class="min-w-full divide-y divide-gray-200 dark:divide-gray-600 text-xs md:text-sm deposit-rebalance-table"
+                >
+                  <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr
+                      class="text-[1px] md:text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider text-center"
+                    >
+                      <th class="px-1 py-2 text-left">Lock</th>
+                      <th class="px-1 py-2 text-left">Ticker</th>
+                      <th class="px-1 py-2">Current ($)</th>
+                      <th class="px-1 py-2">Target %</th>
+                      <th class="px-1 py-2">Current %</th>
+                      <th class="px-1 py-2 bg-amber-500/10 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200 rounded">Deposit ($)</th>
+                      <th class="px-1 py-2">New ($)</th>
+                      <th class="px-1 py-2">New %</th>
+                      <th class="px-1 py-2">Delta vs Target (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="rebalanceDepositRows"
+                    class="divide-y divide-gray-200 dark:divide-gray-700"
+                  ></tbody>
+                  <tfoot class="bg-gray-100 dark:bg-gray-700 font-semibold text-gray-800 dark:text-gray-100">
+                    <tr id="rebalance-deposit-total-row">
+                      <td class="px-1 py-2 text-left text-gray-500 dark:text-gray-400">--</td>
+                      <td class="px-1 py-2 text-left">TOTAL</td>
+                      <td class="px-1 py-2 text-right" data-field="current">--</td>
+                      <td class="px-1 py-2 text-right text-xs text-gray-500 dark:text-gray-400">100%</td>
+                      <td class="px-1 py-2 text-right" data-field="currentPercent">--</td>
+                      <td class="px-1 py-2 text-right" data-field="deposit"><span class="inline-flex items-center justify-end min-w-[72px] px-2 py-1 rounded bg-amber-500/20 text-amber-700 dark:bg-amber-500/30 dark:text-amber-200 font-semibold">--</span></td>
+                      <td class="px-1 py-2 text-right" data-field="newValue">--</td>
+                      <td class="px-1 py-2 text-right" data-field="newPercent">--</td>
+                      <td class="px-1 py-2 text-right" data-field="delta">--</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <div
+                id="rebalanceDepositSummary"
+                class="mt-3 grid gap-3 sm:grid-cols-2"
+              >
+                <div
+                  class="rounded-lg border border-amber-300/60 dark:border-amber-500/40 bg-white/70 dark:bg-amber-500/10 p-3"
+                >
+                  <p class="text-xs font-semibold text-amber-700 dark:text-amber-200">
+                    Cash Deployment
+                  </p>
+                  <p
+                    id="rebalanceSpentSummary"
+                    class="text-lg font-semibold text-amber-700 dark:text-amber-200"
+                  >
+                    $0.00 spent
+                  </p>
+                  <p
+                    id="rebalanceLeftoverSummary"
+                    class="text-[11px] text-amber-700/80 dark:text-amber-200/80"
+                  >
+                    $0.00 leftover
+                  </p>
+                </div>
+                <div
+                  class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/40 p-3"
+                >
+                  <p class="text-xs font-semibold text-slate-600 dark:text-slate-200">
+                    Rebalance Impact
+                  </p>
+                  <p
+                    id="rebalanceImpactSummary"
+                    class="text-lg font-semibold text-slate-700 dark:text-slate-100"
+                  >
+                    Waiting for calculation
+                  </p>
+                  <p
+                    id="rebalanceImpactNote"
+                    class="text-[11px] text-slate-500 dark:text-slate-400"
+                  >
+                    Run the allocation to see drift improvements and holdings touched.
+                  </p>
+                </div>
+              </div>
+              <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-3">
+                Notes: totals stay pinned at 100% for both current and proposed allocations. Deposit and new value columns update live as you edit weights or cash.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>

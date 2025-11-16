@@ -1,0 +1,1058 @@
+
+
+      <section id="analytics" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">7. Analysis Deck</h2>
+            <p class="section-intro">
+              Interrogate sortie logs, threat exposure, and diversification metrics as you tune each squad's mission profile.
+            </p>
+          </div>
+        </div>
+
+        <div
+          id="livePortfolioChartCard"
+          class="relative mb-10 overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 text-slate-900 shadow-xl transition-colors dark:border-slate-800 dark:bg-slate-950/90 dark:text-slate-100"
+        >
+          <div class="pointer-events-none absolute inset-0">
+            <div
+              class="absolute -top-24 -left-16 h-64 w-64 rounded-full bg-emerald-400/25 blur-3xl dark:bg-emerald-500/25"
+              aria-hidden="true"
+            ></div>
+            <div
+              class="absolute top-1/2 right-0 h-72 w-72 -translate-y-1/2 bg-sky-400/20 blur-3xl dark:bg-sky-500/20"
+              aria-hidden="true"
+            ></div>
+            <div
+              class="absolute -bottom-24 left-1/3 h-60 w-60 rounded-full bg-purple-500/15 blur-3xl dark:bg-purple-500/20"
+              aria-hidden="true"
+            ></div>
+          </div>
+          <div class="relative p-6 md:p-8">
+            <div class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+              <div class="max-w-2xl space-y-3">
+                <span
+                  class="inline-flex items-center gap-2 rounded-full border border-emerald-400/50 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-600 dark:border-emerald-300/40 dark:bg-emerald-500/15 dark:text-emerald-200"
+                >
+                  <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Live Equity Curve
+                </span>
+                <div>
+                  <h3 class="text-3xl font-semibold tracking-tight">Roth IRA Portfolio</h3>
+                  <p
+                    id="livePortfolioChartStatus"
+                    class="mt-1 text-sm text-slate-500 dark:text-slate-400"
+                  >
+                    Waiting for Google Sheets data...
+                  </p>
+                </div>
+              </div>
+              <div class="flex flex-col items-end gap-3 text-right">
+                <div>
+                  <p
+                    id="livePortfolioTotalValue"
+                    class="text-4xl font-semibold tracking-tight"
+                  >
+                    --
+                  </p>
+                  <p id="livePortfolioTotalChange" class="text-sm font-semibold">--</p>
+                </div>
+              </div>
+            </div>
+            <div
+              class="mt-6 flex flex-wrap items-center gap-2 rounded-full bg-slate-100/70 p-1.5 text-xs font-semibold text-gray-400 shadow-inner dark:bg-slate-900/60 dark:text-gray-500"
+              role="group"
+              aria-label="Equity range selector"
+            >
+              <button
+                type="button"
+                class="live-equity-range-btn rounded-full border border-transparent px-4 py-1.5 transition-colors"
+                data-range="1D"
+              >
+                1D
+              </button>
+              <button
+                type="button"
+                class="live-equity-range-btn rounded-full border border-transparent px-4 py-1.5 transition-colors"
+                data-range="1W"
+              >
+                1W
+              </button>
+              <button
+                type="button"
+                class="live-equity-range-btn rounded-full border border-transparent px-4 py-1.5 transition-colors"
+                data-range="1M"
+              >
+                1M
+              </button>
+              <button
+                type="button"
+                class="live-equity-range-btn rounded-full border border-transparent px-4 py-1.5 transition-colors"
+                data-range="3M"
+              >
+                3M
+              </button>
+              <button
+                type="button"
+                class="live-equity-range-btn rounded-full border border-transparent px-4 py-1.5 transition-colors"
+                data-range="YTD"
+              >
+                YTD
+              </button>
+              <button
+                type="button"
+                class="live-equity-range-btn rounded-full border border-transparent px-4 py-1.5 transition-colors"
+                data-range="1Y"
+              >
+                1Y
+              </button>
+              <button
+                type="button"
+                class="live-equity-range-btn rounded-full border border-transparent px-4 py-1.5 transition-colors"
+                data-range="ALL"
+              >
+                ALL
+              </button>
+            </div>
+            <div
+              class="mt-6 relative rounded-2xl border border-slate-200/80 bg-slate-900/95 p-3 shadow-inner dark:border-slate-800/80 dark:bg-slate-950/70"
+              style="min-height: 280px"
+            >
+              <canvas id="livePortfolioChart" class="h-full w-full"></canvas>
+              <p
+                id="livePortfolioChartEmpty"
+                class="absolute inset-3 flex items-center justify-center rounded-xl bg-white/80 text-center text-sm text-slate-500 dark:bg-slate-950/70 dark:text-slate-300"
+              >
+                Waiting for enough data to draw the equity curve. Keep the page open while the Google Sheets feed syncs.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="analysis-hud" id="analysisHud">
+          <div class="analysis-hud__backdrop" aria-hidden="true"></div>
+          <div class="analysis-hud__scanlines" aria-hidden="true"></div>
+
+          <div class="analysis-hud__header">
+            <div>
+              <p class="analysis-hud__eyebrow">Neo Zeon Telemetry Feed</p>
+              <h3 class="analysis-hud__title">Mission Metric Console</h3>
+              <p class="analysis-hud__meta text-xs text-slate-500 dark:text-slate-400">
+                Baseline backtest Jan&nbsp;2020&nbsp;&ndash;&nbsp;Sep&nbsp;2025 (Portfolio Visualizer)
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                id="resetAssumptionsBtn"
+                class="inline-flex items-center gap-2 rounded-md border border-emerald-400/60 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-600 transition hover:bg-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 focus:ring-offset-2 focus:ring-offset-slate-900/40 dark:border-emerald-400/40 dark:bg-emerald-600/10 dark:text-emerald-300 dark:hover:bg-emerald-600/20"
+                title="Reset expected return assumptions to the portfolio baseline"
+              >
+                <svg
+                  class="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path d="M3 12a9 9 0 1115.9 5.9"></path>
+                  <path d="M3 12h4"></path>
+                  <path d="M3 16v-4"></path>
+                </svg>
+                <span>Reset assumptions</span>
+              </button>
+              <button
+                type="button"
+                id="hudModeToggle"
+                class="hud-mode-toggle"
+                aria-pressed="false"
+              >
+                <span class="hud-mode-toggle__label">Mission Mode</span>
+                <span class="hud-mode-toggle__rail">
+                  <span class="hud-mode-toggle__pill hud-mode-toggle__pill--analysis">Analysis</span>
+                  <span class="hud-mode-toggle__pill hud-mode-toggle__pill--combat">Combat</span>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div class="analysis-hud__grid analysis-hud__grid--matrix">
+            <article class="hud-card hud-card--return">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 01</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 15l4.5-4.5L12 14l6-6"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M16 8h4v4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Expected Annual Return</h3>
+                <p id="expectedReturnValue" class="hud-card__value">-</p>
+                <p id="expectedReturnDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Growth Vector</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--volatility">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 02</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 18h16M4 6h16M8 6v12m8-12v12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Portfolio Volatility</h3>
+                <p id="volatilityValue" class="hud-card__value">-</p>
+                <p id="volatilityDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Stability Monitor</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--sharpe">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 03</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M5 17l4-9 3 5 3-7 4 11"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Sharpe Ratio</h3>
+                <p id="sharpeValue" class="hud-card__value">-</p>
+                <p id="sharpeDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Efficiency Index</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--beta">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 04</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M5 12h5l2-4 2 8 2-4h3"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Portfolio Beta</h3>
+                <p id="portfolioBetaValue" class="hud-card__value">-</p>
+                <p id="betaDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Market Sync</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--score">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 05</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 12l4 4 12-12"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <circle
+                      cx="8"
+                      cy="16"
+                      r="1"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Portfolio Score</h3>
+                <p id="analyticsPortfolioScore" class="hud-card__value">-</p>
+                <p id="portfolioScoreDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Composite Signal</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--diversity">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 06</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 12h16M8 8l4-4 4 4M8 16l4 4 4-4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Diversity Score</h3>
+                <p id="diversityScoreValue" class="hud-card__value">-</p>
+                <p id="diversityDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Spread Index</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+            <article class="hud-card hud-card--compact hud-card--sortino">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 07</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M5 19V9l6 4 8-8"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Sortino Ratio</h3>
+                <p id="sortinoValue" class="hud-card__value">-</p>
+                <p id="sortinoDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Downside Shield</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--drawdown">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 08</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M5 6l4 4-4 4m10-8l4 4-4 4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M9 10h6"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Max Drawdown</h3>
+                <p id="maxDrawdownValue" class="hud-card__value">-</p>
+                <p id="maxDrawdownDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Loss Containment</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--calmar">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 09</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 16l6-8 4 5 6-9"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Calmar Ratio</h3>
+                <p id="calmarValue" class="hud-card__value">-</p>
+                <p id="calmarDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Uplift Quotient</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--alpha">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 10</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M5 12h4l2-3 4 6 4-7"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Alpha vs. Market</h3>
+                <p id="alphaValue" class="hud-card__value">-</p>
+                <p id="alphaDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Outperformance Pulse</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--expense">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 11</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M5 11h14M8 7h8M9 15h6"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="9"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Weighted Expense</h3>
+                <p id="expenseRatioValue" class="hud-card__value">-</p>
+                <p id="expenseDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Cost Watch</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--multifactor">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 12</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 17l4-5 4 3 4-6 4 8"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Multi-Factor Profile</h3>
+                <div class="hud-card__stat-split">
+                  <div>
+                    <p class="hud-card__metric-label">R²</p>
+                    <p id="multiFactorR2" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                  <div>
+                    <p class="hud-card__metric-label">Factor Betas</p>
+                    <div id="multiFactorBetaList" class="hud-card__factor-grid"></div>
+                  </div>
+                </div>
+                <p id="multiFactorDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Regression Fit</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--capture">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 13</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M7 15l5-5 5 5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M7 9l5 5 5-5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Up/Down Capture</h3>
+                <div class="hud-card__capture-grid">
+                  <div>
+                    <p class="hud-card__metric-label">Up Capture</p>
+                    <p id="upCaptureValue" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                  <div>
+                    <p class="hud-card__metric-label">Down Capture</p>
+                    <p id="downCaptureValue" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                </div>
+                <p id="captureDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Asymmetry Gauge</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--cvar">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 14</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 15.5l6-7 4 4 6-7"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M4 19h16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Tail Risk (CVaR)</h3>
+                <div class="hud-card__stat-split">
+                  <div>
+                    <p class="hud-card__metric-label">CVaR 95%</p>
+                    <p id="cvarValue" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                  <div>
+                    <p class="hud-card__metric-label">VaR 95%</p>
+                    <p id="varValue" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                </div>
+                <p id="cvarDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Expected Shortfall</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--tracking">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 15</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M4 18l4-5 4 4 4-6 4 3"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Active Risk Profile</h3>
+                <div class="hud-card__stat-split">
+                  <div>
+                    <p class="hud-card__metric-label">Tracking Error</p>
+                    <p id="trackingErrorValue" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                  <div>
+                    <p class="hud-card__metric-label">Information Ratio</p>
+                    <p id="informationRatioValue" class="hud-card__value hud-card__value--compact">-</p>
+                  </div>
+                </div>
+                <p id="trackingErrorDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Benchmark Alignment</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+
+            <article class="hud-card hud-card--compact hud-card--recovery">
+              <div class="hud-card__halo" aria-hidden="true"></div>
+              <div class="hud-card__inner">
+                <header class="hud-card__header">
+                  <span class="hud-card__eyebrow">Signal 16</span>
+                  <svg
+                    class="hud-card__glyph"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M12 6v6l3 3"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="8"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    />
+                  </svg>
+                </header>
+                <h3 class="hud-card__title">Recovery Time</h3>
+                <p id="recoveryTimeValue" class="hud-card__value">-</p>
+                <p id="recoveryDiagnostic" class="hud-card__diagnostic" aria-live="polite"></p>
+                <footer class="hud-card__footer">
+                  <span class="hud-card__tag">Resilience Clock</span>
+                  <span class="hud-card__sparkline" aria-hidden="true"></span>
+                </footer>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- Advanced Portfolio Insights & Recommendations -->
+        <div
+          class="mb-8 p-6 rounded-2xl border card bg-gradient-to-br from-blue-50/30 via-indigo-50/20 to-purple-50/30 dark:from-blue-900/10 dark:via-indigo-900/5 dark:to-purple-900/10 relative overflow-hidden"
+        >
+          <!-- Background Pattern -->
+          <div class="absolute inset-0 opacity-5">
+            <div
+              class="absolute top-4 left-4 w-20 h-20 border border-blue-500 rounded-full"
+            ></div>
+            <div
+              class="absolute top-8 right-8 w-16 h-16 border border-purple-500 rounded-full"
+            ></div>
+            <div
+              class="absolute bottom-6 left-1/2 w-12 h-12 border border-indigo-500 rounded-full"
+            ></div>
+          </div>
+
+          <div class="relative z-10">
+            <h3
+              class="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3"
+            >
+              <div
+                class="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500"
+              >
+                <svg
+                  class="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  ></path>
+                </svg>
+              </div>
+              Portfolio Intelligence Hub
+            </h3>
+
+                                    <div class="intelligence-ops">
+              <section class="ops-column">
+                <header class="ops-column__header">
+                  <span class="ops-column__eyebrow">Telemetry Feed</span>
+                  <h4 class="ops-column__title">Core Signals</h4>
+                </header>
+                <div class="ops-kpi-grid">
+                  <article class="ops-kpi-card">
+                    <p class="ops-kpi-label">Diversification</p>
+                    <p id="diversificationLevel" class="ops-kpi-value">-</p>
+                    <span class="ops-kpi-meta">Spread index across sleeves</span>
+                  </article>
+                  <article class="ops-kpi-card">
+                    <p class="ops-kpi-label">Risk-Adjusted Return</p>
+                    <p id="riskAdjustedReturn" class="ops-kpi-value">-</p>
+                    <span class="ops-kpi-meta">Sharpe sync from analytics</span>
+                  </article>
+                  <article class="ops-kpi-card">
+                    <p class="ops-kpi-label">Growth Potential</p>
+                    <p id="growthPotential" class="ops-kpi-value">-</p>
+                    <span class="ops-kpi-meta">Trajectory versus targets</span>
+                  </article>
+                  <article class="ops-kpi-card">
+                    <p class="ops-kpi-label">Active Drift</p>
+                    <p id="activeDriftValue" class="ops-kpi-value">-</p>
+                    <span class="ops-kpi-meta">Tracking error & IR snapshot</span>
+                  </article>
+                </div>
+              </section>
+
+              <section class="ops-column ops-column--timeline">
+                <header class="ops-column__header">
+                  <span class="ops-column__eyebrow">Mission Timeline</span>
+                  <h4 class="ops-column__title">Health Grid</h4>
+                </header>
+                <div class="ops-timeline">
+                  <article class="ops-timeline__item">
+                    <div class="ops-timeline__marker ops-timeline__marker--active"></div>
+                    <div class="ops-timeline__content">
+                      <p class="ops-timeline__label">Risk Management</p>
+                      <div class="ops-progress">
+                        <span
+                          id="healthRiskBar"
+                          class="ops-progress__bar ops-progress__bar--risk"
+                          role="progressbar"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                          aria-valuenow="0"
+                          style="width: 0%"
+                        ></span>
+                      </div>
+                      <span id="healthRiskValue" class="ops-timeline__value">--</span>
+                    </div>
+                  </article>
+                  <article class="ops-timeline__item">
+                    <div class="ops-timeline__marker"></div>
+                    <div class="ops-timeline__content">
+                      <p class="ops-timeline__label">Diversification</p>
+                      <div class="ops-progress">
+                        <span
+                          id="healthDiversificationBar"
+                          class="ops-progress__bar ops-progress__bar--diversification"
+                          role="progressbar"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                          aria-valuenow="0"
+                          style="width: 0%"
+                        ></span>
+                      </div>
+                      <span id="healthDiversificationValue" class="ops-timeline__value">--</span>
+                    </div>
+                  </article>
+                  <article class="ops-timeline__item">
+                    <div class="ops-timeline__marker"></div>
+                    <div class="ops-timeline__content">
+                      <p class="ops-timeline__label">Growth Alignment</p>
+                      <div class="ops-progress">
+                        <span
+                          id="healthGrowthBar"
+                          class="ops-progress__bar ops-progress__bar--growth"
+                          role="progressbar"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                          aria-valuenow="0"
+                          style="width: 0%"
+                        ></span>
+                      </div>
+                      <span id="healthGrowthValue" class="ops-timeline__value">--</span>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </div>
+        <!-- Asset Contribution Table -->
+        <div class="p-4 rounded-xl border card mb-6">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                Asset Contribution to Portfolio
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Toggle between return, risk, and Sharpe lenses to inspect each sleeve's impact.
+              </p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">View</span>
+              <div
+                class="inline-flex rounded-lg bg-slate-100 dark:bg-slate-800 p-1 shadow-inner"
+                role="group"
+                aria-label="Contribution view selector"
+              >
+                <button
+                  type="button"
+                  class="contribution-toggle active"
+                  data-mode="return"
+                >
+                  Return
+                </button>
+                <button
+                  type="button"
+                  class="contribution-toggle"
+                  data-mode="risk"
+                >
+                  Risk
+                </button>
+                <button
+                  type="button"
+                  class="contribution-toggle"
+                  data-mode="sharpe"
+                >
+                  Sharpe
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid gap-6 mt-4 lg:grid-cols-[minmax(0,1fr)_260px]">
+            <div class="overflow-x-auto">
+              <table
+                class="min-w-full divide-y divide-gray-300 dark:divide-gray-600 modern-table text-sm"
+              >
+                <thead>
+                  <tr
+                    class="text-xs font-semibold text-gray-700 dark:text-gray-100 uppercase tracking-wider"
+                  >
+                    <th class="px-1.5 py-2 text-left">Asset</th>
+                    <th class="px-1.5 py-2 text-right">Target %</th>
+                    <th class="px-1.5 py-2 text-right" id="contributionSignalHeader">
+                      Expected Return (%)
+                    </th>
+                    <th class="px-1.5 py-2 text-right">Volatility</th>
+                    <th class="px-1.5 py-2 text-right" id="contributionValueHeader">
+                      Contribution
+                    </th>
+                    <th class="px-1.5 py-2 text-right">Delta vs. Snapshot</th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="assetContributionTable"
+                  class="divide-y divide-gray-200 dark:divide-gray-700"
+                >
+                  <!-- Rows will be populated by JS -->
+                </tbody>
+                <tfoot
+                  id="assetContributionSummary"
+                  class="bg-slate-100/80 dark:bg-slate-900/40 text-gray-700 dark:text-gray-200"
+                >
+                  <tr>
+                    <th class="px-2 py-3 text-left font-semibold" colspan="2">
+                      Portfolio Totals
+                    </th>
+                    <td class="px-2 py-3 text-right font-semibold" id="summarySignalValue">--</td>
+                    <td class="px-2 py-3 text-right text-gray-500 dark:text-gray-400"> - </td>
+                    <td class="px-2 py-3 text-right font-semibold" id="summaryContributionValue">--</td>
+                    <td class="px-2 py-3 text-right text-xs font-semibold" id="summaryDeltaValue">
+                      Delta 0.0%
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <aside
+              class="rounded-xl border border-slate-200/70 dark:border-slate-700/60 bg-white/70 dark:bg-slate-900/60 p-4 flex flex-col gap-4 backdrop-blur-sm"
+            >
+              <div>
+                <h4 class="text-base font-semibold text-gray-800 dark:text-gray-200">
+                  Scenario Stress Test
+                </h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  Apply a +/-5% shift to expected returns to gauge sensitivity. Set back to 0% to clear.
+                </p>
+              </div>
+              <div>
+                <input
+                  id="stressTestSlider"
+                  type="range"
+                  min="-5"
+                  max="5"
+                  step="0.5"
+                  value="0"
+                  class="w-full accent-blue-500"
+                  aria-describedby="stressTestHint"
+                />
+                <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  <span>-5%</span>
+                  <span id="stressTestValue">0%</span>
+                  <span>+5%</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                id="applyStressTestBtn"
+                class="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-400/60 styled-button"
+              >
+                Apply Scenario
+              </button>
+              <p
+                id="stressTestHint"
+                class="text-xs text-gray-500 dark:text-gray-400"
+              >
+                Latest multiplier: <span id="stressTestMultiplier">1.00x</span>
+              </p>
+            </aside>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button
+            id="refreshAnalyticsBtn"
+            class="bg-rose-600 text-white font-semibold py-3 px-6 rounded-md shadow-lg hover:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-500/70 focus:ring-offset-2 styled-button"
+          >
+            Refresh Insights
+          </button>
+        </div>
+      </section>

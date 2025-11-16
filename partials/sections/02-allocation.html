@@ -1,0 +1,290 @@
+
+
+      <section id="allocation" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"
+              ></path>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">2. Unit Loadout Matrix</h2>
+            <p class="section-intro">
+              Compare planned loadouts versus actual deployments to see which Gunpla squads need reinforcement or part redistribution.
+            </p>
+          </div>
+        </div>
+
+        <!-- Allocation Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-300"
+          >
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-3 h-3 bg-rose-500 rounded-full"></div>
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Assets</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="allocationAssetCount">--</div>
+            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+              Holdings
+            </div>
+            <div class="metric-dropdown-wrapper metric-dropdown-wrapper--full">
+              <button
+                type="button"
+                class="metric-dropdown-toggle metric-dropdown-toggle--light"
+                data-metric-toggle="allocationAssetList"
+                aria-controls="allocationAssetList"
+                aria-expanded="false"
+              >
+                View list
+              </button>
+              <ul
+                id="allocationAssetList"
+                class="metric-dropdown metric-dropdown--surface hidden"
+                aria-hidden="true"
+              ></ul>
+            </div>
+          </div>
+
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-300"
+          >
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">US Stocks</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="usStockCount">--</div>
+            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">Domestic holdings</div>
+            <div class="metric-dropdown-wrapper metric-dropdown-wrapper--full">
+              <button
+                type="button"
+                class="metric-dropdown-toggle metric-dropdown-toggle--light"
+                data-metric-toggle="allocationUSList"
+                aria-controls="allocationUSList"
+                aria-expanded="false"
+              >
+                View tickers
+              </button>
+              <ul
+                id="allocationUSList"
+                class="metric-dropdown metric-dropdown--surface hidden"
+                aria-hidden="true"
+              ></ul>
+            </div>
+          </div>
+
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-300"
+          >
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">International Stocks</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="intlStockCount">--</div>
+            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">Global exposure</div>
+            <div class="metric-dropdown-wrapper metric-dropdown-wrapper--full">
+              <button
+                type="button"
+                class="metric-dropdown-toggle metric-dropdown-toggle--light"
+                data-metric-toggle="allocationIntlList"
+                aria-controls="allocationIntlList"
+                aria-expanded="false"
+              >
+                View tickers
+              </button>
+              <ul
+                id="allocationIntlList"
+                class="metric-dropdown metric-dropdown--surface hidden"
+                aria-hidden="true"
+              ></ul>
+            </div>
+          </div>
+
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-300"
+          >
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-3 h-3 bg-orange-500 rounded-full"></div>
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Alternatives</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="altAssetCount">--</div>
+            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">Non-traditional assets</div>
+            <div class="metric-dropdown-wrapper metric-dropdown-wrapper--full">
+              <button
+                type="button"
+                class="metric-dropdown-toggle metric-dropdown-toggle--light"
+                data-metric-toggle="allocationAltList"
+                aria-controls="allocationAltList"
+                aria-expanded="false"
+              >
+                View tickers
+              </button>
+              <ul
+                id="allocationAltList"
+                class="metric-dropdown metric-dropdown--surface hidden"
+                aria-hidden="true"
+              ></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-8">
+          <div
+            id="allocation-ai-review-card"
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md hover:shadow-xl transition-shadow duration-300"
+          >
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 p-6">
+                            <div class="flex-1 space-y-3">
+                <div class="flex items-center gap-2 text-sm font-semibold text-sky-500 dark:text-sky-200 uppercase tracking-wide">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  AI Allocation Insight
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  AI allocation diagnostics keep your target mix on course.
+                </h3>
+                <p id="allocation-ai-summary" class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                  AI is preparing the latest allocation review. Launch the analysis to refresh this panel.
+                </p>
+                <div id="allocation-ai-focus" class="text-sm font-medium text-blue-600 dark:text-blue-400">
+                  Run the AI analysis to surface the next recommended action.
+                </div>
+              </div>
+              <div class="flex flex-col items-center justify-center min-w-[160px] bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                  AI Score
+                </div>
+                <div id="allocation-ai-score" class="text-4xl font-black text-gray-900 dark:text-white">
+                  --
+                </div>
+                <div id="allocation-ai-status" class="mt-1 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                  Waiting
+                </div>
+                <span
+                  id="allocation-ai-priority"
+                  class="mt-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                >
+                  Pending
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart and Top Holdings Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Main Chart -->
+          <div class="lg:col-span-2">
+            <div
+              class="allocation-chart-shell card card--lifted relative overflow-hidden rounded-3xl p-6 md:p-8 transition-all duration-500"
+            >
+              <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                  Portfolio Distribution
+                </h3>
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 bg-rose-500 rounded-full"></div>
+                  <span class="text-sm text-gray-600 dark:text-gray-400"
+                    >Portfolio Allocation</span
+                  >
+                </div>
+              </div>
+              <div class="chart-container allocation-chart-container h-[24rem] md:h-[28rem] max-h-[28rem]">
+                <canvas id="allocationChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Holdings Sidebar -->
+          <div class="space-y-6">
+            <!-- Top Holdings -->
+            <div
+              class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-xl"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"
+              >
+                <svg
+                  class="w-5 h-5 text-sky-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                  ></path>
+                </svg>
+                Top Holdings
+              </h3>
+              <div class="space-y-3" id="topHoldingsList">
+                <!-- Will be populated by JS -->
+              </div>
+            </div>
+
+            <!-- Allocation Insights -->
+            <div
+              class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-800"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"
+              >
+                <svg
+                  class="w-5 h-5 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  ></path>
+                </svg>
+                Insights
+              </h3>
+              <div class="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                <div class="flex items-start gap-2">
+                  <div
+                    class="w-2 h-2 bg-rose-500 rounded-full mt-1.5 flex-shrink-0"
+                  ></div>
+                  <p>Well-diversified across asset classes</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <div
+                    class="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"
+                  ></div>
+                  <p>Balanced growth and income focus</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <div
+                    class="w-2 h-2 bg-purple-500 rounded-full mt-1.5 flex-shrink-0"
+                  ></div>
+                  <p>Moderate risk-adjusted positioning</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>

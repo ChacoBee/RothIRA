@@ -1,0 +1,218 @@
+
+
+      <section id="overview" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">1. Hangar Diagnostics</h2>
+            <p class="section-intro">
+              Run quick vitals on your Gunpla fleet  -  frame stability, pilot readiness, and resource flow  -  before launching into deeper analysis.
+            </p>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <article class="stat-card stat-card--emerald">
+            <div class="stat-card__top">
+              <div class="stat-card__icon">
+                <svg
+                  class="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                  ></path>
+                </svg>
+              </div>
+              <div>
+                <p class="stat-card__label">Portfolio score</p>
+                <div class="stat-card__value">
+                  <span id="portfolioScore">--</span>
+                  <span class="stat-card__unit">/10</span>
+                </div>
+              </div>
+            </div>
+            <p class="stat-card__description">
+              Live signal updates after telemetry loads
+            </p>
+            <div class="stat-card__progress">
+              <div
+                class="stat-card__progress-bar"
+                id="portfolioScoreBar"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="10"
+                aria-valuenow="0"
+                style="width: 0%"
+              ></div>
+            </div>
+          </article>
+
+          <article class="stat-card stat-card--indigo">
+            <div class="stat-card__top">
+              <div class="stat-card__icon">
+                <svg
+                  class="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                  ></path>
+                </svg>
+              </div>
+              <div>
+                <p class="stat-card__label">Portfolio value</p>
+                <div class="stat-card__value">
+                  <span id="currentTotalValueDisplay">$449.12</span>
+                  <span class="stat-card__unit">USD</span>
+                </div>
+              </div>
+            </div>
+            <p class="stat-card__description">Current market value</p>
+            <div class="stat-card__progress">
+              <div class="stat-card__progress-bar" style="width: 75%"></div>
+            </div>
+          </article>
+
+          <article class="stat-card stat-card--amber">
+            <div class="stat-card__top">
+              <div class="stat-card__icon">
+                <svg
+                  class="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  ></path>
+                </svg>
+              </div>
+              <div>
+                <p class="stat-card__label">Risk posture</p>
+                <div class="stat-card__value">
+                  <span id="riskLevel">High</span>
+                </div>
+              </div>
+            </div>
+            <div class="stat-card__progress">
+              <div class="stat-card__progress-bar" id="riskLevelBar" style="width: 85%"></div>
+            </div>
+            <p class="stat-card__description">20-30 year horizon</p>
+          </article>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric-tile">
+            <span class="metric-tile__dot metric-tile__dot--psycho" aria-hidden="true"></span>
+            <div class="metric-tile__content">
+              <p class="metric-tile__label">Assets</p>
+              <p class="metric-tile__value" id="metricAssetCount">--</p>
+              <p class="metric-tile__caption" id="metricAssetCaption">Holdings</p>
+              <div class="metric-dropdown-wrapper">
+                <button
+                  type="button"
+                  class="metric-dropdown-toggle"
+                  data-metric-toggle="metricAssetList"
+                  aria-controls="metricAssetList"
+                  aria-expanded="false"
+                >
+                  View holdings
+                </button>
+                <ul
+                  id="metricAssetList"
+                  class="metric-dropdown hidden"
+                  aria-hidden="true"
+                ></ul>
+              </div>
+            </div>
+          </article>
+          <article class="metric-tile">
+            <span class="metric-tile__dot metric-tile__dot--blue" aria-hidden="true"></span>
+            <div class="metric-tile__content">
+              <p class="metric-tile__label">Sectors</p>
+              <p class="metric-tile__value" id="metricSectorCount">--</p>
+              <p class="metric-tile__caption" id="metricSectorCaption">Sectors covered</p>
+              <div class="metric-dropdown-wrapper">
+                <button
+                  type="button"
+                  class="metric-dropdown-toggle"
+                  data-metric-toggle="metricSectorList"
+                  aria-controls="metricSectorList"
+                  aria-expanded="false"
+                >
+                  View sectors
+                </button>
+                <ul
+                  id="metricSectorList"
+                  class="metric-dropdown hidden"
+                  aria-hidden="true"
+                ></ul>
+              </div>
+            </div>
+          </article>
+          <article class="metric-tile">
+            <span class="metric-tile__dot metric-tile__dot--purple" aria-hidden="true"></span>
+            <div class="metric-tile__content">
+              <p class="metric-tile__label">Regions</p>
+              <p class="metric-tile__value" id="metricRegionCount">--</p>
+              <p class="metric-tile__caption" id="metricRegionCaption">Regions tracked</p>
+              <div class="metric-dropdown-wrapper">
+                <button
+                  type="button"
+                  class="metric-dropdown-toggle"
+                  data-metric-toggle="metricRegionList"
+                  aria-controls="metricRegionList"
+                  aria-expanded="false"
+                >
+                  View regions
+                </button>
+                <ul
+                  id="metricRegionList"
+                  class="metric-dropdown hidden"
+                  aria-hidden="true"
+                ></ul>
+              </div>
+            </div>
+          </article>
+          <article class="metric-tile">
+            <span class="metric-tile__dot metric-tile__dot--orange" aria-hidden="true"></span>
+            <div class="metric-tile__content">
+              <p class="metric-tile__label">Last update</p>
+              <p class="metric-tile__value" id="metricLastUpdateValue">--</p>
+              <p class="metric-tile__caption" id="metricLastUpdateCaption">Awaiting sync</p>
+            </div>
+          </article>
+        </div>
+      </section>

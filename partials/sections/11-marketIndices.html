@@ -1,0 +1,239 @@
+
+
+      <section
+        id="marketIndices"
+        class="section mb-12"
+        data-fmp-key="qPhDU6pPgXTmbdzSL7FxdxXUzQFELzW9"
+      >
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M11 3h2a2 2 0 012 2v3h3a2 2 0 012 2v2a2 2 0 01-2 2h-3v3a2 2 0 01-2 2h-2a2 2 0 01-2-2v-3H6a2 2 0 01-2-2V10a2 2 0 012-2h3V5a2 2 0 012-2z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">11. Federation Indices Feed</h2>
+            <p class="section-intro">
+              Ping Earth Federation markets for live signals and stage alerts directly into your cockpit.
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800/70 p-6 md:p-8 mb-6 bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-950 dark:via-slate-950 dark:to-slate-950 shadow-xl shadow-sky-400/5"
+        >
+          <div
+            class="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-300/10 via-transparent to-sky-400/10 dark:from-sky-300/10 dark:via-transparent dark:to-sky-500/15"
+          ></div>
+
+          <div class="relative">
+            <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+              <div class="flex flex-col gap-6">
+                <div
+                  class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+                >
+                  <div class="space-y-4">
+                    <div>
+                      <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                        Real-time global benchmarks
+                      </h3>
+                      <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Track live pricing on major equity indices. Values refresh automatically every 60 seconds.
+                      </p>
+                    </div>
+                    <div
+                      id="indicesRegionFilters"
+                      class="flex flex-wrap items-center gap-2"
+                      role="tablist"
+                      aria-label="Market theatre filter"
+                    >
+                      <button
+                        type="button"
+                        class="indices-filter-btn inline-flex items-center rounded-full border border-sky-500/30 bg-white/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-sky-600 shadow-sm transition hover:border-sky-500 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/60 dark:bg-slate-900/40 dark:text-sky-200"
+                        data-region="earth-sphere"
+                        role="tab"
+                        aria-selected="true"
+                      >
+                        US Benchmarks (S&P/Dow/NASDAQ/Russell)
+                      </button>
+                      <button
+                        type="button"
+                        class="indices-filter-btn inline-flex items-center rounded-full border border-sky-500/30 bg-white/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-sky-600 shadow-sm transition hover:border-sky-500 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/60 dark:bg-slate-900/40 dark:text-sky-200"
+                        data-region="outer-colonies"
+                        role="tab"
+                        aria-selected="false"
+                      >
+                        Global Hubs (FTSE/DAX/Nikkei)
+                      </button>
+                      <button
+                        type="button"
+                        class="indices-filter-btn inline-flex items-center rounded-full border border-sky-500/30 bg-white/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-sky-600 shadow-sm transition hover:border-sky-500 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/60 dark:bg-slate-900/40 dark:text-sky-200"
+                        data-region="neo-zeon"
+                        role="tab"
+                        aria-selected="false"
+                      >
+                        Frontier Watch (Hang Seng/Sensex)
+                      </button>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-4">
+                    <button
+                      type="button"
+                      id="indicesAutoSyncToggle"
+                      role="switch"
+                      aria-checked="true"
+                      class="relative flex items-center gap-3 rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-sky-600 transition hover:border-sky-500 hover:bg-sky-500/20 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/60 dark:border-sky-300/30 dark:bg-sky-400/10 dark:text-sky-200"
+                    >
+                      <span class="auto-sync-label">Auto-sync</span>
+                      <span
+                        class="inline-flex h-5 w-10 items-center rounded-full bg-slate-200/70 px-1 transition dark:bg-slate-700/70"
+                      >
+                        <span
+                          class="toggle-indicator inline-block h-4 w-4 rounded-full bg-sky-500 shadow transition-transform"
+                        ></span>
+                      </span>
+                    </button>
+                    <div class="flex items-center gap-3">
+                      <button
+                        id="refreshIndicesBtn"
+                        class="bg-sky-500 text-white font-semibold py-2 px-4 rounded-md shadow-lg hover:bg-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-400/70 focus:ring-offset-2"
+                      >
+                        Refresh Now
+                      </button>
+                      <span
+                        id="indicesLastUpdated"
+                        class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400"
+                      >
+                        Updated: --
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  id="marketIndicesGrid"
+                  class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4"
+                >
+                  <!-- Live cards populated by JS -->
+                </div>
+
+                <div
+                  id="marketIndicesError"
+                  class="hidden mt-2 p-4 rounded-xl border border-red-200 bg-red-50 text-red-600 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-200"
+                >
+                  Unable to load market data right now. Please try again shortly.
+                </div>
+
+                <div
+                  id="marketIndicesFallback"
+                  class="hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-950/90 p-6 shadow-xl backdrop-blur"
+                >
+                  <h3
+                    class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"
+                  >
+                    <svg
+                      class="w-5 h-5 text-sky-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 12l2 2 4-4M7.5 4.21l.97-.242a2 2 0 011.554.3l.757.535a2 2 0 002.222 0l.758-.535a2 2 0 011.553-.3l.97.242a2 2 0 011.43 1.43l.241.97a2 2 0 01-.3 1.554l-.535.757a2 2 0 000 2.222l.535.758a2 2 0 01.3 1.553l-.242.97a2 2 0 01-1.43 1.43l-.97.241a2 2 0 01-1.553-.3l-.758-.535a2 2 0 00-2.222 0l-.757.535a2 2 0 01-1.554.3l-.97-.242a2 2 0 01-1.43-1.43l-.241-.97a2 2 0 01.3-1.553l.535-.758a2 2 0 000-2.222l-.535-.757a2 2 0 01-.3-1.554l.242-.97a2 2 0 011.43-1.43z"
+                      ></path>
+                    </svg>
+                    Live view provided by TradingView
+                  </h3>
+                  <div class="tradingview-widget-container">
+                    <div
+                      id="marketIndicesWidget"
+                      class="overflow-hidden rounded-xl border border-gray-200/80 dark:border-slate-800/70"
+                    ></div>
+                    <div class="tradingview-widget-copyright text-xs text-gray-400">
+                      <a
+                        href="https://www.tradingview.com/markets/indices/quotes-major/"
+                        rel="noopener"
+                        target="_blank"
+                        class="hover:underline"
+                      >
+                        Quotes by TradingView
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="flex flex-col gap-6">
+                <article
+                  id="marketIndicesInsights"
+                  class="rounded-2xl border border-slate-200/80 bg-white/80 p-6 shadow-lg dark:border-slate-800/70 dark:bg-slate-950/80"
+                >
+                  <header class="mb-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-sky-500 dark:text-sky-300">
+                      Tactical Metrics
+                    </p>
+                    <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                      Mission readiness snapshot
+                    </h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                      Compare live deltas against 30-day drift and key thresholds.
+                    </p>
+                  </header>
+                  <dl
+                    id="marketIndicesStats"
+                    class="space-y-4 text-sm text-gray-700 dark:text-gray-300"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <dt class="font-medium text-gray-500 dark:text-gray-400">
+                        Volatility (30d stdev)
+                      </dt>
+                      <dd class="font-semibold text-gray-900 dark:text-gray-100" data-stat="volatility">
+                        --
+                      </dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                      <dt class="font-medium text-gray-500 dark:text-gray-400">
+                        Momentum Score
+                      </dt>
+                      <dd class="font-semibold text-gray-900 dark:text-gray-100" data-stat="momentum">
+                        --
+                      </dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                      <dt class="font-medium text-gray-500 dark:text-gray-400">
+                        52w Range Utilization
+                      </dt>
+                      <dd class="font-semibold text-gray-900 dark:text-gray-100" data-stat="range">
+                        --
+                      </dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                      <dt class="font-medium text-gray-500 dark:text-gray-400">
+                        Cross-Index Correlation
+                      </dt>
+                      <dd class="font-semibold text-gray-900 dark:text-gray-100" data-stat="correlation">
+                        --
+                      </dd>
+                    </div>
+                  </dl>
+                </article>
+
+              </aside>
+            </div>
+          </div>
+        </div>
+      </section>

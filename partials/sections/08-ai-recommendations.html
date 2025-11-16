@@ -1,0 +1,236 @@
+
+
+      <section id="ai-recommendations" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-rose-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">8. AI Co-Pilot Console</h2>
+            <p class="section-intro">
+              Consult tactical guidance from your Haro co-pilot to capture kit upgrades and smooth hanger turbulence.
+            </p>
+          </div>
+        </div>
+
+        <!-- Portfolio Health Score -->
+        <div
+          class="mb-8 p-6 rounded-xl border card bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20"
+        >
+          <div
+            class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-4"
+          >
+            <div>
+              <h3
+                class="text-xl font-semibold text-purple-800 dark:text-purple-300"
+              >
+                Portfolio Health Assessment
+              </h3>
+              <p class="text-sm text-gray-600 dark:text-gray-300">
+                Portfolio Health Score (PHS) = S (pillar weight × pillar score). Pillar scores run on a 0&ndash;100 scale with weights: Allocation fit 20%, Diversification 15%, Cost efficiency 15%, Risk vs. budget 20%, Performance quality 15%, Liquidity &amp; implementation 10%, Tax efficiency 5%.
+              </p>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 max-w-md">
+              PHS uses a 0&ndash;100 scale. Guardrails (e.g., top holding &gt; 30%, all-in fees &gt; 2%) apply point deductions when breached while the weighted pillars continue to drive the composite score.
+            </p>
+          </div>
+          <div id="ai-portfolio-health" class="relative">
+            <div
+              class="rounded-3xl bg-white/80 dark:bg-slate-950/70 border border-white/50 dark:border-white/10 p-6 md:p-8 animate-pulse"
+            >
+              <div class="grid gap-6 md:grid-cols-[230px_1fr]">
+                <div
+                  class="rounded-2xl bg-white/90 dark:bg-white/10 border border-white/60 dark:border-white/10 px-6 py-7 flex flex-col gap-4 items-center md:items-start text-center md:text-left"
+                >
+                  <div class="h-14 w-24 bg-gray-300/70 dark:bg-gray-700/40 rounded-2xl"></div>
+                  <div class="h-3 w-20 bg-gray-300/60 dark:bg-gray-700/50 rounded-full"></div>
+                  <div class="h-3 w-full bg-gray-300/40 dark:bg-gray-700/40 rounded-full"></div>
+                </div>
+                <div class="space-y-4">
+                  <div class="h-4 bg-gray-300/60 dark:bg-gray-700/50 rounded"></div>
+                  <div class="h-3 bg-gray-300/40 dark:bg-gray-700/40 rounded-full"></div>
+                  <div class="h-24 bg-gray-300/20 dark:bg-gray-800/30 rounded-2xl"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-center">
+            <button
+              id="ai-refresh-btn"
+              class="bg-purple-600 text-white font-semibold py-3 px-8 rounded-md shadow-lg hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-500/70 focus:ring-offset-2 styled-button text-lg"
+              type="button"
+            >
+              Generate AI Analysis
+            </button>
+          </div>
+
+          <div class="mt-6">
+            <div
+              class="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-3"
+            >
+              <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                Portfolio Health Score Breakdown
+              </h4>
+            </div>
+            <div class="overflow-x-auto">
+              <table
+                class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm"
+              >
+                <thead class="bg-white/70 dark:bg-gray-900/40 text-gray-600 dark:text-gray-300 uppercase tracking-wide text-xs">
+                  <tr>
+                    <th class="px-3 py-2 text-left">Component</th>
+                    <th class="px-3 py-2 text-center">Weight</th>
+                    <th class="px-3 py-2 text-center">Score (0-100)</th>
+                    <th class="px-3 py-2 text-left">Live context</th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="phs-breakdown-body"
+                  class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-700 dark:text-gray-200"
+                >
+                  <tr data-component="allocation">
+                    <td class="px-3 py-3 font-medium">Allocation Fit (A)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">20%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Measures drift between current weights and long-range policy targets.
+                    </td>
+                  </tr>
+                  <tr data-component="diversification">
+                    <td class="px-3 py-3 font-medium">Diversification (B)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">15%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Evaluates concentration, top holdings and effective number of risk contributors.
+                    </td>
+                  </tr>
+                  <tr data-component="cost">
+                    <td class="px-3 py-3 font-medium">Cost Efficiency (C)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">15%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Weighted expense ratio plus any advisory/platform costs versus a 1.5% cap.
+                    </td>
+                  </tr>
+                  <tr data-component="risk">
+                    <td class="px-3 py-3 font-medium">Risk vs. Budget (D)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">20%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Compares realised volatility to the Roth risk target and tolerance band.
+                    </td>
+                  </tr>
+                  <tr data-component="performance">
+                    <td class="px-3 py-3 font-medium">Performance Quality (E)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">15%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Translates Sharpe ratio (or information ratio) into a bounded 0&ndash;100 score.
+                    </td>
+                  </tr>
+                  <tr data-component="liquidity">
+                    <td class="px-3 py-3 font-medium">Liquidity &amp; Implementation (F)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">10%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Rewards ETF coverage and keeps an eye on single-name or thematic exposure.
+                    </td>
+                  </tr>
+                  <tr data-component="tax">
+                    <td class="px-3 py-3 font-medium">Tax Efficiency (G)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">5%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Roth IRA: qualified withdrawals imply 0% tax drag, so this pillar stays at 100.
+                    </td>
+                  </tr>
+                  <tr data-component="guardrail">
+                    <td class="px-3 py-3 font-medium">Guardrail Integrity (H)</td>
+                    <td class="px-3 py-3 text-center font-semibold" data-role="weight">10%</td>
+                    <td class="px-3 py-3 text-center font-bold text-purple-600 dark:text-purple-300">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Concentration, expense and volatility guardrails rolled into a single health score.
+                    </td>
+                  </tr>
+                  <tr
+                    data-component="total"
+                    class="bg-purple-50/60 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 font-semibold"
+                  >
+                    <td class="px-3 py-3">Portfolio Health Score</td>
+                    <td class="px-3 py-3 text-center" data-role="weight">100%</td>
+                    <td class="px-3 py-3 text-center text-lg">
+                      <span data-role="score">-</span>
+                    </td>
+                    <td class="px-3 py-3 text-sm" data-role="note">
+                      Weighted blend of the seven pillars plus the guardrail integrity score.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <!-- Immediate Actions -->
+          <div class="p-6 rounded-xl border card card--lifted">
+            <h3
+              class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"
+            >
+              <span class="text-red-500">!</span>
+              Immediate Actions Required
+            </h3>
+            <div id="ai-immediate-actions" class="text-center py-4">
+              <p class="text-gray-500">
+                Click "Generate AI Analysis" to get personalized recommendations
+              </p>
+            </div>
+          </div>
+
+          <!-- Strategic Advice -->
+          <div class="p-6 rounded-xl border card card--lifted">
+            <h3
+              class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2"
+            >
+              <span class="text-blue-500">Coach</span>
+              Strategic Recommendations
+            </h3>
+            <div id="ai-strategic-advice" class="text-center py-4">
+              <p class="text-gray-500">
+                AI analysis will provide strategic investment advice
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </section>
