@@ -5074,13 +5074,327 @@ body.alert-flash-active.alert-flash-upper::before {
   pointer-events: none;
 }
 
-  50% {
-    transform: scale(1.1);
-    opacity: 1;
-  }
+/* Dividend portfolio card */
+.dividend-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(145deg, rgba(248, 250, 252, 0.98), rgba(226, 232, 240, 0.92));
+  box-shadow: 0 30px 45px rgba(15, 23, 42, 0.12);
 }
 
+.dividend-card::before,
+.dividend-card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+  inset: 0;
+  opacity: 0.4;
+}
 
+.dividend-card::before {
+  background: radial-gradient(circle at 10% 10%, rgba(125, 211, 252, 0.6), transparent 45%),
+    radial-gradient(circle at 90% 0%, rgba(34, 197, 94, 0.3), transparent 55%);
+}
 
+.dividend-card::after {
+  background-image: linear-gradient(
+      120deg,
+      rgba(148, 163, 184, 0.2) 0%,
+      rgba(148, 163, 184, 0.05) 40%,
+      transparent 70%
+    ),
+    linear-gradient(rgba(226, 232, 240, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(226, 232, 240, 0.25) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
+  mix-blend-mode: screen;
+}
 
+.dark-mode .dividend-card {
+  border-color: rgba(148, 163, 184, 0.25);
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.82));
+  box-shadow: 0 30px 65px rgba(2, 6, 23, 0.65);
+}
+
+.dark-mode .dividend-card::after {
+  background-image: linear-gradient(
+      120deg,
+      rgba(125, 211, 252, 0.25) 0%,
+      rgba(59, 130, 246, 0.08) 40%,
+      transparent 70%
+    ),
+    linear-gradient(rgba(51, 65, 85, 0.6) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(51, 65, 85, 0.6) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
+  mix-blend-mode: normal;
+  opacity: 0.45;
+}
+
+.dividend-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dividend-card__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dividend-card__eyebrow {
+  font-size: 0.65rem;
+  letter-spacing: 0.45em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-bottom: 0.2rem;
+}
+
+.dark-mode .dividend-card__eyebrow {
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.dividend-card__title {
+  font-family: "Orbitron", "Rajdhani", sans-serif;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.dividend-card__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  color: rgba(71, 85, 105, 0.9);
+  background: rgba(248, 250, 252, 0.9);
+}
+
+.dark-mode .dividend-card__badge {
+  background: rgba(15, 23, 42, 0.7);
+  color: rgba(191, 219, 254, 0.9);
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.dividend-refresh-btn {
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.6);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(14, 165, 233, 0.15));
+  color: #0f172a;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.dividend-refresh-btn:hover:not([disabled]) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(14, 165, 233, 0.25);
+}
+
+.dividend-refresh-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dark-mode .dividend-refresh-btn {
+  color: #e0f2ff;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(14, 165, 233, 0.25));
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.dividend-card__note {
+  max-width: 52ch;
+}
+
+.dividend-status {
+  margin-top: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dividend-table-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: none;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dividend-table-wrapper::before,
+.dividend-table-wrapper::after {
+  content: none;
+}
+
+.dark-mode .dividend-table-wrapper {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.dividend-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 0.55rem;
+  font-size: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(6px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 12px 26px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+  position: relative;
+}
+
+.dark-mode .dividend-table {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(15, 23, 42, 0.75);
+  box-shadow: inset 0 1px 0 rgba(248, 250, 252, 0.06), 0 18px 32px rgba(2, 6, 23, 0.55);
+}
+
+.dividend-table::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 0 20px rgba(148, 163, 184, 0.2);
+  pointer-events: none;
+}
+
+.dark-mode .dividend-table::before {
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 22px rgba(14, 165, 233, 0.4);
+}
+
+.dividend-table__head th {
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  font-weight: 800;
+  text-align: left;
+  padding: 0.55rem 1rem 0.75rem;
+  color: #1f3fae;
+  text-shadow: 0 2px 10px rgba(89, 113, 173, 0.45), 0 0 18px rgba(148, 163, 184, 0.35);
+}
+
+.dark-mode .dividend-table__head th {
+  color: #e6f1ff;
+  text-shadow: 0 0 14px rgba(56, 189, 248, 0.7), 0 0 22px rgba(14, 165, 233, 0.6);
+}
+
+.dividend-table__row {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.dividend-table__row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
+}
+
+.dividend-table__row td {
+  background: rgba(248, 250, 252, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.dividend-table__row td:first-child {
+  border-left: 1px solid rgba(148, 163, 184, 0.25);
+  border-top-left-radius: 0.7rem;
+  border-bottom-left-radius: 0.7rem;
+}
+
+.dividend-table__row td:last-child {
+  border-right: 1px solid rgba(148, 163, 184, 0.25);
+  border-top-right-radius: 0.7rem;
+  border-bottom-right-radius: 0.7rem;
+}
+
+.dividend-table__row:hover td {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.dark-mode .dividend-table__row td {
+  background: rgba(15, 23, 42, 0.72);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.dark-mode .dividend-table__row td:first-child {
+  border-left: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.dark-mode .dividend-table__row td:last-child {
+  border-right: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.dark-mode .dividend-table__row:hover td {
+  background: rgba(15, 23, 42, 0.85);
+  box-shadow: inset 0 0 15px rgba(59, 130, 246, 0.25);
+}
+
+.dividend-table__cell,
+.dividend-table__symbol,
+.dividend-table__gain {
+  padding: 0.85rem 1rem;
+  line-height: 1.5;
+}
+
+.dividend-table__symbol {
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  color: #005b97;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.35), 0 0 14px rgba(14, 165, 233, 0.3);
+}
+
+.dark-mode .dividend-table__symbol {
+  color: #8bdcfb;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.8), 0 0 18px rgba(14, 165, 233, 0.7);
+}
+
+.dividend-table__gain {
+  font-weight: 700;
+  text-align: right;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.dividend-table__gain--positive {
+  color: #059669;
+}
+
+.dividend-table__gain--negative {
+  color: #dc2626;
+}
+
+.dark-mode .dividend-table__gain--positive {
+  color: #34d399;
+}
+
+.dark-mode .dividend-table__gain--negative {
+  color: #f87171;
+}
+
+.dividend-table__gain--neutral {
+  color: #475569;
+}
+
+.dark-mode .dividend-table__gain--neutral {
+  color: rgba(148, 163, 184, 0.9);
+}
 
