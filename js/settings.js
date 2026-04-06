@@ -9,10 +9,10 @@
 
   const defaultHoldings = {
     VOO: {
-      target: 40,
-      currentValue: 40,
-      currentPercent: 40,
-      sector: "Core US",
+      target: 45,
+      currentValue: 45,
+      currentPercent: 45,
+      sector: "Core US Large Cap",
       region: "United States",
       exposureCategory: "us",
       assetClass: "equity",
@@ -26,15 +26,6 @@
       exposureCategory: "international",
       assetClass: "equity",
     },
-    AVUV: {
-      target: 10,
-      currentValue: 10,
-      currentPercent: 10,
-      sector: "Small Cap Value",
-      region: "United States",
-      exposureCategory: "us",
-      assetClass: "equity",
-    },
     AVDV: {
       target: 10,
       currentValue: 10,
@@ -44,29 +35,29 @@
       exposureCategory: "international",
       assetClass: "equity",
     },
-    SPMO: {
-      target: 10,
-      currentValue: 10,
-      currentPercent: 10,
-      sector: "Momentum Large Cap",
+    AVUV: {
+      target: 15,
+      currentValue: 15,
+      currentPercent: 15,
+      sector: "US Small Cap Value",
       region: "United States",
       exposureCategory: "us",
       assetClass: "equity",
     },
-    SCHD: {
+    JNJ: {
       target: 5,
       currentValue: 5,
       currentPercent: 5,
-      sector: "Dividend Quality",
+      sector: "Defensive Healthcare",
       region: "United States",
       exposureCategory: "us",
       assetClass: "equity",
     },
-    AMZN: {
+    GOOGL: {
       target: 5,
       currentValue: 5,
       currentPercent: 5,
-      sector: "Consumer Discretionary",
+      sector: "Communication Services",
       region: "United States",
       exposureCategory: "us",
       assetClass: "equity",

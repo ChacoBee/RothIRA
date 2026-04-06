@@ -1220,7 +1220,7 @@
               <span>Pportfolioslab</span>
             </a>
             <a
-              href="https://totalrealreturns.com/s/VOO,VXUS,AVUV,AVDV,SPMO,SCHD,AMZN"
+              href="https://totalrealreturns.com/s/VOO,VXUS,AVDV,AVUV,JNJ,GOOGL"
               target="_blank"
               rel="noopener noreferrer"
               class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-amber-300/70 dark:border-amber-500/50 text-amber-700 dark:text-amber-200 hover:border-amber-400 hover:text-amber-300 transition"
@@ -1242,7 +1242,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+        <div class="grid grid-cols-1 gap-6 mb-6">
           <article
             class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-5 space-y-4"
           >
@@ -1545,7 +1545,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+        <div class="grid grid-cols-1 gap-6 mb-6">
           <article
             class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-5 space-y-4"
           >
@@ -1605,57 +1605,6 @@
             </div>
           </article>
 
-          <article
-            class="dividend-card bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg p-5 space-y-4"
-          >
-            <div class="dividend-card__header">
-              <div>
-                <p class="dividend-card__eyebrow">
-                  Passive Income Watchlist
-                </p>
-                <h3 class="dividend-card__title text-gray-900 dark:text-white">Dividend Portfolio</h3>
-              </div>
-              <div class="dividend-card__controls">
-                <span class="dividend-card__badge">Display only</span>
-                <button
-                  id="dividendPortfolioRefreshBtn"
-                  type="button"
-                  class="dividend-refresh-btn"
-                  aria-label="Refresh dividend data from Google Sheets"
-                >
-                  Refresh
-                </button>
-              </div>
-            </div>
-            <p class="dividend-card__note text-sm text-slate-600 dark:text-slate-300">
-              Snapshot imported from your Google Sheet. These values do not interact with the Roth IRA
-              calculations and are shown here purely for visual tracking.
-            </p>
-            <div class="dividend-table-wrapper">
-              <table class="dividend-table">
-                <thead class="dividend-table__head">
-                  <tr>
-                    <th scope="col">Ticket</th>
-                    <th scope="col">Invested</th>
-                    <th scope="col">Value</th>
-                    <th scope="col">Yield</th>
-                    <th scope="col">Total</th>
-                    <th scope="col">Change</th>
-                  </tr>
-                </thead>
-                <tbody id="dividendPortfolioBody" class="dividend-table__body">
-                  <tr>
-                    <td colspan="6" class="dividend-table__cell text-center text-slate-500 dark:text-slate-300">
-                      Syncing with Google Sheets…
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <p id="dividendPortfolioStatus" class="dividend-status text-xs text-slate-500 dark:text-slate-300">
-              Awaiting first sync.
-            </p>
-          </article>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -4532,7 +4481,6 @@
     <script src="js/market-indices.js" defer></script>
     <script src="js/performance.js" defer></script>
     <script src="js/live-prices.js" defer></script>
-    <script src="js/dividend-portfolio.js" defer></script>
     <script src="js/live-portfolio-chart.js" defer></script>
     <script src="js/logistics-ops.js" defer></script>
     <script src="js/app.js" defer></script>

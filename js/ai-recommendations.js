@@ -15,11 +15,10 @@ const aiAssetBetas =
       : {
           VOO: 1,
           VXUS: 0.82,
-          AVUV: 1.27,
           AVDV: 0.96,
-          SPMO: 0.94,
-          SCHD: 0.83,
-          AMZN: 1.19,
+          AVUV: 1.27,
+          JNJ: 0.62,
+          GOOGL: 1.08,
         };
 
 const DEFAULT_EXPECTED_RETURNS =
@@ -129,7 +128,7 @@ const CORE_GUARDRAIL_FLOOR = 5;
 const SATELLITE_GUARDRAIL_MULTIPLIER = 0.25;
 const HIGH_VOL_GUARDRAIL_MULTIPLIER = 0.5;
 const SMALL_POSITION_THRESHOLD = 3.5;
-const HIGH_VOL_TICKERS = new Set(["AMZN", "SPMO"]);
+const HIGH_VOL_TICKERS = new Set(["GOOGL"]);
 const CRYPTO_TICKERS = new Set();
 const CRYPTO_ABSOLUTE_CAP = 5;
 const GUARDRAIL_SCORE_TIERS = [
@@ -750,8 +749,8 @@ function computeLiquidityScore(metrics) {
     return { score: 70, etfWeight: 0, singleWeight: 0, thematicWeight: 0 };
   }
 
-  const singleNames = ["AMZN"];
-const thematicNames = ["SPMO", "AMZN"];
+  const singleNames = ["JNJ", "GOOGL"];
+  const thematicNames = ["GOOGL"];
   let singleWeight = 0;
   let thematicWeight = 0;
   let etfWeight = 0;
@@ -875,12 +874,11 @@ function buildPortfolioHealth(metrics, actions) {
 
   const techExposure = computeExposure({
     VOO: 0.3,
-    SPMO: 0.58,
     VXUS: 0.12,
-    AVUV: 0.08,
-    AVDV: 0.05,
-    SCHD: 0.2,
-    AMZN: 1.0,
+    AVDV: 0.04,
+    AVUV: 0.05,
+    JNJ: 0.0,
+    GOOGL: 1.0,
   });
   if (techExposure > 35) {
     guardrailBreaches.push(
@@ -893,17 +891,16 @@ function buildPortfolioHealth(metrics, actions) {
   }
 
   const momentumExposure = computeExposure({
-    SPMO: 0.85,
-    AMZN: 0.9,
-    VOO: 0.2,
+    GOOGL: 0.9,
+    VOO: 0.25,
   });
   if (momentumExposure > 28) {
     guardrailBreaches.push(
-      `Momentum sleeve ${momentumExposure.toFixed(1)}% exceeds the ~28% guideline.`
+      `Growth/tech sleeve ${momentumExposure.toFixed(1)}% exceeds the ~28% guideline.`
     );
   } else if (momentumExposure > 25) {
     guardrailAlerts.push(
-      `Momentum sleeve ${momentumExposure.toFixed(1)}% is approaching the 28% guideline.`
+      `Growth/tech sleeve ${momentumExposure.toFixed(1)}% is approaching the 28% guideline.`
     );
   }
 
@@ -1156,7 +1153,7 @@ function buildStrategicAdvice(metrics, actions) {
     ? `${leadingAction.asset} is ${leadingAction.deviation}% ${leadingAction.deviation > 0 ? "over" : "under"} target.`
     : "All positions remain inside the drift tolerance band.";
 
-  const growthWeight = ["SPMO", "AMZN"].reduce(
+  const growthWeight = ["GOOGL"].reduce(
     (acc, asset) => acc + safeNumber(metrics.targetFractions[asset]),
     0
   );
@@ -1188,7 +1185,7 @@ function buildStrategicAdvice(metrics, actions) {
           ? "Moderate growth tilt to keep volatility contained."
           : "You can lean slightly more into growth if risk tolerance allows.",
       actions: [
-        "Revisit VOO versus SPMO weights before the next major contribution.",
+        "Revisit VOO versus GOOGL sizing before the next major contribution.",
         "Use scenario lab to model 20% drawdown and recovery timing.",
         "Track factor sleeves (AVUV alongside the core ETFs) to maintain diversification.",
       ],
@@ -1205,7 +1202,7 @@ function buildStrategicAdvice(metrics, actions) {
           : "Continue automated deposits and quarterly reviews.",
       actions: [
         "Confirm contribution schedule (monthly or quarterly) is automated.",
-        "Document thesis for thematic holdings (SPMO, AMZN) to revisit annually.",
+        "Document thesis for single-name holdings (JNJ, GOOGL) to revisit annually.",
         "Set calendar reminder for year-end tax and Roth paperwork review.",
       ],
     },
@@ -1225,7 +1222,7 @@ function buildRiskManagement(metrics, actions) {
       steps: [
         "Review emergency fund and Roth withdrawal contingencies.",
         "Document rebalancing triggers for a 10% market slide.",
-        "Check stop gaps for concentrated positions (AMZN and other single-stock sleeves).",
+        "Check stop gaps for concentrated positions (GOOGL and other single-stock sleeves).",
       ],
     },
     {
@@ -1245,8 +1242,8 @@ function buildRiskManagement(metrics, actions) {
       description: "Track macro triggers that would change allocation quickly.",
       steps: [
         "Set alerts for Fed policy shifts and recession probability models.",
-        "Watch momentum drivers like tech and industrials; tie to SPMO/AMZN exposure.",
-        "If rate volatility re-accelerates, stress test SCHD's dividend thesis before adding more.",
+        "Watch tech leadership and ad/cloud demand; tie changes to GOOGL exposure.",
+        "If defensives weaken relative to the market, revisit JNJ's role before adding more.",
         "Revisit international thesis if USD trend breaks 200-day moving average.",
       ],
     },
@@ -1287,9 +1284,9 @@ function buildMarketInsights(metrics) {
         : "Consider an international value sleeve to broaden factor diversification.",
     items: [
       {
-        label: "AI and Cloud Momentum",
+        label: "AI and Platform Momentum",
         detail:
-          "SPMO and AMZN carry the momentum tilt. Track earnings momentum and policy headlines shaping leadership sectors.",
+          "GOOGL carries the portfolio's concentrated tech sleeve. Track AI monetisation, ad demand, and cloud momentum.",
       },
       {
         label: "Value Factors",
@@ -1297,9 +1294,9 @@ function buildMarketInsights(metrics) {
           "AVUV and AVDV balance the growth sleeve with value and size exposure. Keep contributions spread across both regions.",
       },
       {
-        label: "Dividend Quality",
+        label: "Defensive Healthcare",
         detail:
-          "SCHD provides a defensive income sleeve. Track payout ratios and rate trends before rotating capital away from it.",
+          "JNJ provides a lower-beta healthcare sleeve. Track litigation, pipeline updates, and medtech execution before resizing it.",
       },
       {
         label: "Global Balance",

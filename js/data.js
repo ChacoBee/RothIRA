@@ -170,10 +170,10 @@ if (typeof window !== 'undefined') {
 // Sample Data (Based on your Sheet) - Will be updated with real data
 let initialStockData = {
   VOO: {
-    target: 40.0,
-    currentValue: 40.0,
-    currentPercent: 40.0,
-    sector: 'Core US',
+    target: 45.0,
+    currentValue: 45.0,
+    currentPercent: 45.0,
+    sector: 'Core US Large Cap',
     region: 'United States',
     exposureCategory: 'us',
     assetClass: 'equity',
@@ -187,15 +187,6 @@ let initialStockData = {
     exposureCategory: 'international',
     assetClass: 'equity',
   },
-  AVUV: {
-    target: 10.0,
-    currentValue: 10.0,
-    currentPercent: 10.0,
-    sector: 'Small Cap Value',
-    region: 'United States',
-    exposureCategory: 'us',
-    assetClass: 'equity',
-  },
   AVDV: {
     target: 10.0,
     currentValue: 10.0,
@@ -205,29 +196,29 @@ let initialStockData = {
     exposureCategory: 'international',
     assetClass: 'equity',
   },
-  SPMO: {
-    target: 10.0,
-    currentValue: 10.0,
-    currentPercent: 10.0,
-    sector: 'Momentum Large Cap',
+  AVUV: {
+    target: 15.0,
+    currentValue: 15.0,
+    currentPercent: 15.0,
+    sector: 'US Small Cap Value',
     region: 'United States',
     exposureCategory: 'us',
     assetClass: 'equity',
   },
-  SCHD: {
+  JNJ: {
     target: 5.0,
     currentValue: 5.0,
     currentPercent: 5.0,
-    sector: 'Dividend Quality',
+    sector: 'Defensive Healthcare',
     region: 'United States',
     exposureCategory: 'us',
     assetClass: 'equity',
   },
-  AMZN: {
+  GOOGL: {
     target: 5.0,
     currentValue: 5.0,
     currentPercent: 5.0,
-    sector: 'Consumer Discretionary',
+    sector: 'Communication Services',
     region: 'United States',
     exposureCategory: 'us',
     assetClass: 'equity',
@@ -347,11 +338,10 @@ const EQUITY_RISK_PREMIUM = Math.max(0, BENCHMARK_EXPECTED_RETURN - RISK_FREE_RA
 const assetBetas = {
   VOO: 1.0,
   VXUS: 0.82,
-  AVUV: 1.27,
   AVDV: 0.96,
-  SPMO: 0.94,
-  SCHD: 0.83,
-  AMZN: 1.19,
+  AVUV: 1.27,
+  JNJ: 0.62,
+  GOOGL: 1.08,
 };
 
 const BASE_ASSET_BETAS = Object.freeze({ ...assetBetas });
@@ -361,11 +351,10 @@ const factorNames = ['MKT', 'SMB', 'HML', 'MOM'];
 const multiFactorLoadings = {
   VOO:  { MKT: 1.00, SMB: -0.10, HML:  0.00, MOM: 0.10 },
   VXUS: { MKT: 0.80, SMB:  0.05, HML:  0.10, MOM: 0.10 },
-  AVUV: { MKT: 1.46, SMB:  0.80, HML:  0.50, MOM: -0.05 },
   AVDV: { MKT: 1.25, SMB:  0.75, HML:  0.55, MOM: -0.08 },
-  SPMO: { MKT: 1.05, SMB: -0.20, HML: -0.10, MOM: 0.78 },
-  SCHD: { MKT: 0.95, SMB: -0.05, HML:  0.35, MOM: 0.05 },
-  AMZN: { MKT: 1.84, SMB: -0.20, HML: -0.30, MOM: 0.50 },
+  AVUV: { MKT: 1.46, SMB:  0.80, HML:  0.50, MOM: -0.05 },
+  JNJ:  { MKT: 0.62, SMB: -0.15, HML:  0.20, MOM: -0.05 },
+  GOOGL:{ MKT: 1.18, SMB: -0.10, HML: -0.20, MOM: 0.35 },
 };
 
 
@@ -379,11 +368,10 @@ const factorCovariances = {
 const assetResidualVols = {
   VOO : 0.068918569,
   VXUS: 0.153068108,
-  AVUV: 0.232345736,
   AVDV: 0.168514851,
-  SPMO: 0.205113247,
-  SCHD: 0.142,
-  AMZN: 0.337801846,
+  AVUV: 0.232345736,
+  JNJ: 0.118,
+  GOOGL: 0.255,
 };
 
 const BASE_MULTI_FACTOR_LOADINGS = Object.freeze(
@@ -412,15 +400,14 @@ function deriveCapmExpectedReturn(betaEstimate) {
   return RISK_FREE_RATE + beta * EQUITY_RISK_PREMIUM;
 }
 
-// Calibrated annualised returns (Jan 2020 - Oct 2025 window, matches Portfolio Visualizer backtest at https://www.portfoliovisualizer.com/backtest-portfolio?s=y&sl=6W1yX8KkDA9w26IU6Jrljm)
+// Calibrated annualised return assumptions used across the dashboard.
 const REALISED_EXPECTED_RETURNS = {
   VOO: 0.1545,
   VXUS: 0.0822,
-  AVUV: 0.1245,
   AVDV: 0.1172,
-  SPMO: 0.2147,
-  SCHD: 0.0954,
-  AMZN: 0.1813,
+  AVUV: 0.1245,
+  JNJ: 0.094,
+  GOOGL: 0.206,
 };
 
 const expectedReturns = assetKeys.reduce((acc, key) => {
@@ -437,11 +424,10 @@ const BASE_EXPECTED_RETURNS = Object.freeze({ ...expectedReturns });
 const STATIC_DEFAULT_VOLATILITIES = Object.freeze({
   VOO: 0.1739,
   VXUS: 0.1676,
-  AVUV: 0.2744,
   AVDV: 0.2054,
-  SPMO: 0.1857,
-  SCHD: 0.1702,
-  AMZN: 0.3219,
+  AVUV: 0.2744,
+  JNJ: 0.154,
+  GOOGL: 0.289,
 });
 
 let volatilities = { ...STATIC_DEFAULT_VOLATILITIES };
@@ -454,34 +440,27 @@ const BASE_VOLATILITIES = Object.freeze({ ...STATIC_DEFAULT_VOLATILITIES });
 const expenseRatios = {
   VOO : 0.0003, // 0.03%
   VXUS: 0.0005, // 0.05%
-  AVUV: 0.0025, // 0.25%
   AVDV: 0.0036, // 0.36%
-  SPMO: 0.0013, // 0.13%
-  SCHD: 0.0006, // 0.06%
-  AMZN: 0.0, // Direct equity, no fund expense
+  AVUV: 0.0025, // 0.25%
+  JNJ: 0.0, // Direct equity, no fund expense
+  GOOGL: 0.0, // Direct equity, no fund expense
 };
 
 const DEFAULT_CORRELATIONS = Object.freeze({
-  AMZN_AVDV: 0.29,
-  AMZN_AVUV: 0.35,
-  AMZN_SCHD: 0.3,
-  AMZN_SPMO: 0.56,
-  AMZN_VOO: 0.64,
-  AMZN_VXUS: 0.38,
   AVUV_AVDV: 0.85,
-  AVUV_SCHD: 0.88,
-  AVUV_SPMO: 0.63,
-  AVUV_VOO: 0.8,
-  AVUV_VXUS: 0.78,
-  AVDV_SCHD: 0.83,
-  AVDV_SPMO: 0.65,
+  AVDV_GOOGL: 0.49,
+  AVDV_JNJ: 0.55,
   AVDV_VOO: 0.82,
   AVDV_VXUS: 0.96,
-  SCHD_SPMO: 0.7,
-  SCHD_VOO: 0.84,
-  SCHD_VXUS: 0.8,
-  SPMO_VOO: 0.89,
-  SPMO_VXUS: 0.69,
+  AVUV_GOOGL: 0.61,
+  AVUV_JNJ: 0.56,
+  AVUV_VOO: 0.8,
+  AVUV_VXUS: 0.78,
+  GOOGL_JNJ: 0.46,
+  GOOGL_VOO: 0.74,
+  GOOGL_VXUS: 0.60,
+  JNJ_VOO: 0.72,
+  JNJ_VXUS: 0.58,
   VOO_VXUS: 0.85,
 });
 
@@ -989,14 +968,17 @@ let tvWidget = null; // Cache for the TradingView widget instance
 // TradingView Symbol Mapping
 // Use exchange-prefixed symbols that the embedded TradingView widget accepts.
 function getTradingViewSymbol(ticker) {
-  if (["VOO", "AVUV", "AVDV", "SPMO", "SCHD"].includes(ticker)) {
+  if (["VOO", "AVUV", "AVDV"].includes(ticker)) {
     return `AMEX:${ticker}`;
   }
   if (ticker === "VXUS") {
     return `NASDAQ:VXUS`;
   }
-  if (ticker === "AMZN") {
-    return `NASDAQ:AMZN`;
+  if (ticker === "JNJ") {
+    return `NYSE:JNJ`;
+  }
+  if (ticker === "GOOGL") {
+    return `NASDAQ:GOOGL`;
   }
   return ticker; // Default fallback
 }
@@ -1032,29 +1014,24 @@ const stockDetailsContent = {
     pros: "Captures cycles when Europe or Asia outpace the US. Helps hedge dollar weakness. Expands opportunity set across countries and sectors.",
     cons: "Faces currency and geopolitical risk. Has lagged US equities over much of the past decade.",
   },
-  AVUV: {
-    desc: "Avantis small-cap value ETF targeting profitable, inexpensive US businesses. Complements the large-cap core with a value tilt.",
-    pros: "Diversifies factor exposure beyond mega-cap growth. Historically rebounds when the value factor regains leadership. Adds a disciplined, tax-aware smart-beta sleeve.",
-    cons: "More volatile than blue-chip ETFs and can trail in growth-led markets. Smaller fund size requires monitoring liquidity and spreads.",
-  },
   AVDV: {
     desc: "Avantis international small-cap value ETF drawing from developed markets outside the US. Extends the value tilt into non-US small caps.",
     pros: "Broad global reach beyond domestic holdings. Captures value and size factors abroad while remaining tax-efficient. Complements VXUS with deeper factor exposure.",
     cons: "Currency swings and geopolitical shocks can drive larger drawdowns. Trading spreads can widen during low-liquidity sessions.",
   },
-  SPMO: {
-    desc: "Invesco S&P 500 Momentum ETF capturing large-cap US names with sustained price strength and overweighting recent winners.",
-    pros: "Systematic momentum tilt boosts exposure to leadership sectors. Maintains diversification across the S&P 500 while adding tactical offence. Moderate 0.13% fee.",
-    cons: "Momentum factor can whipsaw during regime shifts. Portfolio may lag broader market when leadership rotates back to value or defensives.",
+  AVUV: {
+    desc: "Avantis US small-cap value ETF targeting profitable, attractively priced domestic companies. It adds a deliberate size and value tilt to the core US sleeve.",
+    pros: "Expands diversification beyond mega-cap growth leadership. Historically benefits when value and smaller companies regain market leadership. Complements VOO with differentiated factor exposure.",
+    cons: "More volatile than broad-market ETFs and can lag when large-cap growth dominates. Expect deeper drawdowns during risk-off periods.",
   },
-  SCHD: {
-    desc: "Schwab US Dividend Equity ETF screens for high-quality dividend payers with durable cash flows and sustainable payout ratios.",
-    pros: "Quality and value tilt tempers volatility while contributing reliable yield. Strict screens avoid weaker balance sheets and keeps turnover low.",
-    cons: "Income focus can lag high-growth markets or early-cycle rallies. Heavy sector tilts (industrials, financials) require monitoring when rates shift quickly.",
+  JNJ: {
+    desc: "Johnson & Johnson adds a defensive healthcare sleeve with diversified revenue across pharmaceuticals, medtech, and consumer-health adjacencies.",
+    pros: "Defensive earnings profile can cushion volatility in risk-off markets. Adds sector diversification away from tech-heavy broad indexes. Long operating history supports a durable quality tilt.",
+    cons: "Single-company risk still applies despite the defensive profile. Regulatory, patent, and litigation headlines can weigh on returns unexpectedly.",
   },
-  AMZN: {
-    desc: "Direct equity stake in Amazon across e-commerce, AWS cloud, and logistics. Single-stock satellite delivering outsized growth potential.",
-    pros: "Exposure to a dominant platform with multiple growth engines. Optionality across advertising, media, and AI services.",
-    cons: "Single-company risk is elevated; performance hinges on management execution. Valuation multiples can compress quickly in risk-off regimes.",
+  GOOGL: {
+    desc: "Alphabet serves as the portfolio's growth satellite, with exposure to digital advertising, cloud infrastructure, AI, and platform ecosystems.",
+    pros: "Strong cash generation and multiple growth engines provide upside beyond broad-market ETFs. Adds targeted participation in AI and cloud leadership without replacing the diversified core.",
+    cons: "Returns are still tied to one management team and one corporate structure. Regulatory pressure and ad-cycle weakness can create sharp swings.",
   },
 };

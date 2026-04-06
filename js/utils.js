@@ -447,6 +447,19 @@ function loadTargetsFromLocalStorage() {
 
     if (!parsed || typeof parsed !== "object") return false;
 
+    const storedKeys = Object.keys(parsed).filter(
+      (key) => typeof parsed[key] === "number"
+    );
+    const expectedKeys = Array.isArray(assetKeys) ? assetKeys.slice() : [];
+    const hasExactKeyMatch =
+      storedKeys.length === expectedKeys.length &&
+      expectedKeys.every((key) => storedKeys.includes(key));
+
+    if (!hasExactKeyMatch) {
+      localStorage.removeItem("portfolioTargets");
+      return false;
+    }
+
     // Apply loaded targets to initialStockData so initialization uses them
 
     Object.keys(parsed).forEach((key) => {

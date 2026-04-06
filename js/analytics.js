@@ -8,11 +8,10 @@ const portfolioAssetBetas =
 : {
         VOO: 1.0,
         VXUS: 0.82,
-        AVUV: 1.27,
         AVDV: 0.96,
-        SPMO: 0.94,
-        SCHD: 0.83,
-        AMZN: 1.19,
+        AVUV: 1.27,
+        JNJ: 0.62,
+        GOOGL: 1.08,
       };
 
 const portfolioExpenseRatios =
@@ -20,12 +19,11 @@ const portfolioExpenseRatios =
     ? expenseRatios
 : {
         VOO: 0.0003,
-        VXUS: 0.0007,
+        VXUS: 0.0005,
+        AVDV: 0.0036,
         AVUV: 0.0025,
-        AVDV: 0.0025,
-        SPMO: 0.0013,
-        SCHD: 0.0006,
-        AMZN: 0.0,
+        JNJ: 0.0,
+        GOOGL: 0.0,
       };
 
 const multiFactorConfigSource =
