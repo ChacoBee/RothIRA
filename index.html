@@ -14,6 +14,10 @@
     />
   </head>
   <body class="transition-colors duration-300">
+    <a class="skip-link" href="#mainContent">Skip to main content</a>
+    <div class="page-progress" aria-hidden="true">
+      <div id="pageProgressBar" class="page-progress__bar"></div>
+    </div>
     <div
       id="actionFeedbackPanel"
       class="action-feedback action-feedback--hidden"
@@ -72,8 +76,39 @@
           <p class="app-sidebar__intro">
             Route between diagnostics, loadouts, and supply lines without leaving the cockpit.
           </p>
+          <div class="app-sidebar__command">
+            <label class="app-sidebar__command-label" for="sidebarSearchInput">
+              Quick jump
+            </label>
+            <div class="app-sidebar__command-field">
+              <input
+                id="sidebarSearchInput"
+                class="app-sidebar__command-input"
+                type="search"
+                inputmode="search"
+                autocomplete="off"
+                placeholder="Type section name..."
+                aria-describedby="sidebarSearchStatus"
+              />
+              <button
+                id="sidebarSearchClearBtn"
+                class="app-sidebar__command-clear"
+                type="button"
+                aria-label="Clear quick jump search"
+              >
+                Clear
+              </button>
+            </div>
+            <p
+              id="sidebarSearchStatus"
+              class="app-sidebar__command-status"
+              aria-live="polite"
+            >
+              Showing all sections
+            </p>
+          </div>
           <nav class="app-sidebar__nav" aria-label="Section navigation">
-            <ul class="app-sidebar__list">
+            <ul id="sidebarSectionList" class="app-sidebar__list">
               <li>
                 <a class="app-sidebar__link" href="#overview"
                   ><span class="app-sidebar__index">01</span><span>Hangar Overview</span></a
@@ -139,7 +174,7 @@
         </div>
       </aside>
 
-      <main class="app-main">
+      <main id="mainContent" class="app-main" tabindex="-1">
         <div class="container mx-auto p-4 md:p-8 max-w-7xl">
 
       <header class="hero card card--lifted">

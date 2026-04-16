@@ -1,27 +1,73 @@
-const LIVE_PRICE_TICKERS = ["VOO", "VXUS", "AVDV", "AVUV", "JNJ", "GOOGL"];
-const LIVE_PRICE_CSV_PATH =
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRwZrG7ms2qeaAEqYcpHs_kaE7cOwuGvU0d4G0fTSXPUL5wgHk3mPdhpJlEHeUaZw/pub?output=csv';
+const DEFAULT_LIVE_PRICE_TICKERS = ["VOO", "VXUS", "AVDV", "AVUV", "JNJ", "GOOGL"];
+const DEFAULT_LIVE_PRICE_CSV_PATH =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRwZrG7ms2qeaAEqYcpHs_kaE7cOwuGvU0d4G0fTSXPUL5wgHk3mPdhpJlEHeUaZw/pub?output=csv";
+let livePriceTickers = DEFAULT_LIVE_PRICE_TICKERS.slice();
+let livePriceCsvPath = DEFAULT_LIVE_PRICE_CSV_PATH;
 let livePriceTimer = null;
 let livePriceInitialized = false;
+let livePriceSettingsListenerBound = false;
 
-function initializeLivePriceTest() {
-  if (livePriceInitialized) return;
-  const tbody = document.getElementById("livePriceRows");
-  if (!tbody) {
-    console.warn("livePriceRows element not found; skipping live price tracker init.");
-    return;
+function sanitizeTicker(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9.\-]/g, "")
+    .slice(0, 15);
+}
+
+function normalizeTickerList(list) {
+  if (!Array.isArray(list)) return [];
+  return Array.from(new Set(list.map((ticker) => sanitizeTicker(ticker)).filter(Boolean)));
+}
+
+function resolveLivePriceCsvUrl(inputUrl) {
+  const source = String(inputUrl || "").trim();
+  if (!source) return DEFAULT_LIVE_PRICE_CSV_PATH;
+
+  if (
+    /[?&]output=csv/i.test(source) ||
+    /[?&]format=csv/i.test(source) ||
+    /\/pub\?output=csv/i.test(source)
+  ) {
+    return source;
   }
-  livePriceInitialized = true;
 
-  const refreshBtn = document.getElementById("livePriceRefreshBtn");
-  if (refreshBtn) {
-    refreshBtn.addEventListener("click", () => {
-      fetchAndRenderLivePrices({ userInitiated: true });
-    });
+  const idMatch = source.match(/\/spreadsheets\/d\/([a-zA-Z0-9\-_]+)/i);
+  if (!idMatch) {
+    return source;
+  }
+  const sheetId = idMatch[1];
+  const queryGidMatch = source.match(/[?&]gid=(\d+)/i);
+  const hashGidMatch = source.match(/#gid=(\d+)/i);
+  const gid = (queryGidMatch && queryGidMatch[1]) || (hashGidMatch && hashGidMatch[1]) || "0";
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+}
+
+function refreshLivePriceSourceConfig() {
+  try {
+    if (window.SettingsStore && typeof window.SettingsStore.getSettings === "function") {
+      const settings = window.SettingsStore.getSettings() || {};
+      const nextTickers = normalizeTickerList(settings.livePriceTickers);
+      livePriceTickers = nextTickers.length
+        ? nextTickers
+        : DEFAULT_LIVE_PRICE_TICKERS.slice();
+      livePriceCsvPath = resolveLivePriceCsvUrl(
+        settings.livePriceSheetUrl || DEFAULT_LIVE_PRICE_CSV_PATH
+      );
+      return;
+    }
+  } catch (error) {
+    console.warn("Unable to read settings for live price source.", error);
   }
 
+  livePriceTickers = DEFAULT_LIVE_PRICE_TICKERS.slice();
+  livePriceCsvPath = DEFAULT_LIVE_PRICE_CSV_PATH;
+}
+
+function buildLivePriceRows(tbody) {
+  if (!tbody) return;
   tbody.innerHTML = "";
-  LIVE_PRICE_TICKERS.forEach((ticker) => {
+  livePriceTickers.forEach((ticker) => {
     const row = document.createElement("tr");
     row.id = `live-price-row-${ticker}`;
     row.innerHTML = `
@@ -53,6 +99,51 @@ function initializeLivePriceTest() {
     `;
     tbody.appendChild(row);
   });
+}
+
+function handleLivePriceSettingsChange() {
+  if (!livePriceInitialized) return;
+  const previousTickers = livePriceTickers.join("|");
+  const previousPath = livePriceCsvPath;
+
+  refreshLivePriceSourceConfig();
+
+  const nextTickers = livePriceTickers.join("|");
+  const sourceChanged = previousPath !== livePriceCsvPath || previousTickers !== nextTickers;
+  if (!sourceChanged) return;
+
+  const tbody = document.getElementById("livePriceRows");
+  if (tbody) {
+    buildLivePriceRows(tbody);
+  }
+  fetchAndRenderLivePrices();
+}
+
+function bindLivePriceSettingsListener() {
+  if (livePriceSettingsListenerBound) return;
+  livePriceSettingsListenerBound = true;
+  window.addEventListener("hangar-settings-changed", handleLivePriceSettingsChange);
+}
+
+function initializeLivePriceTest() {
+  if (livePriceInitialized) return;
+  const tbody = document.getElementById("livePriceRows");
+  if (!tbody) {
+    console.warn("livePriceRows element not found; skipping live price tracker init.");
+    return;
+  }
+
+  refreshLivePriceSourceConfig();
+  buildLivePriceRows(tbody);
+  bindLivePriceSettingsListener();
+  livePriceInitialized = true;
+
+  const refreshBtn = document.getElementById("livePriceRefreshBtn");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      fetchAndRenderLivePrices({ userInitiated: true });
+    });
+  }
 
   fetchAndRenderLivePrices();
   if (livePriceTimer) clearInterval(livePriceTimer);
@@ -124,17 +215,24 @@ function parseNumeric(input) {
 }
 
 async function fetchSheetPrices() {
-  const response = await fetch(LIVE_PRICE_CSV_PATH, { cache: "no-cache" });
+  const response = await fetch(livePriceCsvPath, { cache: "no-cache" });
   if (!response.ok) {
-    throw new Error("Unable to read CSV");
+    throw new Error(`Unable to read CSV (${response.status})`);
   }
   const text = await response.text();
+  const normalizedText = (text || "").trim();
+  if (
+    normalizedText.startsWith("<!DOCTYPE html") ||
+    normalizedText.startsWith("<html")
+  ) {
+    throw new Error("SHEET_NOT_CSV");
+  }
   const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
   const headerIndex = lines.findIndex((line) =>
     normaliseHeader(line).startsWith("stock,")
   );
   if (headerIndex === -1) {
-    throw new Error("Cannot locate header row in CSV");
+    throw new Error("SHEET_HEADER_NOT_FOUND");
   }
   const headersRaw = parseCSVLine(lines[headerIndex]);
   const headers = headersRaw.map(normaliseHeader);
@@ -247,7 +345,7 @@ async function fetchAndRenderLivePrices(options = {}) {
     const { rows: quoteMap, totals } = await fetchSheetPrices();
     const now = Date.now();
 
-    LIVE_PRICE_TICKERS.forEach((ticker) => {
+    livePriceTickers.forEach((ticker) => {
       const row = document.getElementById(`live-price-row-${ticker}`);
       const quote = quoteMap[ticker];
       if (!row) return;
@@ -509,8 +607,14 @@ async function fetchAndRenderLivePrices(options = {}) {
       })
     );
   } catch (error) {
+    const reason = error instanceof Error ? error.message : "";
+    const sourceHint =
+      reason === "SHEET_NOT_CSV" || reason === "SHEET_HEADER_NOT_FOUND"
+        ? "Sheet URL must be a public CSV (Publish to web or /export?format=csv)."
+        : "Unable to read data from Google Sheets.";
+
     if (statusEl) {
-      statusEl.textContent = "Unable to read data from Google Sheets";
+      statusEl.textContent = sourceHint;
       statusEl.classList.remove(...statusClassReset);
       statusEl.classList.add(
         "bg-rose-500/10",
@@ -519,9 +623,10 @@ async function fetchAndRenderLivePrices(options = {}) {
         "dark:text-rose-300"
       );
     }
+    console.error("Live price sync failed:", error);
     if (userInitiated && typeof window.showActionFeedback === "function") {
       window.showActionFeedback(
-        "Sync failed. Showing last known Google Sheets snapshot.",
+        sourceHint,
         { state: "error", autoHide: 4200 }
       );
     }

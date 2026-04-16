@@ -125,9 +125,29 @@ window.addEventListener("DOMContentLoaded", () => {
     toggleScrollBtnVisibility();
   }
 
+  const pageProgressBar = document.getElementById("pageProgressBar");
+  if (pageProgressBar) {
+    const updatePageProgress = () => {
+      const doc = document.documentElement;
+      const scrollableHeight = doc.scrollHeight - doc.clientHeight;
+      const progress =
+        scrollableHeight > 0
+          ? Math.min(1, Math.max(0, window.scrollY / scrollableHeight))
+          : 0;
+      pageProgressBar.style.width = `${(progress * 100).toFixed(2)}%`;
+    };
+
+    window.addEventListener("scroll", updatePageProgress, { passive: true });
+    window.addEventListener("resize", updatePageProgress);
+    updatePageProgress();
+  }
+
   const sidebarLinks = Array.from(document.querySelectorAll(".app-sidebar__link"));
   if (sidebarLinks.length) {
     const sidebarList = document.querySelector(".app-sidebar__list");
+    const sidebarSearchInput = document.getElementById("sidebarSearchInput");
+    const sidebarSearchStatus = document.getElementById("sidebarSearchStatus");
+    const sidebarSearchClearBtn = document.getElementById("sidebarSearchClearBtn");
     let sidebarHighlight = null;
 
     if (sidebarList) {
@@ -139,9 +159,19 @@ window.addEventListener("DOMContentLoaded", () => {
     const observedSections = [];
     const linkBySectionId = new Map();
     let activeSidebarLink = null;
+    const isSidebarLinkVisible = (link) => {
+      const item = link ? link.closest("li") : null;
+      return Boolean(link && item && !item.classList.contains("app-sidebar__item--hidden"));
+    };
+    const getVisibleSidebarLinks = () =>
+      sidebarLinks.filter((link) => isSidebarLinkVisible(link));
+    const pickFirstVisibleSidebarLink = () => {
+      const links = getVisibleSidebarLinks();
+      return links.length ? links[0] : null;
+    };
 
     const moveHighlightToLink = (link) => {
-      if (!sidebarHighlight || !sidebarList || !link) return;
+      if (!sidebarHighlight || !sidebarList || !link || !isSidebarLinkVisible(link)) return;
 
       const listRect = sidebarList.getBoundingClientRect();
       const linkRect = link.getBoundingClientRect();
@@ -168,19 +198,26 @@ window.addEventListener("DOMContentLoaded", () => {
     };
 
     const setActiveSidebarLink = (link) => {
-      if (!link) return;
+      let nextLink = link;
+      if (!nextLink || !isSidebarLinkVisible(nextLink)) {
+        nextLink = pickFirstVisibleSidebarLink();
+      }
+      if (!nextLink) return;
 
-      if (link !== activeSidebarLink) {
+      if (nextLink !== activeSidebarLink) {
         if (activeSidebarLink) {
           activeSidebarLink.classList.remove("active");
+          activeSidebarLink.removeAttribute("aria-current");
         }
-        link.classList.add("active");
-        activeSidebarLink = link;
-      } else if (!link.classList.contains("active")) {
-        link.classList.add("active");
+        nextLink.classList.add("active");
+        nextLink.setAttribute("aria-current", "true");
+        activeSidebarLink = nextLink;
+      } else if (!nextLink.classList.contains("active")) {
+        nextLink.classList.add("active");
+        nextLink.setAttribute("aria-current", "true");
       }
 
-      moveHighlightToLink(link);
+      moveHighlightToLink(nextLink);
     };
 
     sidebarLinks.forEach((link) => {
@@ -209,6 +246,8 @@ window.addEventListener("DOMContentLoaded", () => {
       observedSections.forEach((section) => {
         const rect = section.getBoundingClientRect();
         if (rect.bottom <= 0 || rect.top >= viewportHeight) return;
+        const sectionLink = linkBySectionId.get(section.id);
+        if (!sectionLink || !isSidebarLinkVisible(sectionLink)) return;
         const offset = Math.abs(rect.top);
         if (offset < smallestOffset) {
           nearestSection = section;
@@ -243,6 +282,42 @@ window.addEventListener("DOMContentLoaded", () => {
         if (fallbackLink) {
           setActiveSidebarLink(fallbackLink);
         }
+      }
+    };
+
+    const applySidebarFilter = (rawTerm = "") => {
+      const term = String(rawTerm || "").trim().toLowerCase();
+      let visibleCount = 0;
+
+      sidebarLinks.forEach((link) => {
+        const item = link.closest("li");
+        if (!item) return;
+        const label = (link.textContent || "").toLowerCase();
+        const matches = !term || label.includes(term);
+        item.classList.toggle("app-sidebar__item--hidden", !matches);
+        if (matches) {
+          visibleCount += 1;
+        }
+      });
+
+      if (sidebarSearchStatus) {
+        if (!term) {
+          sidebarSearchStatus.textContent = "Showing all sections";
+        } else if (visibleCount === 0) {
+          sidebarSearchStatus.textContent = `No matches for "${term}"`;
+        } else {
+          sidebarSearchStatus.textContent = `${visibleCount} section${visibleCount === 1 ? "" : "s"} matched`;
+        }
+      }
+
+      if (visibleCount === 0 && sidebarHighlight) {
+        sidebarHighlight.classList.remove("visible");
+      }
+
+      if (!activeSidebarLink || !isSidebarLinkVisible(activeSidebarLink)) {
+        setActiveSidebarLink(pickFirstVisibleSidebarLink());
+      } else {
+        moveHighlightToLink(activeSidebarLink);
       }
     };
 
@@ -283,11 +358,58 @@ window.addEventListener("DOMContentLoaded", () => {
       });
     });
 
+    if (sidebarSearchInput) {
+      sidebarSearchInput.addEventListener("input", () => {
+        applySidebarFilter(sidebarSearchInput.value);
+      });
+    }
+    if (sidebarSearchClearBtn) {
+      sidebarSearchClearBtn.addEventListener("click", () => {
+        if (sidebarSearchInput) {
+          sidebarSearchInput.value = "";
+          sidebarSearchInput.focus();
+        }
+        applySidebarFilter("");
+      });
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (!sidebarSearchInput) return;
+      if (event.defaultPrevented) return;
+
+      const target = event.target;
+      const targetTag = target && target.tagName ? target.tagName.toLowerCase() : "";
+      const isTypingContext =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        targetTag === "select" ||
+        (target instanceof HTMLElement && target.isContentEditable);
+
+      if (
+        event.key === "/" &&
+        !isTypingContext &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        sidebarSearchInput.focus();
+        sidebarSearchInput.select();
+      } else if (event.key === "Escape" && document.activeElement === sidebarSearchInput) {
+        sidebarSearchInput.value = "";
+        applySidebarFilter("");
+        sidebarSearchInput.blur();
+      }
+    });
+
     requestAnimationFrame(() => {
+      applySidebarFilter(sidebarSearchInput ? sidebarSearchInput.value : "");
       syncSidebarToViewport(true);
     });
 
-    window.addEventListener("scroll", () => scheduleSidebarSync(false));
+    window.addEventListener("scroll", () => scheduleSidebarSync(false), {
+      passive: true,
+    });
     window.addEventListener("resize", () => scheduleSidebarSync(false));
 
     window.addEventListener("hashchange", () => {
@@ -412,8 +534,10 @@ window.addEventListener("DOMContentLoaded", () => {
   updateStockDetails("VOO"); // Load VOO details and set VOO as default chart
   runSimulation();
 
-  // Auto-populate rebalance table on load
-  populateRebalanceTable();
+  // Prime deposit rebalance helper without crashing if optional APIs are unavailable
+  if (typeof recalculateDepositRebalance === "function") {
+    recalculateDepositRebalance();
+  }
 
   // Update risk level bar after initial load
   updateRiskLevelBar();

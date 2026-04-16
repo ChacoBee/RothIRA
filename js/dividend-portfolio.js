@@ -18,18 +18,37 @@
   let lastSync = 0;
   let refreshBtn = null;
 
+  function resolveSheetCsvUrl(inputUrl) {
+    const source = String(inputUrl || "").trim();
+    if (!source) return DEFAULT_SHEET_URL;
+    if (
+      /[?&]output=csv/i.test(source) ||
+      /[?&]format=csv/i.test(source) ||
+      /\/pub\?output=csv/i.test(source)
+    ) {
+      return source;
+    }
+    const idMatch = source.match(/\/spreadsheets\/d\/([a-zA-Z0-9\-_]+)/i);
+    if (!idMatch) return source;
+    const sheetId = idMatch[1];
+    const queryGidMatch = source.match(/[?&]gid=(\d+)/i);
+    const hashGidMatch = source.match(/#gid=(\d+)/i);
+    const gid = (queryGidMatch && queryGidMatch[1]) || (hashGidMatch && hashGidMatch[1]) || "0";
+    return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+  }
+
   function getSheetUrl() {
     try {
       if (window.SettingsStore && typeof window.SettingsStore.getSettings === "function") {
         const settings = window.SettingsStore.getSettings();
         if (settings && settings.livePriceSheetUrl) {
-          return settings.livePriceSheetUrl;
+          return resolveSheetCsvUrl(settings.livePriceSheetUrl);
         }
       }
     } catch (error) {
       console.warn("Unable to read SettingsStore for dividend sheet URL.", error);
     }
-    return DEFAULT_SHEET_URL;
+    return resolveSheetCsvUrl(DEFAULT_SHEET_URL);
   }
 
   function parseCSVLine(line) {
@@ -208,6 +227,13 @@
         throw new Error(`Sheet responded with ${response.status}`);
       }
       const text = await response.text();
+      const normalizedText = (text || "").trim();
+      if (
+        normalizedText.startsWith("<!DOCTYPE html") ||
+        normalizedText.startsWith("<html")
+      ) {
+        throw new Error("SHEET_NOT_CSV");
+      }
       const matrix = parseCSV(text);
       const rows = extractDividendRows(matrix);
       renderTable(rows);
@@ -218,14 +244,19 @@
       }
     } catch (error) {
       console.error("Failed to sync dividend portfolio", error);
+      const reason = error instanceof Error ? error.message : "";
+      const message =
+        reason === "SHEET_NOT_CSV"
+          ? "Sheet URL must be a public CSV (Publish to web or /export?format=csv)."
+          : "Unable to read dividend data from Google Sheets.";
       if (!silent || lastSync === 0) {
-        updateStatus("Unable to read dividend data from Google Sheets.", "error");
+        updateStatus(message, "error");
       }
       if (lastSync === 0) {
         renderTable([]);
       }
       if (userInitiated && typeof window.showActionFeedback === "function") {
-        window.showActionFeedback("Unable to refresh dividend data.", { state: "error", autoHide: 3200 });
+        window.showActionFeedback(message, { state: "error", autoHide: 3200 });
       }
     } finally {
       isLoading = false;
