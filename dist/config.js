@@ -4,7 +4,7 @@ window.APP_CONFIG.marketData = Object.assign(
   {
     fmpApiKey: 'demo',
     alphaVantageKey: '',
-    finnhubKey: '',
+    finnhubKey: 'd7g4oihr01qqb8ribc8gd7g4oihr01qqb8ribc90',
   },
   window.APP_CONFIG.marketData || {}
 );
