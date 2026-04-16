@@ -1,8 +1,8 @@
 {
   "name": "rothira",
+  "private": true,
   "version": "1.0.0",
-  "description": "> Mình xây dựng dashboard này để quản lý tài khoản Roth IRA theo cách **chuyên nghiệp** hơn nhưng vẫn giữ chất **thú vị** như đang điều khiển một buồng lái mecha.",
-  "main": "temp_utils.js",
+  "description": "Gunpla Hangar Command Console migrated to Vite + React.",
   "directories": {
     "doc": "docs",
     "test": "tests"
@@ -79,6 +79,8 @@
     "postcss-selector-parser": "^6.1.2",
     "postcss-value-parser": "^4.2.0",
     "queue-microtask": "^1.2.3",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
     "read-cache": "^1.0.0",
     "readdirp": "^3.6.0",
     "resolve": "^1.22.11",
@@ -110,13 +112,21 @@
     "wrap-ansi-cjs": "^7.0.0"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.13"
+    "puppeteer": "^24.41.0",
+    "tailwindcss": "^3.4.13",
+    "vite": "^5.4.19",
+    "vite-plugin-static-copy": "^1.0.6"
   },
   "scripts": {
-    "build:css": "tailwindcss -i ./src/tailwind.css -o ./css/tailwind.css --minify",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:unit": "node tests/deposit-core.test.js && node tests/deposit-rebalance-core.test.js && node tests/finnhub-news.test.mjs",
+    "test:smoke": "npm run build && node tests/run-console-check.mjs",
+    "test": "npm run test:unit && npm run test:smoke"
   },
   "keywords": [],
   "author": "",

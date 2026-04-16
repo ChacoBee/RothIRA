@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gunpla Hangar Command Console</title>
+    <link rel="icon" type="image/svg+xml" href="/RothIRA/assets/favicon-BZdiHIED.svg" />
+    <script>
+      (function () {
+        function syncThemeClasses(nextTheme) {
+          var theme = nextTheme;
+
+          if (theme !== 'dark' && theme !== 'light') {
+            try {
+              theme = localStorage.getItem('theme');
+            } catch (_) {
+              theme = null;
+            }
+          }
+
+          if (theme !== 'dark' && theme !== 'light') {
+            try {
+              theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            } catch (_) {
+              theme = 'light';
+            }
+          }
+
+          var isDark = theme === 'dark';
+          var htmlEl = document.documentElement;
+          htmlEl.classList.toggle('dark-mode', isDark);
+          htmlEl.classList.toggle('dark', isDark);
+          htmlEl.style.colorScheme = isDark ? 'dark' : 'light';
+          return isDark;
+        }
+
+        window.__syncDocumentThemeClasses = syncThemeClasses;
+        syncThemeClasses();
+      })();
+    </script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="/RothIRA/assets/index-CvzHWcT0.js"></script>
+    <link rel="stylesheet" crossorigin href="/RothIRA/assets/index-Dlmsaodg.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="./config.js" defer></script>
+    <script src="./js/data.js" defer></script>
+    <script src="./js/utils.js" defer></script>
+    <script src="./js/charts.js" defer></script>
+    <script src="./js/deposit-core.js" defer></script>
+    <script src="./js/deposit-rebalance-core.js" defer></script>
+    <script src="./js/rebalance.js" defer></script>
+    <script src="./js/simulation.js" defer></script>
+    <script src="./js/tradingview.js" defer></script>
+    <script src="./js/tradingview-loader.js" defer></script>
+    <script src="./js/stockDetails.js" defer></script>
+    <script src="./js/theme.js" defer></script>
+    <script src="./js/analytics.js" defer></script>
+    <script src="./js/heatmap.js" defer></script>
+    <script src="./js/fear-greed.js" defer></script>
+    <script src="./js/market-indices.js" defer></script>
+    <script src="./js/performance.js" defer></script>
+    <script src="./js/live-prices.js" defer></script>
+    <script src="./js/live-portfolio-chart.js" defer></script>
+    <script src="./js/logistics-ops.js" defer></script>
+    <script src="./js/app.js" defer></script>
+  </body>
+</html>

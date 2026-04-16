@@ -1,51 +1,63 @@
 # Gunpla Hangar Command Console
 
-> Mình xây dựng dashboard này để quản lý tài khoản Roth IRA theo cách **chuyên nghiệp** hơn nhưng vẫn giữ chất **thú vị** như đang điều khiển một buồng lái mecha.
+React/Vite version of the Roth IRA dashboard, preserving the current local repo's content, section ids, styling, and legacy tool behavior while moving rendering into a React single-page app.
 
-## Từng phần mang lại gì?
-- **Hangar Overview**: Hero section và các thẻ thống kê cập nhật portfolio health, giá trị hiện tại, mức rủi ro và các chỉ báo nhanh.
-- **Unit Loadout Matrix**: Bảng phân bổ danh mục (đọc từ CSV) cùng thẻ tóm tắt giúp theo dõi số lượng tài sản, phân vùng US/Intl, mức drift.
-- **Combat Telemetry**: Dàn biểu đồ Chart.js để quan sát phân bổ, đóng góp, top holdings và diễn biến thị trường.
-- **Asset Details & Simulation Lab**: Tab chi tiết từng mã, mô phỏng đóng góp định kỳ, stress test, công cụ tính toán tái cân bằng/deposit.
-- **AI Command Briefing**: Bộ khuyến nghị “AI” (logic tự viết) gồm hành động tức thì, chiến lược, quản trị rủi ro, dự phóng tương lai.
-- **Market Heatmap & Fear & Greed**: Widget TradingView, heatmap tuỳ chỉnh, gauge tâm lý thị trường và bảng tin sự kiện.
+## Stack
+- React 19 + Vite 5
+- Tailwind via PostCSS build pipeline
+- Existing custom CSS in `css/styles.css`
+- Legacy dashboard behavior kept through the existing `js/` runtime loaded after React mount
 
-## Công nghệ & dữ liệu
-- **HTML5 tĩnh** kết hợp Tailwind CDN, Google Fonts (`Inter`, `Orbitron`, `Rajdhani`).
-- **CSS tuỳ chỉnh** (`css/styles.css`) dựng phong cách HUD, hiệu ứng neon, grid layout responsive.
-- **JavaScript thuần** trong `/js` (Chart.js, mô phỏng giá, analytics, AI recommendations, theme toggle).
-- **Dữ liệu demo**: CSV (`ROTH IRA.xlsx - Sheet1.csv`, `btc.csv`, `vixy.csv`, `vix.csv`, `dxy.csv`) và `graph.json` làm nguồn cho biểu đồ và bảng.
-- **Triển khai**: GitHub Pages tại [https://chacobee.github.io/RothIRA/](https://chacobee.github.io/RothIRA/).
+## Local commands
+- `npm run dev`: start the Vite dev server
+- `npm run build`: create the production build in `dist/`
+- `npm run preview`: preview the Vite build locally
+- `npm test`: run unit tests, build, and deterministic browser smoke coverage
 
-## Cấu trúc thư mục chính
-```
-.
-├── index.html              # Layout chính và khai báo script
-├── css/
-│   └── styles.css          # Toàn bộ phong cách HUD
-├── js/                     # Các mô-đun logic (dữ liệu, biểu đồ, AI, tái cân bằng...)
-├── img/                    # Hình nền và asset giao diện
-├── tests/                  # Kiểm thử cho deposit & rebalance
-├── *.csv / graph.json      # Dữ liệu giả lập
-└── README.md               # Tài liệu này
-```
+## Finnhub news configuration
+Section 6 includes `World Stock News` powered by Finnhub general market news.
 
-## Hướng dẫn khởi chạy & deploy
-1. **Local**: clone repo, mở `index.html` bằng trình duyệt (không cần backend).
-2. **Chỉnh sửa**: Cập nhật dữ liệu CSV hoặc JS → refresh để xem hiệu ứng ngay.
-3. **Triển khai**:
-   ```bash
-   git add .
-   git commit -m "Update dashboard"
-   git push origin main
-   ```
-   GitHub Pages tự build và cập nhật site.
+Runtime key sources, in precedence order:
+1. `VITE_FINNHUB_KEY` from `.env.local`
+2. `?finnhubKey=YOUR_KEY` in the URL
+3. `localStorage['hangar.finnhubKey']`
+4. `window.APP_CONFIG.marketData.finnhubKey` in `config.js`
 
-## Hướng phát triển
-- Kết nối API giá thực (Finnhub/Polygon) thay dữ liệu mô phỏng.
-- Viết thêm test cho khối analytics & AI.
-- Tách thành ES Modules và dùng bundler (Vite) để quản lý dependency, minify.
+Recommended local setup:
+1. Create `.env.local`
+2. Add `VITE_FINNHUB_KEY=YOUR_KEY`
+3. Restart `npm run dev`
+4. Open the app normally; no query param is required
 
-> Nếu bạn muốn dựng lại toàn bộ console, xem tài liệu chi tiết trong `CACH_TAO_WEBSITE.md`.
+`config.js` keeps `finnhubKey` empty by default. Do not commit a real key into source.
 
-Chúc bạn điều khiển “Gunpla” tài chính thật ngầu!***
+## Deployment
+The Vite build is configured for GitHub Pages with base path `/RothIRA/`.
+
+Recommended flow:
+1. `npm ci`
+2. `npm run build`
+3. Push to `main`
+4. GitHub Actions publishes `dist/` to Pages
+
+## Tests
+- `tests/deposit-core.test.js`
+- `tests/deposit-rebalance-core.test.js`
+- `tests/finnhub-news.test.mjs`
+- `tests/run-console-check.mjs`
+
+The smoke test serves the built app under `/RothIRA/`, mocks unstable third-party feeds, and verifies:
+- app boot without runtime console errors
+- sidebar hash navigation
+- theme toggle
+- Section 6 removals and Finnhub news render
+- visible renumbering after Section 8 removal
+- live sheet snapshot rendering
+- non-AI sections still function after the cleanup
+
+Manual real-feed check:
+1. Add your key to `.env.local`
+2. Run `npm run dev`
+3. Open `/RothIRA/`
+4. Confirm `World Stock News` renders live headlines instead of mock `Global headline X`
+5. Confirm the browser network tab shows `https://finnhub.io/api/v1/news?category=general&token=...` with `200`

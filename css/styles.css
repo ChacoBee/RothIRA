@@ -378,6 +378,10 @@ h3,
   box-shadow: 0 30px 60px -35px rgba(2, 6, 23, 0.6);
   backdrop-filter: blur(8px);
 }
+.app-sidebar__inner {
+  width: 100%;
+  min-width: 0;
+}
 .dark-mode .app-sidebar {
   background: rgba(5, 8, 15, 0.92);
   border-color: rgba(82, 208, 220, 0.28);
@@ -618,6 +622,7 @@ h3,
 .app-sidebar__command {
   display: grid;
   gap: 0.5rem;
+  min-width: 0;
 }
 .app-sidebar__command-label {
   margin: 0;
@@ -629,6 +634,8 @@ h3,
 .app-sidebar__command-field {
   display: flex;
   gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
 }
 .app-sidebar__command-input {
   flex: 1;
@@ -657,6 +664,7 @@ h3,
   color: rgba(226, 232, 240, 0.95);
   font-size: 0.76rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
@@ -1413,6 +1421,14 @@ h3,
 }
 .dark-mode .metric-dropdown--surface .metric-dropdown__meta {
   color: rgba(203, 213, 225, 0.72);
+}
+
+/* Tailwind's `.hidden` utility gets overridden by later component rules such as
+   `.metric-dropdown`, `.heatmap-loading-state`, and `.heatmap-error` unless we
+   restate it here with higher priority. */
+.hidden,
+[hidden] {
+  display: none !important;
 }
 
 @keyframes dropdownFade {
