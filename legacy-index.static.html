@@ -74,7 +74,7 @@
             </button>
           </div>
           <p class="app-sidebar__intro">
-            Route between diagnostics, loadouts, and supply lines without leaving the cockpit.
+            Jump between diagnostics, loadouts, and decision tools without leaving the cockpit.
           </p>
           <div class="app-sidebar__command">
             <label class="app-sidebar__command-label" for="sidebarSearchInput">
@@ -87,7 +87,7 @@
                 type="search"
                 inputmode="search"
                 autocomplete="off"
-                placeholder="Type section name..."
+                placeholder="Jump to section"
                 aria-describedby="sidebarSearchStatus"
               />
               <button
@@ -95,8 +95,10 @@
                 class="app-sidebar__command-clear"
                 type="button"
                 aria-label="Clear quick jump search"
+                title="Clear quick jump search"
               >
-                Clear
+                <span aria-hidden="true">&times;</span>
+                <span class="sr-only">Clear</span>
               </button>
             </div>
             <p
@@ -162,6 +164,21 @@
               <li>
                 <a class="app-sidebar__link" href="#fearGreed"
                   ><span class="app-sidebar__index">11</span><span>Psycho-Frame Index</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#capitalDeploymentOptimizer"
+                  ><span class="app-sidebar__index">12</span><span>Capital Deployment</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#historicalStressReplay"
+                  ><span class="app-sidebar__index">13</span><span>Stress Replay</span></a
+                >
+              </li>
+              <li>
+                <a class="app-sidebar__link" href="#monteCarloRetirementLab"
+                  ><span class="app-sidebar__index">14</span><span>Retirement Lab</span></a
                 >
               </li>
             </ul>
@@ -4245,6 +4262,90 @@
             </article>
           </div>
         </div>
+      </section>
+
+      <section id="capitalDeploymentOptimizer" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-sky-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6h16M4 12h10m-10 6h7m10-9l3 3m0 0l-3 3m3-3h-8"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">12. Capital Deployment Optimizer</h2>
+            <p class="section-intro">
+              Route fresh capital into the portfolio with a disciplined blend of drift correction and market-aware tactical tilt.
+            </p>
+          </div>
+        </div>
+        <div id="capitalDeploymentOptimizerMount"></div>
+      </section>
+
+      <section id="historicalStressReplay" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-amber-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 5h18M7 5v14m10-14v14M5 19h14M9 9h6m-6 4h4"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">13. Historical Stress Replay Chamber</h2>
+            <p class="section-intro">
+              Reconstruct past crisis windows to see how the current portfolio would have behaved under real historical pressure.
+            </p>
+          </div>
+        </div>
+        <div id="historicalStressReplayMount"></div>
+      </section>
+
+      <section id="monteCarloRetirementLab" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-emerald-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 19V5m0 14h16M7 15l3-3 3 2 5-6"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">14. Monte Carlo Retirement Lab</h2>
+            <p class="section-intro">
+              Test retirement readiness with seeded Monte Carlo paths using the portfolio's current expected return and volatility profile.
+            </p>
+          </div>
+        </div>
+        <div id="monteCarloRetirementLabMount"></div>
       </section>
 
       <footer

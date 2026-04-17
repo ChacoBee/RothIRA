@@ -648,6 +648,11 @@ function scheduleLivePriceInitialization() {
       setTimeout(initializeLivePriceTest, 0);
     }
   };
+  const triggerInitializationFromHash = () => {
+    if (window.location.hash === "#advanced-tracker") {
+      triggerInitialization();
+    }
+  };
 
   const trackerSection = document.getElementById("advanced-tracker");
   if (trackerSection && "IntersectionObserver" in window) {
@@ -669,6 +674,9 @@ function scheduleLivePriceInitialization() {
   } else {
     triggerInitialization();
   }
+
+  triggerInitializationFromHash();
+  window.addEventListener("hashchange", triggerInitializationFromHash);
 }
 
 document.addEventListener("DOMContentLoaded", scheduleLivePriceInitialization);

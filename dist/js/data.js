@@ -541,6 +541,13 @@ function setCachedItem(key, value) {
   }
 }
 
+function buildSeriesCacheKey(symbol, outputSize = 'compact') {
+  const suffix = String(outputSize || 'compact').trim().toLowerCase() === 'full'
+    ? 'full'
+    : 'compact';
+  return `${SERIES_CACHE_PREFIX}${suffix}_${symbol}`;
+}
+
 async function fetchAlphaVantageJson(url, attempt = 0) {
   const now = Date.now();
   const waitMs = Math.max(0, ALPHA_VANTAGE_RATE_LIMIT_MS - (now - lastAlphaVantageCallTs));
@@ -586,21 +593,28 @@ async function fetchDailyAdjustedSeries(symbol, options = {}) {
   }
   const allowCacheRead = options?.useCache !== false;
   const allowCacheWrite = options?.cacheResult !== false;
-  const cacheKey = `${SERIES_CACHE_PREFIX}${symbol}`;
-  if (allowCacheRead && Array.isArray(memorySeriesCache[symbol]) && memorySeriesCache[symbol].length) {
-    return memorySeriesCache[symbol];
+  const outputSize = String(options?.outputSize || 'compact').trim().toLowerCase() === 'full'
+    ? 'full'
+    : 'compact';
+  const seriesCacheKey = buildSeriesCacheKey(symbol, outputSize);
+  if (
+    allowCacheRead &&
+    Array.isArray(memorySeriesCache[seriesCacheKey]) &&
+    memorySeriesCache[seriesCacheKey].length
+  ) {
+    return memorySeriesCache[seriesCacheKey];
   }
   if (allowCacheRead) {
-    const cachedSeries = getCachedItem(cacheKey, SERIES_CACHE_TTL_MS);
+    const cachedSeries = getCachedItem(seriesCacheKey, SERIES_CACHE_TTL_MS);
     if (Array.isArray(cachedSeries) && cachedSeries.length) {
-      memorySeriesCache[symbol] = cachedSeries;
+      memorySeriesCache[seriesCacheKey] = cachedSeries;
       return cachedSeries;
     }
   }
 
   const apiKey = encodeURIComponent(getAlphaVantageApiKey());
   const encodedSymbol = encodeURIComponent(symbol);
-  const url = `${ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${encodedSymbol}&apikey=${apiKey}&outputsize=compact`;
+  const url = `${ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${encodedSymbol}&apikey=${apiKey}&outputsize=${outputSize}`;
   const json = await fetchAlphaVantageJson(url);
   const series = json && json['Time Series (Daily)'];
   if (!series || typeof series !== 'object') {
@@ -616,9 +630,9 @@ async function fetchDailyAdjustedSeries(symbol, options = {}) {
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   if (entries.length) {
-    memorySeriesCache[symbol] = entries;
+    memorySeriesCache[seriesCacheKey] = entries;
     if (allowCacheWrite) {
-      setCachedItem(cacheKey, entries);
+      setCachedItem(seriesCacheKey, entries);
     }
   }
 
@@ -628,16 +642,26 @@ async function fetchDailyAdjustedSeries(symbol, options = {}) {
 async function getReturnSeriesForSymbol(symbol, options = {}) {
   const allowCacheRead = options?.useCache !== false;
   const allowCacheWrite = options?.cacheResult !== false;
-  if (allowCacheRead && Array.isArray(returnSeriesCache[symbol]) && returnSeriesCache[symbol].length) {
-    return returnSeriesCache[symbol];
+  const outputSize = String(options?.outputSize || 'compact').trim().toLowerCase() === 'full'
+    ? 'full'
+    : 'compact';
+  const lookbackDays = Math.max(1, Number(options?.lookbackDays) || CORRELATION_LOOKBACK_DAYS);
+  const returnCacheKey = `${symbol}:${outputSize}:${lookbackDays}`;
+  if (
+    allowCacheRead &&
+    Array.isArray(returnSeriesCache[returnCacheKey]) &&
+    returnSeriesCache[returnCacheKey].length
+  ) {
+    return returnSeriesCache[returnCacheKey];
   }
   const priceSeries = await fetchDailyAdjustedSeries(symbol, {
     useCache: allowCacheRead,
     cacheResult: allowCacheWrite,
+    outputSize,
   });
-  const returns = toLogReturns(priceSeries);
+  const returns = toLogReturns(priceSeries, lookbackDays);
   if (allowCacheWrite && returns.length) {
-    returnSeriesCache[symbol] = returns;
+    returnSeriesCache[returnCacheKey] = returns;
   }
   return returns;
 }
@@ -1000,6 +1024,138 @@ function formatCurrency(value) {
 }
 function formatPercent(value) {
   return numberFormatter.format(value) + "%";
+}
+
+function cloneRecord(record) {
+  if (!record || typeof record !== 'object') {
+    return {};
+  }
+  return Object.fromEntries(Object.entries(record).map(([key, value]) => [key, value]));
+}
+
+function readPortfolioNumberInput(key, field, fallbackValue = 0) {
+  if (typeof document === 'undefined') {
+    return fallbackValue;
+  }
+  const input = document.querySelector(`input[data-stock="${key}"][data-field="${field}"]`);
+  const rawValue = Number.parseFloat(input ? input.value : '');
+  return Number.isFinite(rawValue) ? rawValue : fallbackValue;
+}
+
+function getCurrentPortfolioSnapshot() {
+  const liveRows =
+    typeof window !== 'undefined' &&
+    window.livePriceSheetData &&
+    typeof window.livePriceSheetData === 'object'
+      ? window.livePriceSheetData.rows || {}
+      : {};
+  const liveTotals =
+    typeof window !== 'undefined' &&
+    window.livePriceSheetData &&
+    typeof window.livePriceSheetData === 'object'
+      ? window.livePriceSheetData.totals || null
+      : null;
+
+  const assets = assetKeys.map((key) => {
+    const metadata = initialStockData[key] || {};
+    const liveRow = liveRows[key] || {};
+    const targetPercent = readPortfolioNumberInput(key, 'target', metadata.target ?? 0);
+    const currentValue =
+      Number.isFinite(liveRow.currentValue)
+        ? liveRow.currentValue
+        : readPortfolioNumberInput(key, 'currentValue', metadata.currentValue ?? 0);
+    const currentPercent =
+      Number.isFinite(liveRow.currentPercent)
+        ? liveRow.currentPercent
+        : readPortfolioNumberInput(key, 'currentPercent', metadata.currentPercent ?? 0);
+    const price = Number.isFinite(liveRow.price) ? liveRow.price : null;
+    const shares = Number.isFinite(liveRow.shares) ? liveRow.shares : null;
+
+    return {
+      key,
+      targetPercent,
+      currentValue: Number.isFinite(currentValue) ? currentValue : 0,
+      currentPercent: Number.isFinite(currentPercent) ? currentPercent : 0,
+      price,
+      shares,
+      expectedReturn: Number.isFinite(expectedReturns[key]) ? expectedReturns[key] : null,
+      volatility: Number.isFinite(volatilities[key]) ? volatilities[key] : null,
+      beta: Number.isFinite(assetBetas[key]) ? assetBetas[key] : null,
+      metadata: { ...metadata },
+    };
+  });
+
+  const totalCurrentValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
+
+  return {
+    assetKeys: assetKeys.slice(),
+    assets,
+    totals: {
+      currentValue:
+        liveTotals && Number.isFinite(liveTotals.currentValue)
+          ? liveTotals.currentValue
+          : totalCurrentValue,
+      lastUpdated:
+        typeof window !== 'undefined' &&
+        window.livePriceSheetData &&
+        Number.isFinite(window.livePriceSheetData.lastUpdated)
+          ? window.livePriceSheetData.lastUpdated
+          : null,
+    },
+    analytics:
+      typeof window !== 'undefined' && window.latestAnalyticsScores
+        ? { ...window.latestAnalyticsScores }
+        : null,
+    defaults: {
+      targetAllocations:
+        typeof window !== 'undefined' && window.defaultTargetAllocations
+          ? { ...window.defaultTargetAllocations }
+          : cloneRecord(defaultTargetAllocations),
+      portfolioDefaults:
+        typeof window !== 'undefined' && window.portfolioDefaults
+          ? { ...window.portfolioDefaults }
+          : { ...portfolioDefaults },
+    },
+    alphaVantage: {
+      configured: isAlphaVantageConfigured(),
+      source: alphaVantageKeyState.source,
+    },
+  };
+}
+
+window.HangarDataBridge = Object.assign({}, window.HangarDataBridge || {}, {
+  getAssetKeys() {
+    return assetKeys.slice();
+  },
+  getCurrentPortfolioSnapshot,
+  getAlphaVantageState() {
+    return {
+      configured: isAlphaVantageConfigured(),
+      source: alphaVantageKeyState.source,
+    };
+  },
+  getPortfolioDefaults() {
+    return {
+      riskFreeRate: portfolioDefaults.riskFreeRate,
+      marketReturn: portfolioDefaults.marketReturn,
+      benchmarkVolatility: portfolioDefaults.benchmarkVolatility,
+      equityRiskPremium: portfolioDefaults.equityRiskPremium,
+      expectedReturns: { ...expectedReturns },
+      volatilities: { ...volatilities },
+      assetBetas: { ...assetBetas },
+      factorNames: [...factorNames],
+    };
+  },
+  fetchDailyAdjustedSeries(symbol, options = {}) {
+    return fetchDailyAdjustedSeries(symbol, options);
+  },
+  getReturnSeriesForSymbol(symbol, options = {}) {
+    return getReturnSeriesForSymbol(symbol, options);
+  },
+});
+
+if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+  window.dispatchEvent(new CustomEvent('hangar-data-bridge-ready'));
 }
 
 // --- STOCK DETAILS CONTENT (Expanded in English) ---

@@ -492,6 +492,15 @@ async function runSmokeTest() {
     await page.waitForFunction(
       () => document.querySelectorAll('#worldStockNewsMount [data-news-card]').length === 4
     );
+    await page.waitForSelector('#capitalDeploymentOptimizerMount h3');
+    await page.waitForSelector('#historicalStressReplayMount h3');
+    await page.waitForFunction(
+      () =>
+        Boolean(document.querySelector('#monteCarloRetirementLabMount h3')) &&
+        /target nest egg/i.test(
+          document.querySelector('#monteCarloRetirementLabMount')?.textContent || ''
+        )
+    );
 
     const initialThemeState = await page.evaluate(() => ({
       darkMode: document.documentElement.classList.contains('dark-mode'),
@@ -597,6 +606,12 @@ async function runSmokeTest() {
       heatmapTitle: document.querySelector('#marketHeatmap .section-title')?.textContent?.trim() || '',
       indicesTitle: document.querySelector('#marketIndices .section-title')?.textContent?.trim() || '',
       fearGreedTitle: document.querySelector('#fearGreed .section-title')?.textContent?.trim() || '',
+      optimizerTitle:
+        document.querySelector('#capitalDeploymentOptimizer .section-title')?.textContent?.trim() || '',
+      historicalReplayTitle:
+        document.querySelector('#historicalStressReplay .section-title')?.textContent?.trim() || '',
+      monteCarloTitle:
+        document.querySelector('#monteCarloRetirementLab .section-title')?.textContent?.trim() || '',
       sidebarIndices: Array.from(document.querySelectorAll('.app-sidebar__link .app-sidebar__index')).map((element) =>
         element.textContent?.trim() || ''
       ),
@@ -620,9 +635,75 @@ async function runSmokeTest() {
       'Psycho-Frame section title was not renumbered to 11.'
     );
     assertValue(
-      postAiRemovalState.sidebarIndices.join(',') === '01,02,03,04,05,06,07,08,09,10,11',
-      'Sidebar indices should be continuous after removing the AI entry.'
+      postAiRemovalState.optimizerTitle === '12. Capital Deployment Optimizer',
+      'Capital Deployment Optimizer section title did not render with the expected numbering.'
     );
+    assertValue(
+      postAiRemovalState.historicalReplayTitle === '13. Historical Stress Replay Chamber',
+      'Historical Stress Replay Chamber section title did not render with the expected numbering.'
+    );
+    assertValue(
+      postAiRemovalState.monteCarloTitle === '14. Monte Carlo Retirement Lab',
+      'Monte Carlo Retirement Lab section title did not render with the expected numbering.'
+    );
+    assertValue(
+      postAiRemovalState.sidebarIndices.join(',') === '01,02,03,04,05,06,07,08,09,10,11,12,13,14',
+      'Sidebar indices should be continuous through the new advanced decision sections.'
+    );
+
+    const advancedDecisionState = await page.evaluate(() => ({
+      optimizerHeading:
+        document.querySelector('#capitalDeploymentOptimizerMount h3')?.textContent?.trim() || '',
+      optimizerText: document.querySelector('#capitalDeploymentOptimizerMount')?.textContent || '',
+      replayHeading:
+        document.querySelector('#historicalStressReplayMount h3')?.textContent?.trim() || '',
+      replayText: document.querySelector('#historicalStressReplayMount')?.textContent || '',
+      monteHeading:
+        document.querySelector('#monteCarloRetirementLabMount h3')?.textContent?.trim() || '',
+      monteText: document.querySelector('#monteCarloRetirementLabMount')?.textContent || '',
+      optimizerStorage: localStorage.getItem('hangar.contributionOptimizer'),
+      replayStorage: localStorage.getItem('hangar.crisisReplay'),
+      monteStorage: localStorage.getItem('hangar.retirementLab'),
+    }));
+    assertValue(
+      advancedDecisionState.optimizerHeading === 'Capital Deployment Optimizer',
+      'Capital Deployment Optimizer React island did not mount.'
+    );
+    assertValue(
+      /pure drift correction/i.test(advancedDecisionState.optimizerText),
+      'Contribution optimizer should show the Alpha Vantage fallback notice in smoke mode.'
+    );
+    assertValue(
+      advancedDecisionState.replayHeading === 'Historical Stress Replay Chamber',
+      'Historical Stress Replay React island did not mount.'
+    );
+    assertValue(
+      /needs Alpha Vantage history/i.test(advancedDecisionState.replayText),
+      'Historical replay should show the missing-history fallback notice in smoke mode.'
+    );
+    assertValue(
+      advancedDecisionState.monteHeading === 'Monte Carlo Retirement Lab',
+      'Monte Carlo Retirement Lab React island did not mount.'
+    );
+    assertValue(
+      /target nest egg/i.test(advancedDecisionState.monteText),
+      'Monte Carlo Retirement Lab did not finish rendering its simulation output.'
+    );
+    assertValue(
+      Boolean(advancedDecisionState.optimizerStorage),
+      'Contribution optimizer state was not persisted to localStorage.'
+    );
+    assertValue(
+      Boolean(advancedDecisionState.replayStorage),
+      'Historical replay state was not persisted to localStorage.'
+    );
+    assertValue(
+      Boolean(advancedDecisionState.monteStorage),
+      'Retirement lab state was not persisted to localStorage.'
+    );
+
+    await page.click('a.app-sidebar__link[href="#monteCarloRetirementLab"]');
+    await page.waitForFunction(() => window.location.hash === '#monteCarloRetirementLab');
 
     const hiddenUtilityParity = await page.evaluate(() => {
       const readDisplay = (id) => {

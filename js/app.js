@@ -138,6 +138,25 @@ window.addEventListener("DOMContentLoaded", () => {
       const links = getVisibleSidebarLinks();
       return links.length ? links[0] : null;
     };
+    const keepSidebarLinkInView = (link) => {
+      if (!sidebarList || !link || !isSidebarLinkVisible(link)) return;
+
+      const listRect = sidebarList.getBoundingClientRect();
+      const linkRect = link.getBoundingClientRect();
+      const edgePadding = 8;
+
+      if (linkRect.top < listRect.top) {
+        sidebarList.scrollTop -= listRect.top - linkRect.top + edgePadding;
+      } else if (linkRect.bottom > listRect.bottom) {
+        sidebarList.scrollTop += linkRect.bottom - listRect.bottom + edgePadding;
+      }
+
+      if (linkRect.left < listRect.left) {
+        sidebarList.scrollLeft -= listRect.left - linkRect.left + edgePadding;
+      } else if (linkRect.right > listRect.right) {
+        sidebarList.scrollLeft += linkRect.right - listRect.right + edgePadding;
+      }
+    };
 
     const moveHighlightToLink = (link) => {
       if (!sidebarHighlight || !sidebarList || !link || !isSidebarLinkVisible(link)) return;
@@ -186,6 +205,7 @@ window.addEventListener("DOMContentLoaded", () => {
         nextLink.setAttribute("aria-current", "true");
       }
 
+      keepSidebarLinkInView(nextLink);
       moveHighlightToLink(nextLink);
     };
 
