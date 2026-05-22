@@ -1,6 +1,9 @@
 const DEFAULT_LIVE_PRICE_TICKERS = ["VOO", "VXUS", "AVDV", "AVUV", "JNJ", "GOOGL"];
-const DEFAULT_LIVE_PRICE_CSV_PATH =
+const LIVE_PRICE_TABLE_RANGE = "A4:P";
+const LEGACY_LIVE_PRICE_CSV_PATH =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vRwZrG7ms2qeaAEqYcpHs_kaE7cOwuGvU0d4G0fTSXPUL5wgHk3mPdhpJlEHeUaZw/pub?output=csv";
+const DEFAULT_LIVE_PRICE_CSV_PATH =
+  "https://docs.google.com/spreadsheets/d/1Zslf3vhBOYSaF3HYSLBmBsw68P7uvSOLns0nMNt9y1U/gviz/tq?tqx=out:csv&gid=0&range=A4%3AP";
 let livePriceTickers = DEFAULT_LIVE_PRICE_TICKERS.slice();
 let livePriceCsvPath = DEFAULT_LIVE_PRICE_CSV_PATH;
 let livePriceTimer = null;
@@ -20,14 +23,27 @@ function normalizeTickerList(list) {
   return Array.from(new Set(list.map((ticker) => sanitizeTicker(ticker)).filter(Boolean)));
 }
 
+function buildGoogleSheetGvizCsvUrl(sheetId, gid = "0", range = LIVE_PRICE_TABLE_RANGE) {
+  const query = new URLSearchParams({
+    tqx: "out:csv",
+    gid: String(gid || "0"),
+    range: range || LIVE_PRICE_TABLE_RANGE,
+  });
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${query.toString()}`;
+}
+
 function resolveLivePriceCsvUrl(inputUrl) {
   const source = String(inputUrl || "").trim();
   if (!source) return DEFAULT_LIVE_PRICE_CSV_PATH;
+  if (source === LEGACY_LIVE_PRICE_CSV_PATH) {
+    return DEFAULT_LIVE_PRICE_CSV_PATH;
+  }
 
   if (
     /[?&]output=csv/i.test(source) ||
     /[?&]format=csv/i.test(source) ||
-    /\/pub\?output=csv/i.test(source)
+    /\/pub\?output=csv/i.test(source) ||
+    (/\/gviz\/tq/i.test(source) && /[?&]tqx=out:csv/i.test(source))
   ) {
     return source;
   }
@@ -40,7 +56,11 @@ function resolveLivePriceCsvUrl(inputUrl) {
   const queryGidMatch = source.match(/[?&]gid=(\d+)/i);
   const hashGidMatch = source.match(/#gid=(\d+)/i);
   const gid = (queryGidMatch && queryGidMatch[1]) || (hashGidMatch && hashGidMatch[1]) || "0";
-  return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+  const rangeMatch = source.match(/[?&]range=([^&#]+)/i);
+  const range = rangeMatch
+    ? decodeURIComponent(rangeMatch[1].replace(/\+/g, " "))
+    : LIVE_PRICE_TABLE_RANGE;
+  return buildGoogleSheetGvizCsvUrl(sheetId, gid, range);
 }
 
 function refreshLivePriceSourceConfig() {
@@ -204,6 +224,22 @@ function normaliseHeader(header) {
   return (header || "").trim().toLowerCase();
 }
 
+function findHeaderIndex(lines) {
+  return lines.findIndex((line) => {
+    const headers = parseCSVLine(line).map(normaliseHeader);
+    return headers[0] === "stock" && headers.includes("stock current price");
+  });
+}
+
+function findColumnIndex(headers, names) {
+  const aliases = Array.isArray(names) ? names : [names];
+  for (let i = 0; i < aliases.length; i++) {
+    const index = headers.indexOf(aliases[i]);
+    if (index !== -1) return index;
+  }
+  return -1;
+}
+
 function parseNumeric(input) {
   if (!input) return null;
   let cleaned = input.replace(/[$%]/g, "").replace(/\s/g, "");
@@ -228,9 +264,7 @@ async function fetchSheetPrices() {
     throw new Error("SHEET_NOT_CSV");
   }
   const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
-  const headerIndex = lines.findIndex((line) =>
-    normaliseHeader(line).startsWith("stock,")
-  );
+  const headerIndex = findHeaderIndex(lines);
   if (headerIndex === -1) {
     throw new Error("SHEET_HEADER_NOT_FOUND");
   }
@@ -246,7 +280,11 @@ async function fetchSheetPrices() {
   const changePercentIndex = headers.indexOf("gain/loss %");
   const currentValueIndex = headers.indexOf("current value");
   const currentPercentIndex = headers.indexOf("current %");
-  const yieldIndex = headers.indexOf("total income from yield");
+  const yieldIndex = findColumnIndex(headers, [
+    "total income from yield",
+    "total income",
+    "yield income",
+  ]);
   const totalReturnIndex = headers.indexOf("total return");
 
   if (stockIndex === -1 || priceIndex === -1) {

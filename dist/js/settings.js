@@ -4,8 +4,10 @@
   const HOLDINGS_STORAGE_KEY = "hangar.customHoldings.v1";
   const SETTINGS_STORAGE_KEY = "hangar.userSettings.v1";
   const AUDIT_STORAGE_KEY = "hangar.auditLog.v1";
-  const DEFAULT_LIVE_PRICE_SHEET =
+  const LEGACY_LIVE_PRICE_SHEET =
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vRwZrG7ms2qeaAEqYcpHs_kaE7cOwuGvU0d4G0fTSXPUL5wgHk3mPdhpJlEHeUaZw/pub?output=csv";
+  const DEFAULT_LIVE_PRICE_SHEET =
+    "https://docs.google.com/spreadsheets/d/1Zslf3vhBOYSaF3HYSLBmBsw68P7uvSOLns0nMNt9y1U/gviz/tq?tqx=out:csv&gid=0&range=A4%3AP";
 
   const defaultHoldings = {
     VOO: {
@@ -144,6 +146,10 @@
     livePriceTickers: [],
   };
   let userSettings = Object.assign({}, defaultSettings, localStore.read(SETTINGS_STORAGE_KEY, {}));
+  if (userSettings.livePriceSheetUrl === LEGACY_LIVE_PRICE_SHEET) {
+    userSettings.livePriceSheetUrl = DEFAULT_LIVE_PRICE_SHEET;
+    localStore.write(SETTINGS_STORAGE_KEY, userSettings);
+  }
   if (!Array.isArray(userSettings.livePriceTickers)) {
     userSettings.livePriceTickers = [];
   }

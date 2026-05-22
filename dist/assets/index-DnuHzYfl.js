@@ -1150,11 +1150,11 @@ Error generating stack: `+a.message+`
             Reference sheet used by this dashboard for live data connections. Open it if you need to inspect or update source values.\r
           </p>\r
           <div class="flex flex-wrap items-center gap-3">\r
-            <a\r
-              href="https://docs.google.com/spreadsheets/d/1NbkrKzAaiiEik1LGUAPm2GnstT23jDJV/edit?usp=sharing&ouid=104292123868888226876&rtpof=true&sd=true"\r
-              target="_blank"\r
-              rel="noopener noreferrer"\r
-              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-sky-200/70 dark:border-sky-600/40 text-sky-600 dark:text-sky-200 hover:border-sky-300 hover:text-sky-300 transition"\r
+            <a
+              href="https://docs.google.com/spreadsheets/d/1Zslf3vhBOYSaF3HYSLBmBsw68P7uvSOLns0nMNt9y1U/edit?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-sm font-semibold bg-white/70 dark:bg-slate-900/40 border-sky-200/70 dark:border-sky-600/40 text-sky-600 dark:text-sky-200 hover:border-sky-300 hover:text-sky-300 transition"
             >\r
               <svg\r
                 aria-hidden="true"\r
