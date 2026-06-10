@@ -3,55 +3,55 @@
     {
       symbol: "^GSPC",
       name: "S&P 500",
-      region: "Earth Sphere - Strategic Large Cap",
+      region: "US - Large Cap",
       cluster: "earth-sphere",
-      description: "Core Federation equities - 500 issuers across the command sector.",
+      description: "Core US large-cap benchmark covering 500 leading issuers.",
       accent: "#52d0d3",
     },
     {
       symbol: "^DJI",
       name: "Dow Jones",
-      region: "Earth Sphere - Blue Chip Wing",
+      region: "US - Blue Chip",
       cluster: "earth-sphere",
-      description: "Price-weighted composite of 30 Earth Sphere industrial leaders.",
+      description: "Price-weighted composite of 30 established US industry leaders.",
       accent: "#1f4d63",
     },
     {
       symbol: "^IXIC",
       name: "NASDAQ 100",
-      region: "Earth Sphere - Tech Advance",
+      region: "US - Growth & Technology",
       cluster: "earth-sphere",
-      description: "Growth-focused systems and avionics manufacturers driving innovation.",
+      description: "Growth-focused technology and innovation leaders.",
       accent: "#ff6a1a",
     },
     {
       symbol: "^RUT",
       name: "Russell 2000",
-      region: "Earth Sphere - Tactical Small Cap",
+      region: "US - Small Cap",
       cluster: "earth-sphere",
-      description: "Federation light industry and support manufacturers on the rise.",
+      description: "Small-cap US equities with higher domestic-cycle sensitivity.",
       accent: "#d64d3f",
     },
     {
       symbol: "^FTSE",
       name: "FTSE 100",
-      region: "Outer Colonies - London Hub",
+      region: "UK - Large Cap",
       cluster: "outer-colonies",
-      description: "Mega-cap infrastructure and finance anchors from Britannia sector.",
+      description: "Large-cap UK-listed multinationals across finance, energy, and defensives.",
       accent: "#9faed6",
     },
     {
       symbol: "^GDAXI",
       name: "DAX",
-      region: "Outer Colonies - Euro Manufacturing",
+      region: "Germany - Large Cap",
       cluster: "outer-colonies",
-      description: "Zeonic engineering and continental logistics consortium tracker.",
+      description: "German blue-chip benchmark with industrial and export sensitivity.",
       accent: "#3d7ea6",
     },
     {
       symbol: "^N225",
       name: "Nikkei 225",
-      region: "Outer Colonies - Pacific Command",
+      region: "Japan - Large Cap",
       cluster: "outer-colonies",
       description: "Advanced robotics and aerospace suppliers across the Pacific Rim.",
       accent: "#ffb347",
@@ -59,17 +59,17 @@
     {
       symbol: "^HSI",
       name: "Hang Seng",
-      region: "Neo Zeon - Frontier Capital",
+      region: "Hong Kong - Large Cap",
       cluster: "neo-zeon",
-      description: "Outer rim financial hubs with elevated intel sensitivity.",
+      description: "Hong Kong-listed large caps with China and financial-sector exposure.",
       accent: "#233042",
     },
     {
       symbol: "^BSESN",
       name: "BSE Sensex",
-      region: "Neo Zeon - Indo-Pacific Vanguard",
+      region: "India - Large Cap",
       cluster: "neo-zeon",
-      description: "High-growth colonial outposts powering expanding supply lines.",
+      description: "Large-cap India benchmark with high-growth emerging-market exposure.",
       accent: "#4dd0c8",
     },
   ];
@@ -100,6 +100,9 @@
   const eventsListEl = document.getElementById("marketIndicesEventsList");
   const timelineStatusEl = document.getElementById("marketIndicesTimelineStatus");
   const fmpApiKey = sectionEl?.dataset?.fmpKey || "demo";
+  const allowDirectMarketFetch =
+    window.APP_CONFIG?.environment?.allowInsecureMarketFetch === true ||
+    window.ENABLE_INSECURE_MARKET_FETCH === true;
 
   if (!sectionEl || !gridEl || !refreshBtn || !lastUpdatedEl) {
     return;
@@ -117,6 +120,7 @@
   let latestQuoteMap = {};
   let analyticsRequestId = 0;
   let eventsRefreshTimer = null;
+  let hasActivatedMarketIndices = false;
 
   const skeletonTemplate = `
     <article class="market-index-card market-index-card--skeleton">
@@ -312,7 +316,7 @@
           <div class="market-index-card__empty">
             <p>No indices assigned to this theatre yet.</p>
             <p class="market-index-card__empty-subtext">
-              Adjust the filter or configure new watch targets to resume telemetry.
+              Adjust the filter or configure new watch targets to resume market data.
             </p>
           </div>
         </article>
@@ -434,7 +438,7 @@
           <p class="market-index-card__subtext">${description}</p>
           <div class="market-index-card__sparkline" data-symbol="${cfg.symbol}">
             <canvas data-symbol="${cfg.symbol}" aria-hidden="true"></canvas>
-            <span class="market-index-card__sparkline-status">Calibrating telemetry...</span>
+            <span class="market-index-card__sparkline-status">Loading market data...</span>
           </div>
           <div class="${rangeClass}"${rangeAttributes}>
             <div class="market-index-card__range-track">
@@ -512,7 +516,7 @@
     const cfg = indicesConfig.find((item) => item.symbol === symbol);
     if (!canvas || !cfg) {
       if (statusEl) {
-        statusEl.textContent = "Telemetry offline";
+        statusEl.textContent = "Market data offline";
         statusEl.removeAttribute("hidden");
       }
       return;
@@ -642,7 +646,7 @@
       }
 
       if (statusEl) {
-        statusEl.textContent = isSynthetic ? "Synthetic telemetry" : "";
+        statusEl.textContent = isSynthetic ? "Fallback preview" : "";
         if (isSynthetic) {
           statusEl.setAttribute("data-synthetic", "true");
         } else {
@@ -652,7 +656,7 @@
       }
       if (isSynthetic) {
         sparklineHost.setAttribute("data-synthetic", "true");
-        sparklineHost.setAttribute("title", "Synthetic telemetry preview");
+        sparklineHost.setAttribute("title", "Fallback market-data preview");
       } else {
         sparklineHost.removeAttribute("data-synthetic");
         sparklineHost.removeAttribute("title");
@@ -1328,6 +1332,20 @@
     if (!eventsListEl) {
       return;
     }
+    if (!allowDirectMarketFetch) {
+      eventsListEl.innerHTML = `
+        <li class="market-indices-event market-indices-event--empty">
+          <div>
+            <p class="market-indices-event__title">Macro feed paused</p>
+            <p class="market-indices-event__meta">Direct market-data fetches are disabled for this static build.</p>
+          </div>
+        </li>
+      `;
+      if (timelineStatusEl) {
+        timelineStatusEl.textContent = "Paused";
+      }
+      return;
+    }
     if (timelineStatusEl) {
       timelineStatusEl.textContent = "Syncing...";
     }
@@ -1360,7 +1378,7 @@
         eventsListEl.innerHTML = `
           <li class="market-indices-event market-indices-event--empty">
             <div>
-              <p class="market-indices-event__title">No major transmissions</p>
+              <p class="market-indices-event__title">No major events</p>
               <p class="market-indices-event__meta">No high-impact macro events detected in the next 7 days.</p>
             </div>
           </li>
@@ -1401,7 +1419,7 @@
                 </div>
                 <div>
                   <p class="market-indices-event__title">${title}</p>
-                  <p class="market-indices-event__meta">${metaParts || "Intel broadcast pending"}</p>
+                  <p class="market-indices-event__meta">${metaParts || "Event detail pending"}</p>
                   ${
                     detailLine
                       ? `<p class="market-indices-event__detail">${detailLine}</p>`
@@ -1634,6 +1652,13 @@
     clearError();
 
     try {
+      if (!allowDirectMarketFetch) {
+        activateFallback(
+          "Direct market-data fetches are disabled for this static build"
+        );
+        return;
+      }
+
       const symbolsQuery = indicesConfig.map((cfg) => cfg.symbol).join(",");
       let quotes;
       let sourceLabel = "FMP";
@@ -1828,6 +1853,9 @@
   }
 
   function startAutoRefresh() {
+    if (!hasActivatedMarketIndices) {
+      return;
+    }
     if (!autoSyncEnabled) {
       return;
     }
@@ -1846,11 +1874,67 @@
     }
   }
 
+  function activateMarketIndices() {
+    if (hasActivatedMarketIndices) {
+      return;
+    }
+    hasActivatedMarketIndices = true;
+    if (eventsListEl) {
+      refreshMacroEvents();
+      scheduleEventRefresh();
+    }
+    fetchMarketIndices();
+    startAutoRefresh();
+  }
+
+  function setupLazyMarketIndicesLoad() {
+    if (lastUpdatedEl) {
+      lastUpdatedEl.textContent = "Updated: opens when section enters view";
+    }
+    if (timelineStatusEl) {
+      timelineStatusEl.textContent = "Paused";
+    }
+
+    if (window.location.hash === "#marketIndices") {
+      activateMarketIndices();
+      return;
+    }
+
+    window.addEventListener("hashchange", () => {
+      if (window.location.hash === "#marketIndices") {
+        activateMarketIndices();
+      }
+    });
+
+    if (!("IntersectionObserver" in window) || !sectionEl) {
+      activateMarketIndices();
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          observer.disconnect();
+          activateMarketIndices();
+        }
+      },
+      {
+        rootMargin: "650px 0px",
+        threshold: 0.01,
+      }
+    );
+
+    observer.observe(sectionEl);
+  }
+
   if (regionButtons.length) {
     regionButtons.forEach((button) => {
       button.addEventListener("click", () => {
         const nextRegion = button.dataset.region || REGION_KEYS[0];
         setActiveRegion(nextRegion);
+        if (!hasActivatedMarketIndices) {
+          activateMarketIndices();
+        }
       });
     });
   }
@@ -1870,7 +1954,11 @@
   }
 
   refreshBtn.addEventListener("click", () => {
-    fetchMarketIndices();
+    if (hasActivatedMarketIndices) {
+      fetchMarketIndices();
+    } else {
+      activateMarketIndices();
+    }
   });
 
   window.addEventListener("themechange", () => {
@@ -1886,12 +1974,5 @@
 
   updateFilterSelectionState();
   updateAutoSyncToggleUI();
-
-  if (eventsListEl) {
-    refreshMacroEvents();
-    scheduleEventRefresh();
-  }
-
-  fetchMarketIndices();
-  startAutoRefresh();
+  setupLazyMarketIndicesLoad();
 })();

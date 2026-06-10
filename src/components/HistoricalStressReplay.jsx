@@ -191,7 +191,7 @@ export default function HistoricalStressReplay() {
               Stress Engine
             </p>
             <h3 className="text-2xl font-semibold text-slate-950 dark:text-slate-50">
-              Historical Stress Replay Chamber
+              Historical Stress Replay
             </h3>
             <p className="max-w-3xl text-sm text-slate-600 dark:text-slate-300">
               Replay the portfolio through the biggest historical dislocations and inspect drawdown depth,
@@ -400,4 +400,3 @@ export default function HistoricalStressReplay() {
     </div>
   );
 }
-

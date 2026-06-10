@@ -8,6 +8,9 @@
 
   const STORAGE_KEY = "fearGreedCache";
   const ALERT_STORAGE_KEY = "fearGreedAlertConfig";
+  const allowDirectMarketFetch =
+    window.APP_CONFIG?.environment?.allowInsecureMarketFetch === true ||
+    window.ENABLE_INSECURE_MARKET_FETCH === true;
   const HISTORY_TARGETS = [
     { label: "Yesterday", offset: 1 },
     { label: "Last week", offset: 7 },
@@ -657,6 +660,10 @@
     drawRadarChart(fallbackValues);
     updateRadarList(fallbackValues);
 
+    if (!allowDirectMarketFetch) {
+      return;
+    }
+
     if (!radarCache || Date.now() - radarCache.timestamp > 15 * 60 * 1000) {
       radarCache = {
         timestamp: Date.now(),
@@ -1102,6 +1109,11 @@
     }
     const asset = COMPARISON_ASSETS[symbolKey];
     if (!asset) return Promise.reject(new Error("Unknown asset"));
+    if (!allowDirectMarketFetch) {
+      const fallback = getSyntheticSeries(asset.symbol);
+      comparisonCache[symbolKey] = Promise.resolve(fallback);
+      return comparisonCache[symbolKey];
+    }
     const promise = parseCsvSeries(asset.symbol, 400).then((series) => {
       const fallback = getSyntheticSeries(asset.symbol);
       const resolvedSeries =
@@ -1172,6 +1184,7 @@
       prepareChronologicalSeries(latestSeries),
       baselineSeries
     );
+    let renderedBaselineComparison = false;
     if (baselinePairs.length) {
       const baselineRolling = computeRollingCorrelation(
         baselinePairs,
@@ -1181,7 +1194,16 @@
         drawCorrelationChart(baselineRolling);
         drawScatterChart(baselinePairs.slice(-120));
         updateCompareNote(baselineRolling, symbolKey);
+        renderedBaselineComparison = true;
       }
+    }
+    if (!renderedBaselineComparison) {
+      drawCorrelationChart([]);
+      drawScatterChart([]);
+      updateCompareNote(null, symbolKey);
+    }
+    if (!allowDirectMarketFetch) {
+      return;
     }
     getComparisonAsset(symbolKey)
       .then((assetSeries) => {
@@ -1321,7 +1343,7 @@
     if (!note) return;
     const asset = COMPARISON_ASSETS[symbolKey];
     if (!rolling || rolling.length === 0) {
-      note.textContent = `Awaiting data synchronisation for ${asset?.label || symbolKey}…`;
+      note.textContent = `Awaiting data synchronization for ${asset?.label || symbolKey}.`;
       return;
     }
     const latest = rolling[rolling.length - 1];
@@ -1641,7 +1663,7 @@
   async function fetchFearGreed(options = {}) {
     const userInitiated = Boolean(options && options.userInitiated);
     if (userInitiated && typeof window.showActionFeedback === "function") {
-      window.showActionFeedback("Pulling sentiment telemetry...", {
+      window.showActionFeedback("Pulling sentiment data...", {
         state: "progress",
         autoHide: false,
       });
@@ -1652,6 +1674,27 @@
       errorEl.classList.add("hidden");
     }
     let cached = null;
+    if (!allowDirectMarketFetch) {
+      cached = readCache();
+      if (cached) {
+        renderFearGreed(cached.data);
+      } else {
+        renderFearGreed(SAMPLE_DATA);
+      }
+      if (errorEl) {
+        errorEl.classList.remove("hidden");
+        errorEl.textContent =
+          "Live sentiment fetch is paused for this static build. Showing cached or sample data.";
+      }
+      if (userInitiated && typeof window.showActionFeedback === "function") {
+        window.showActionFeedback("Live sentiment fetch is paused. Showing fallback data.", {
+          state: "info",
+          autoHide: 3200,
+        });
+      }
+      setLoadingState(false);
+      return;
+    }
     try {
       const response = await fetch(buildFearGreedUrl(), { cache: "no-cache" });
       if (!response.ok) {
@@ -1665,7 +1708,7 @@
       writeCache({ data: normalized });
       renderFearGreed(normalized);
       if (userInitiated && typeof window.showActionFeedback === "function") {
-        window.showActionFeedback("Sentiment telemetry refreshed.", {
+        window.showActionFeedback("Sentiment data refreshed.", {
           state: "success",
           autoHide: 2500,
         });
@@ -1683,8 +1726,8 @@
       }
       if (userInitiated && typeof window.showActionFeedback === "function") {
         const fallbackMessage = cached
-          ? "Live sentiment feed down. Showing cached telemetry."
-          : "Live sentiment feed down. Loaded sample telemetry.";
+          ? "Live sentiment feed down. Showing cached data."
+          : "Live sentiment feed down. Loaded sample data.";
         window.showActionFeedback(fallbackMessage, {
           state: "error",
           autoHide: 4200,
@@ -1700,16 +1743,83 @@
     if (!section) {
       return;
     }
-    gaugeChart = initGauge($("fearGreedGauge"));
+    let hasActivatedSentiment = false;
+
+    function setDeferredSentimentState() {
+      const valueEl = $("fearGreedValue");
+      const labelEl = $("fearGreedLabel");
+      const updatedEl = $("fearGreedUpdated");
+      const errorEl = $("fearGreedError");
+      if (valueEl) {
+        valueEl.textContent = "--";
+      }
+      if (labelEl) {
+        labelEl.textContent = "Deferred";
+      }
+      if (updatedEl) {
+        updatedEl.textContent = "Opens when section enters view";
+      }
+      if (errorEl) {
+        errorEl.classList.add("hidden");
+      }
+      setLoadingState(false);
+    }
+
+    function activateSentimentMonitor(options = {}) {
+      if (hasActivatedSentiment && !options.forceRefresh) {
+        return;
+      }
+      if (!gaugeChart) {
+        gaugeChart = initGauge($("fearGreedGauge"));
+      }
+      hasActivatedSentiment = true;
+      fetchFearGreed({ userInitiated: Boolean(options.userInitiated) });
+    }
+
+    function setupLazySentimentLoad() {
+      setDeferredSentimentState();
+
+      if (window.location.hash === "#fearGreed") {
+        activateSentimentMonitor();
+        return;
+      }
+
+      window.addEventListener("hashchange", () => {
+        if (window.location.hash === "#fearGreed") {
+          activateSentimentMonitor();
+        }
+      });
+
+      if (!("IntersectionObserver" in window)) {
+        activateSentimentMonitor();
+        return;
+      }
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            observer.disconnect();
+            activateSentimentMonitor();
+          }
+        },
+        {
+          rootMargin: "650px 0px",
+          threshold: 0.01,
+        }
+      );
+
+      observer.observe(section);
+    }
+
     initAlertControls();
     initCompareControls();
     const btn = $("fearGreedRefreshBtn");
     if (btn) {
       btn.addEventListener("click", () => {
-        fetchFearGreed({ userInitiated: true });
+        activateSentimentMonitor({ userInitiated: true, forceRefresh: true });
       });
     }
-    fetchFearGreed();
+    setupLazySentimentLoad();
   });
 })();
 

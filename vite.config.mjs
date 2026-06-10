@@ -4,12 +4,16 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig({
   base: '/RothIRA/',
+  build: {
+    sourcemap: false,
+  },
   plugins: [
     react(),
     viteStaticCopy({
       targets: [
         { src: 'config.js', dest: '.' },
-        { src: 'js/**/*', dest: 'js' },
+        { src: 'legacy-index.static.html', dest: '.' },
+        { src: 'js/*.js', dest: 'js' },
         { src: 'img/**/*', dest: 'img' },
         { src: 'docs/**/*', dest: 'docs' },
         { src: 'btc.csv', dest: '.' },

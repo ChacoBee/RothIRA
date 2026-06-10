@@ -179,6 +179,19 @@ function buildFinnhubNews() {
   }));
 }
 
+function buildYoutubeEmbedStub() {
+  return `<!doctype html>
+    <html>
+      <head><title>Mock YouTube Live Embed</title></head>
+      <body style="margin:0;background:#020617;color:#e2e8f0;font-family:Arial,sans-serif;display:grid;place-items:center;height:100vh;">
+        <main style="text-align:center;">
+          <strong>Mock finance live stream</strong>
+          <p>Embedded player test fixture</p>
+        </main>
+      </body>
+    </html>`;
+}
+
 function buildFearGreedPayload() {
   const history = Array.from({ length: 8 }).map((_, index) => ({
     x: Date.UTC(2026, 3, 8 + index),
@@ -328,6 +341,8 @@ async function runSmokeTest() {
   const consoleWarnings = [];
   let ignoreExpectedHeatmapConsoleError = false;
   let heatmapScriptMode = 'stable';
+  let yahooChartRequestCount = 0;
+  let sentimentNetworkRequestCount = 0;
 
   page.on('console', (message) => {
     const entry = {
@@ -366,6 +381,11 @@ async function runSmokeTest() {
       return;
     }
 
+    if (url.includes('youtube.com/embed/live_stream')) {
+      await respondText(request, buildYoutubeEmbedStub(), 'text/html');
+      return;
+    }
+
     if (url.includes('financialmodelingprep.com/api/v3/economic_calendar')) {
       await respondJson(request, buildEconomicCalendar());
       return;
@@ -382,21 +402,25 @@ async function runSmokeTest() {
     }
 
     if (url.includes('query1.finance.yahoo.com/v8/finance/chart/')) {
+      yahooChartRequestCount += 1;
       await respondJson(request, buildYahooChartResponse());
       return;
     }
 
     if (url.includes('production.dataviz.cnn.io/index/fearandgreed/graphdata')) {
+      sentimentNetworkRequestCount += 1;
       await respondJson(request, buildFearGreedPayload());
       return;
     }
 
     if (url.includes('api.alternative.me/fng')) {
+      sentimentNetworkRequestCount += 1;
       await respondJson(request, buildAlternativeSentimentPayload());
       return;
     }
 
     if (url.includes('stooq.com/q/d/l/')) {
+      sentimentNetworkRequestCount += 1;
       await respondText(request, buildStooqCsv(), 'text/csv');
       return;
     }
@@ -481,32 +505,131 @@ async function runSmokeTest() {
     await request.continue();
   });
 
-  const targetUrl = `http://${HOST}:${port}${BASE_PATH}/index.html?finnhubKey=test-finnhub-key`;
+  const targetUrl = `http://${HOST}:${port}${BASE_PATH}/index.html`;
   try {
     await page.evaluateOnNewDocument(() => {
       localStorage.setItem('theme', 'dark');
+      localStorage.removeItem('rothira.targetPolicyHistory.v1');
     });
     await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 60000 });
     await page.waitForSelector('#overview');
-    await page.waitForSelector('#worldStockNewsMount [data-news-card]');
-    await page.waitForFunction(
-      () => document.querySelectorAll('#worldStockNewsMount [data-news-card]').length === 4
-    );
-    await page.waitForSelector('#capitalDeploymentOptimizerMount h3');
-    await page.waitForSelector('#historicalStressReplayMount h3');
-    await page.waitForFunction(
-      () =>
-        Boolean(document.querySelector('#monteCarloRetirementLabMount h3')) &&
-        /target nest egg/i.test(
-          document.querySelector('#monteCarloRetirementLabMount')?.textContent || ''
-        )
-    );
+    await page.waitForSelector('#portfolioActionCenterMount #actionCenterTitle');
+    await page.waitForFunction(() => Boolean(window.AlphaVantageKeyManager));
 
     const initialThemeState = await page.evaluate(() => ({
       darkMode: document.documentElement.classList.contains('dark-mode'),
       dark: document.documentElement.classList.contains('dark'),
     }));
     assertValue(initialThemeState.darkMode && initialThemeState.dark, 'Dark theme bootstrap did not synchronize html classes.');
+
+    const financeFirstCopyAudit = await page.evaluate(() => document.body.innerText || '');
+    assertValue(
+      !/(Gunpla|Psycho-Frame|Federation Indices|Earth Federation|Sortie|Supply Logistics|Combat Telemetry|Hangar Overview|Side 7|Neo Zeon|cockpit|pilot morale|Composite Sentiment Mesh|Temporal Anchors|battle plans|Gunpla assets)/i.test(
+        financeFirstCopyAudit
+      ),
+      'Finance-first copy audit found legacy Gunpla or sci-fi labels in rendered text.'
+    );
+
+    const initialAlphaSourceText = await page.$eval('[data-alpha-vantage-status]', (el) => el.textContent.trim());
+    assertValue(/Fallback data only/i.test(initialAlphaSourceText), 'Action Center should show Alpha Vantage fallback state by default.');
+    await page.type('[data-alpha-vantage-key-input]', 'smoke-alpha-key');
+    await page.click('[data-alpha-vantage-key-save]');
+    await page.waitForFunction(
+      () =>
+        localStorage.getItem('hangar.alphaVantageKey') === 'smoke-alpha-key' &&
+        /Configured via user/i.test(document.querySelector('[data-alpha-vantage-status]')?.textContent || '')
+    );
+    await page.click('[data-alpha-vantage-key-clear]');
+    await page.waitForFunction(
+      () =>
+        !localStorage.getItem('hangar.alphaVantageKey') &&
+        /Fallback data only/i.test(document.querySelector('[data-alpha-vantage-status]')?.textContent || '')
+    );
+    await page.waitForSelector('[data-priority-alerts] [data-priority-alert]');
+    const priorityAlertsText = await page.$eval('[data-priority-alerts]', (el) => el.textContent);
+    assertValue(
+      /Historical data fallback/i.test(priorityAlertsText) &&
+        /Alpha Vantage history is using fallback data/i.test(priorityAlertsText),
+      'Action Center should surface Alpha Vantage fallback in priority alerts.'
+    );
+    await page.waitForSelector('[data-target-policy-panel]');
+    await page.waitForFunction(() => {
+      const button = document.querySelector('[data-target-policy-save]');
+      return Boolean(button && !button.disabled);
+    });
+    await page.click('[data-target-policy-save]');
+    await page.waitForFunction(() => {
+      const raw = localStorage.getItem('rothira.targetPolicyHistory.v1');
+      const history = raw ? JSON.parse(raw) : [];
+      return (
+        Array.isArray(history) &&
+        history.length === 1 &&
+        history[0]?.holdings?.length >= 4 &&
+        /Current policy saved/i.test(document.querySelector('[data-target-policy-status]')?.textContent || '') &&
+        /Saved/i.test(document.querySelector('[data-target-policy-history]')?.textContent || '')
+      );
+    });
+    const targetPolicyState = await page.evaluate(() => {
+      const history = JSON.parse(localStorage.getItem('rothira.targetPolicyHistory.v1') || '[]');
+      return {
+        storedCount: history.length,
+        holdingCount: history[0]?.holdings?.length || 0,
+        firstKey: history[0]?.holdings?.[0]?.key,
+        totalTargetPercent: history[0]?.totalTargetPercent,
+        statusText: document.querySelector('[data-target-policy-status]')?.textContent || '',
+        currentText: document.querySelector('[data-target-policy-current]')?.textContent || '',
+      };
+    });
+    assertValue(targetPolicyState.storedCount === 1, 'Target allocation policy snapshot was not persisted.');
+    assertValue(targetPolicyState.holdingCount >= 4, 'Target allocation policy snapshot did not include holdings.');
+    assertValue(Boolean(targetPolicyState.firstKey), 'Target allocation policy snapshot did not normalize ticker keys.');
+    assertValue(targetPolicyState.totalTargetPercent > 0, 'Target allocation policy snapshot did not store target weights.');
+    assertValue(/Current policy saved/i.test(targetPolicyState.statusText), 'Target allocation policy status did not update after saving.');
+    assertValue(/VOO/i.test(targetPolicyState.currentText), 'Target allocation policy current mix did not render holdings.');
+
+    const initialDeferredMarketWorkState = await page.evaluate(() => ({
+      heatmapIframe: Boolean(document.querySelector('#heatmapWidgetContainer iframe')),
+      heatmapUpdated: document.getElementById('heatmapLastUpdated')?.textContent || '',
+      marketIndicesFallbackVisible:
+        Boolean(document.getElementById('marketIndicesFallback')) &&
+        !document.getElementById('marketIndicesFallback').classList.contains('hidden'),
+      marketIndicesUpdated: document.getElementById('indicesLastUpdated')?.textContent || '',
+      performanceAnnualizedReturn: document.getElementById('annualizedReturn')?.textContent || '',
+      performanceRefreshText: document.getElementById('refreshPerformanceBtn')?.textContent || '',
+      sentimentLabel: document.getElementById('fearGreedLabel')?.textContent || '',
+      sentimentUpdated: document.getElementById('fearGreedUpdated')?.textContent || '',
+    }));
+    assertValue(!initialDeferredMarketWorkState.heatmapIframe, 'Heatmap widget should stay idle before the section is opened.');
+    assertValue(
+      /opens when section enters view/i.test(initialDeferredMarketWorkState.heatmapUpdated),
+      'Heatmap should advertise its deferred loading state before activation.'
+    );
+    assertValue(
+      !initialDeferredMarketWorkState.marketIndicesFallbackVisible,
+      'Market Indices fallback widget should stay idle before the section is opened.'
+    );
+    assertValue(
+      /opens when section enters view/i.test(initialDeferredMarketWorkState.marketIndicesUpdated),
+      'Market Indices should advertise its deferred loading state before activation.'
+    );
+    assertValue(
+      /Deferred/i.test(initialDeferredMarketWorkState.performanceAnnualizedReturn) &&
+        /Open Performance Review/i.test(initialDeferredMarketWorkState.performanceRefreshText),
+      'Performance Review should stay deferred before the section is opened.'
+    );
+    assertValue(
+      yahooChartRequestCount === 0,
+      'Historical Yahoo chart requests should not run during initial boot in static mode.'
+    );
+    assertValue(
+      /Deferred/i.test(initialDeferredMarketWorkState.sentimentLabel) &&
+        /opens when section enters view/i.test(initialDeferredMarketWorkState.sentimentUpdated),
+      'Market Sentiment should stay deferred before the section is opened.'
+    );
+    assertValue(
+      sentimentNetworkRequestCount === 0,
+      'Market Sentiment network requests should not run during initial boot in static mode.'
+    );
 
     const removedSection6Labels = await page.evaluate(() => ({
       alphaVantageAccess: document.body.textContent.includes('Alpha Vantage access'),
@@ -523,6 +646,133 @@ async function runSmokeTest() {
 
     await page.click('a.app-sidebar__link[href="#advanced-tracker"]');
     await page.waitForFunction(() => window.location.hash === '#advanced-tracker');
+    await page.waitForFunction(
+      () => /Finnhub key not configured/i.test(document.querySelector('#worldStockNewsMount')?.textContent || '')
+    );
+    await page.waitForSelector('[data-live-news-theater] [data-live-news-iframe]');
+
+    const initialLiveTheaterState = await page.evaluate(() => {
+      const iframe = document.querySelector('[data-live-news-iframe]');
+      const buttons = Array.from(document.querySelectorAll('[data-live-channel-id]'));
+      const iframeRect = iframe.getBoundingClientRect();
+      return {
+        buttonCount: buttons.length,
+        defaultChannels: buttons
+          .filter((button) => button.dataset.liveChannelSource === 'default')
+          .map((button) => button.dataset.liveChannelId),
+        iframeSrc: iframe.getAttribute('src'),
+        iframeWidth: iframeRect.width,
+        iframeHeight: iframeRect.height,
+        iframeRight: iframeRect.right,
+        viewportWidth: window.innerWidth,
+      };
+    });
+    assertValue(initialLiveTheaterState.buttonCount >= 4, 'Live theater default channels did not render.');
+    assertValue(
+      initialLiveTheaterState.defaultChannels.includes('cnbc-television') &&
+        initialLiveTheaterState.defaultChannels.includes('yahoo-finance') &&
+        initialLiveTheaterState.defaultChannels.includes('bloomberg-television') &&
+        initialLiveTheaterState.defaultChannels.includes('schwab-network'),
+      'Live theater default channel catalog is incomplete.'
+    );
+    assertValue(
+      initialLiveTheaterState.iframeSrc.includes('youtube.com/embed/live_stream') &&
+        initialLiveTheaterState.iframeSrc.includes('channel=UCrp_UI8XtuYfpiqluWLD7Lw'),
+      'Live theater did not autoload the default CNBC stream.'
+    );
+    assertValue(
+      initialLiveTheaterState.iframeWidth > 300 &&
+        initialLiveTheaterState.iframeHeight > 160 &&
+        initialLiveTheaterState.iframeRight <= initialLiveTheaterState.viewportWidth,
+      'Live theater iframe is not sized correctly on desktop.'
+    );
+
+    await page.click('[data-live-channel-id="yahoo-finance"]');
+    await page.waitForFunction(() =>
+      document.querySelector('[data-live-news-iframe]')?.getAttribute('src')?.includes('channel=UCEAZeUIeJs0IjQiqTCdVSIg')
+    );
+
+    await page.click('[data-live-channel-manage]');
+    await page.type('[data-live-channel-label-input]', 'Custom Market TV');
+    await page.type('[data-live-channel-id-input]', 'UCbbbbbbbbbbbbbbbbbbbbbb');
+    await page.type('[data-live-channel-handle-input]', '@CustomMarketTV');
+    await page.type('[data-live-channel-description-input]', 'Custom broad finance livestream.');
+    await page.click('[data-live-channel-add]');
+    await page.waitForSelector('[data-live-channel-id="custom-ucbbbbbbbbbbbbbbbbbbbbbb"]');
+    await page.waitForFunction(() =>
+      document.querySelector('[data-live-news-iframe]')?.getAttribute('src')?.includes('channel=UCbbbbbbbbbbbbbbbbbbbbbb')
+    );
+
+    const customChannelState = await page.evaluate(() => {
+      const stored = JSON.parse(localStorage.getItem('rothira.financeVideoChannels.v1') || '[]');
+      return {
+        storedCount: stored.length,
+        storedLabel: stored[0]?.label,
+        storedChannelId: stored[0]?.channelId,
+        activeChannel: localStorage.getItem('rothira.activeFinanceVideoChannel.v1'),
+      };
+    });
+    assertValue(customChannelState.storedCount === 1, 'Custom live channel was not persisted.');
+    assertValue(customChannelState.storedLabel === 'Custom Market TV', 'Custom live channel label was not persisted.');
+    assertValue(customChannelState.storedChannelId === 'UCbbbbbbbbbbbbbbbbbbbbbb', 'Custom live channel ID was not persisted.');
+    assertValue(
+      customChannelState.activeChannel === 'custom-ucbbbbbbbbbbbbbbbbbbbbbb',
+      'Active live channel was not persisted after adding a custom channel.'
+    );
+
+    await page.click('[data-live-channel-remove="custom-ucbbbbbbbbbbbbbbbbbbbbbb"]');
+    await page.waitForFunction(
+      () => !document.querySelector('[data-live-channel-id="custom-ucbbbbbbbbbbbbbbbbbbbbbb"]')
+    );
+    const customChannelRemoved = await page.evaluate(
+      () => JSON.parse(localStorage.getItem('rothira.financeVideoChannels.v1') || '[]').length
+    );
+    assertValue(customChannelRemoved === 0, 'Custom live channel was not removed from storage.');
+
+    await page.setViewport({ width: 390, height: 900 });
+    await page.waitForFunction(() => window.innerWidth === 390);
+    const mobileLiveTheaterState = await page.evaluate(() => {
+      const iframe = document.querySelector('[data-live-news-iframe]');
+      const theater = document.querySelector('[data-live-news-theater]');
+      const iframeRect = iframe.getBoundingClientRect();
+      const theaterRect = theater.getBoundingClientRect();
+      return {
+        iframeLeft: iframeRect.left,
+        iframeRight: iframeRect.right,
+        theaterLeft: theaterRect.left,
+        theaterRight: theaterRect.right,
+        viewportWidth: window.innerWidth,
+      };
+    });
+    assertValue(
+      mobileLiveTheaterState.iframeLeft >= 0 &&
+        mobileLiveTheaterState.iframeRight <= mobileLiveTheaterState.viewportWidth &&
+        mobileLiveTheaterState.theaterLeft >= 0 &&
+        mobileLiveTheaterState.theaterRight <= mobileLiveTheaterState.viewportWidth,
+      'Live theater overflows the mobile viewport.'
+    );
+    await page.setViewport({ width: 1280, height: 900 });
+    await page.waitForFunction(() => window.innerWidth === 1280);
+
+    await page.type('[data-finnhub-key-input]', 'smoke-finnhub-key');
+    await page.click('[data-finnhub-key-save]');
+    await page.waitForSelector('#worldStockNewsMount [data-news-card]');
+    await page.waitForSelector('[data-finnhub-key-clear]');
+    const savedFinnhubKeyState = await page.evaluate(() => ({
+      storedKey: localStorage.getItem('hangar.finnhubKey'),
+      text: document.querySelector('#worldStockNewsMount')?.textContent || '',
+      headlineCount: document.querySelectorAll('#worldStockNewsMount [data-news-card]').length,
+    }));
+    assertValue(savedFinnhubKeyState.storedKey === 'smoke-finnhub-key', 'Finnhub key manager did not persist the key locally.');
+    assertValue(savedFinnhubKeyState.headlineCount > 0, 'Finnhub key manager did not refresh headlines after saving a key.');
+    assertValue(/Keysourcestorage/i.test(savedFinnhubKeyState.text.replace(/\s+/g, '')), 'Finnhub key source did not update to storage.');
+
+    await page.click('[data-finnhub-key-clear]');
+    await page.waitForFunction(
+      () =>
+        /Finnhub key not configured/i.test(document.querySelector('#worldStockNewsMount')?.textContent || '') &&
+        !localStorage.getItem('hangar.finnhubKey')
+    );
 
     await page.click('#themeToggleBtn');
     await page.waitForFunction(
@@ -537,24 +787,17 @@ async function runSmokeTest() {
         document.documentElement.classList.contains('dark')
     );
 
-    const newsHeadline = await page.$eval('#worldStockNewsMount h4 a', (el) => el.textContent.trim());
-    assertValue(newsHeadline === 'Global headline 8', 'Latest Finnhub headline should be rendered first.');
-
-    const pageIndicator = await page.$eval('[data-news-page-indicator]', (el) => el.textContent.trim());
-    assertValue(pageIndicator === 'Page 1 of 2', 'News pagination indicator did not render expected page count.');
-
-    await page.click('[data-news-pagination-next]');
-    await page.waitForFunction(
-      () => document.querySelector('[data-news-page-indicator]')?.textContent?.trim() === 'Page 2 of 2'
+    const newsFallbackText = await page.$eval('#worldStockNewsMount', (el) => el.textContent);
+    assertValue(
+      /Finnhub key not configured/i.test(newsFallbackText),
+      'World Stock News should render the missing-key state when no personal key is supplied.'
     );
-    const pageTwoHeadline = await page.$eval('#worldStockNewsMount h4 a', (el) => el.textContent.trim());
-    assertValue(pageTwoHeadline === 'Global headline 4', 'News pagination did not advance to the second page.');
 
     const liveRows = await page.$$eval('#livePriceRows tr', (rows) => rows.length);
     assertValue(liveRows >= 6, 'Live price snapshot rows did not render.');
 
     const sectionTitle = await page.$eval('#advanced-tracker .section-title', (el) => el.textContent.trim());
-    assertValue(sectionTitle === '6. Supply Logistics Deck', 'Section 6 title changed unexpectedly.');
+    assertValue(sectionTitle === '6. Rebalance & Contribution Tools', 'Section 6 title changed unexpectedly.');
 
     await page.click('.tab-btn[data-stock="VOO"]');
     await page.waitForFunction(
@@ -619,28 +862,28 @@ async function runSmokeTest() {
     assertValue(!postAiRemovalState.hasAiSection, 'Section 8 should be fully removed from the DOM.');
     assertValue(!postAiRemovalState.hasAiNavLink, 'AI sidebar navigation link should be removed.');
     assertValue(
-      postAiRemovalState.performanceTitle === '8. Sortie Debrief Analytics',
-      'Sortie Debrief section title was not renumbered to 8.'
+      postAiRemovalState.performanceTitle === '8. Performance Review',
+      'Performance section title was not renumbered to 8.'
     );
     assertValue(
-      postAiRemovalState.heatmapTitle === '9. Sector Heatmap Array',
+      postAiRemovalState.heatmapTitle === '9. Sector Heatmap',
       'Sector Heatmap section title was not renumbered to 9.'
     );
     assertValue(
-      postAiRemovalState.indicesTitle === '10. Federation Indices Feed',
-      'Federation Indices section title was not renumbered to 10.'
+      postAiRemovalState.indicesTitle === '10. Market Indices',
+      'Market Indices section title was not renumbered to 10.'
     );
     assertValue(
-      postAiRemovalState.fearGreedTitle === '11. Psycho-Frame Sentiment Monitor',
-      'Psycho-Frame section title was not renumbered to 11.'
+      postAiRemovalState.fearGreedTitle === '11. Market Sentiment Monitor',
+      'Market Sentiment section title was not renumbered to 11.'
     );
     assertValue(
       postAiRemovalState.optimizerTitle === '12. Capital Deployment Optimizer',
       'Capital Deployment Optimizer section title did not render with the expected numbering.'
     );
     assertValue(
-      postAiRemovalState.historicalReplayTitle === '13. Historical Stress Replay Chamber',
-      'Historical Stress Replay Chamber section title did not render with the expected numbering.'
+      postAiRemovalState.historicalReplayTitle === '13. Historical Stress Replay',
+      'Historical Stress Replay section title did not render with the expected numbering.'
     );
     assertValue(
       postAiRemovalState.monteCarloTitle === '14. Monte Carlo Retirement Lab',
@@ -649,6 +892,106 @@ async function runSmokeTest() {
     assertValue(
       postAiRemovalState.sidebarIndices.join(',') === '01,02,03,04,05,06,07,08,09,10,11,12,13,14',
       'Sidebar indices should be continuous through the new advanced decision sections.'
+    );
+
+    await page.click('a.app-sidebar__link[href="#performance"]');
+    await page.waitForFunction(() => window.location.hash === '#performance');
+    await page.waitForFunction(() => {
+      const value = document.getElementById('annualizedReturn')?.textContent || '';
+      return value && !/Deferred|Loading/i.test(value);
+    });
+    const lazyPerformanceState = await page.evaluate(() => ({
+      annualizedReturn: document.getElementById('annualizedReturn')?.textContent || '',
+      benchmarkTitle: document.getElementById('benchmarkReturn')?.getAttribute('title') || '',
+      refreshText: document.getElementById('refreshPerformanceBtn')?.textContent || '',
+      chartRendered: Boolean(window.Chart && document.getElementById('performanceChart')),
+    }));
+    assertValue(lazyPerformanceState.chartRendered, 'Performance Review chart should be available after activation.');
+    assertValue(
+      /Modelled projection/i.test(lazyPerformanceState.benchmarkTitle),
+      'Performance Review should use modelled projection in static mode.'
+    );
+    assertValue(
+      /Refresh Performance/i.test(lazyPerformanceState.refreshText),
+      'Performance Review refresh control did not reset after lazy activation.'
+    );
+    assertValue(
+      yahooChartRequestCount === 0,
+      'Performance Review should not call Yahoo historical chart endpoints when direct fetch is disabled.'
+    );
+
+    await page.click('a.app-sidebar__link[href="#marketIndices"]');
+    await page.waitForFunction(() => window.location.hash === '#marketIndices');
+    await page.waitForFunction(
+      () =>
+        Boolean(document.getElementById('marketIndicesFallback')) &&
+        !document.getElementById('marketIndicesFallback').classList.contains('hidden') &&
+        /TradingView feed/i.test(document.getElementById('indicesLastUpdated')?.textContent || '')
+    );
+    const lazyMarketIndicesState = await page.evaluate(() => ({
+      fallbackVisible: !document.getElementById('marketIndicesFallback')?.classList.contains('hidden'),
+      errorText: document.getElementById('marketIndicesError')?.textContent || '',
+      lastUpdated: document.getElementById('indicesLastUpdated')?.textContent || '',
+    }));
+    assertValue(lazyMarketIndicesState.fallbackVisible, 'Market Indices fallback did not activate after opening the section.');
+    assertValue(
+      /Direct market-data fetches are disabled/i.test(lazyMarketIndicesState.errorText),
+      'Market Indices should explain why static production uses the fallback.'
+    );
+    assertValue(
+      /TradingView feed/i.test(lazyMarketIndicesState.lastUpdated),
+      'Market Indices did not update its timestamp after lazy activation.'
+    );
+
+    await page.click('a.app-sidebar__link[href="#fearGreed"]');
+    await page.waitForFunction(() => window.location.hash === '#fearGreed');
+    await page.waitForFunction(() => {
+      const label = document.getElementById('fearGreedLabel')?.textContent || '';
+      const value = document.getElementById('fearGreedValue')?.textContent || '';
+      return label && !/Deferred|Loading/i.test(label) && value !== '--';
+    });
+    const lazySentimentState = await page.evaluate(() => ({
+      label: document.getElementById('fearGreedLabel')?.textContent || '',
+      value: document.getElementById('fearGreedValue')?.textContent || '',
+      errorText: document.getElementById('fearGreedError')?.textContent || '',
+      radarCanvas: Boolean(document.getElementById('sentimentRadarChart')),
+      sourceListText: document.getElementById('sentimentSourceList')?.textContent || '',
+      historyCount: document.querySelectorAll('#fearGreedHistory .sentiment-history__item').length,
+    }));
+    assertValue(lazySentimentState.radarCanvas, 'Market Sentiment radar canvas should be available after activation.');
+    assertValue(
+      /Live sentiment fetch is paused/i.test(lazySentimentState.errorText),
+      'Market Sentiment should explain static fallback after activation.'
+    );
+    assertValue(
+      /Market breadth/i.test(lazySentimentState.sourceListText) &&
+        /Fund flows/i.test(lazySentimentState.sourceListText) &&
+        /Defensive|Balanced|Bullish|Euphoric|Fearful/i.test(lazySentimentState.sourceListText),
+      'Market Sentiment source list did not render fallback context.'
+    );
+    assertValue(
+      lazySentimentState.historyCount >= 3,
+      'Market Sentiment history did not render fallback checkpoints.'
+    );
+    assertValue(
+      sentimentNetworkRequestCount === 0,
+      'Market Sentiment should not call external sentiment or Stooq endpoints when direct fetch is disabled.'
+    );
+
+    await page.click('a.app-sidebar__link[href="#capitalDeploymentOptimizer"]');
+    await page.waitForFunction(() => window.location.hash === '#capitalDeploymentOptimizer');
+    await page.waitForSelector('#capitalDeploymentOptimizerMount h3');
+    await page.click('a.app-sidebar__link[href="#historicalStressReplay"]');
+    await page.waitForFunction(() => window.location.hash === '#historicalStressReplay');
+    await page.waitForSelector('#historicalStressReplayMount h3');
+    await page.click('a.app-sidebar__link[href="#monteCarloRetirementLab"]');
+    await page.waitForFunction(() => window.location.hash === '#monteCarloRetirementLab');
+    await page.waitForFunction(
+      () =>
+        Boolean(document.querySelector('#monteCarloRetirementLabMount h3')) &&
+        /target nest egg/i.test(
+          document.querySelector('#monteCarloRetirementLabMount')?.textContent || ''
+        )
     );
 
     const advancedDecisionState = await page.evaluate(() => ({
@@ -674,7 +1017,7 @@ async function runSmokeTest() {
       'Contribution optimizer should show the Alpha Vantage fallback notice in smoke mode.'
     );
     assertValue(
-      advancedDecisionState.replayHeading === 'Historical Stress Replay Chamber',
+      advancedDecisionState.replayHeading === 'Historical Stress Replay',
       'Historical Stress Replay React island did not mount.'
     );
     assertValue(
@@ -765,6 +1108,8 @@ async function runSmokeTest() {
         )
     );
 
+    await page.click('a.app-sidebar__link[href="#marketHeatmap"]');
+    await page.waitForFunction(() => window.location.hash === '#marketHeatmap');
     await page.waitForFunction(() => Boolean(document.querySelector('#heatmapWidgetContainer iframe')));
     const heatmapInitialState = await page.evaluate(() => ({
       errorDisplay: getComputedStyle(document.getElementById('heatmapError')).display,
@@ -772,6 +1117,30 @@ async function runSmokeTest() {
     }));
     assertValue(heatmapInitialState.errorDisplay === 'none', 'Heatmap should load cleanly on first render.');
     assertValue(heatmapInitialState.loadingDisplay === 'none', 'Heatmap loading state did not clear after a successful render.');
+
+    await page.type('#heatmapWatchlistInput', 'NVDA');
+    await page.click('#heatmapWatchlistAddBtn');
+    await page.waitForFunction(() =>
+      /1 ticker tracked/i.test(document.querySelector('#heatmapWatchlistSummary')?.textContent || '')
+    );
+    const heatmapCopyState = await page.evaluate(() => {
+      const sectionText = document.querySelector('#marketHeatmap')?.innerText || '';
+      return {
+        sectionText,
+        summaryText: document.querySelector('#heatmapWatchlistSummary')?.textContent || '',
+        insightText: document.querySelector('#heatmapIntelList')?.textContent || '',
+      };
+    });
+    assertValue(/Market Watchlist/i.test(heatmapCopyState.sectionText), 'Heatmap should use finance-first watchlist labeling.');
+    assertValue(!/Tactical Watchlist/i.test(heatmapCopyState.sectionText), 'Heatmap still renders legacy tactical watchlist copy.');
+    assertValue(
+      !/[\u00c0-\uffff]/.test(`${heatmapCopyState.summaryText} ${heatmapCopyState.insightText}`),
+      'Heatmap dynamic copy should not render mojibake or non-ASCII text.'
+    );
+    assertValue(
+      /Portfolio|Watchlist|target|risk/i.test(heatmapCopyState.insightText),
+      'Heatmap insight copy should be finance-focused.'
+    );
 
     heatmapScriptMode = 'slow';
     await page.click('#heatmapReloadBtn');
@@ -801,6 +1170,43 @@ async function runSmokeTest() {
       { timeout: 10000 }
     );
     ignoreExpectedHeatmapConsoleError = false;
+
+    const boundaryPage = await browser.newPage();
+    await boundaryPage.setRequestInterception(true);
+    boundaryPage.on('request', async (request) => {
+      const url = request.url();
+      if (url.includes('WorldStockNewsCard-')) {
+        await respondText(request, 'chunk unavailable', 'text/plain', 503);
+        return;
+      }
+
+      if (url.startsWith('https://fonts.googleapis.com/')) {
+        await respondText(request, '', 'text/css');
+        return;
+      }
+
+      if (url.startsWith('https://fonts.gstatic.com/')) {
+        await respondText(request, '', 'font/woff2');
+        return;
+      }
+
+      if (url.startsWith('https://')) {
+        await respondText(request, '', 'text/plain');
+        return;
+      }
+
+      await request.continue();
+    });
+    await boundaryPage.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+    await boundaryPage.waitForSelector('#overview');
+    await boundaryPage.click('a.app-sidebar__link[href="#advanced-tracker"]');
+    await boundaryPage.waitForSelector('[data-island-fallback="market news"]', { timeout: 30000 });
+    const islandFallbackText = await boundaryPage.$eval('[data-island-fallback="market news"]', (el) => el.textContent);
+    assertValue(
+      /Unable to load market news/i.test(islandFallbackText) && /The rest of the dashboard is still available/i.test(islandFallbackText),
+      'Deferred island chunk failure should render an isolated fallback.'
+    );
+    await boundaryPage.close();
   } finally {
     await browser.close();
     server.close();

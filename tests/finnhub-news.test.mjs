@@ -3,7 +3,9 @@ import {
   discoverFinnhubKey,
   fetchFinnhubMarketNews,
   normalizeFinnhubNewsItems,
+  persistFinnhubKey,
   readEnvFinnhubKey,
+  readStoredFinnhubKey,
   sanitizeFinnhubKey,
 } from '../src/lib/finnhub.mjs';
 
@@ -26,6 +28,14 @@ assert.equal(sanitizeFinnhubKey('  abc123  '), 'abc123');
 assert.equal(sanitizeFinnhubKey(null), '');
 assert.equal(readEnvFinnhubKey({ VITE_FINNHUB_KEY: ' env-key ' }), 'env-key');
 assert.equal(readEnvFinnhubKey({}), '');
+
+{
+  const storage = createStorage();
+  persistFinnhubKey(' stored-local-key ', storage);
+  assert.equal(readStoredFinnhubKey(storage), 'stored-local-key');
+  persistFinnhubKey('', storage);
+  assert.equal(readStoredFinnhubKey(storage), '');
+}
 
 {
   const storage = createStorage({ 'hangar.finnhubKey': 'stored-key' });

@@ -9,6 +9,9 @@ const PERFORMANCE_BENCHMARK_SYMBOL =
     : "^GSPC";
 const FALLBACK_STARTING_VALUE = 10000;
 const HISTORICAL_CACHE = new Map();
+const allowDirectHistoricalFetch =
+  window.APP_CONFIG?.environment?.allowInsecureMarketFetch === true ||
+  window.ENABLE_INSECURE_MARKET_FETCH === true;
 const RANGE_CONFIG = [
   { maxYears: 1, range: "1y", interval: "1d", periodsPerYear: 252 },
   { maxYears: 5, range: "5y", interval: "1wk", periodsPerYear: 52 },
@@ -166,6 +169,13 @@ async function prepareHistoricalPerformance(years) {
   }
 
   const { range, interval, periodsPerYear } = getRangeConfig(years);
+
+  if (!allowDirectHistoricalFetch) {
+    const error = new Error("Direct historical market fetches are disabled for this static build.");
+    error.code = "DIRECT_HISTORICAL_FETCH_DISABLED";
+    error.periodsPerYear = periodsPerYear;
+    throw error;
+  }
 
   const assetSeriesPromises = activeAssets.map(async ([key, weight]) => {
     const symbol = getSymbolForHistoricalFetch(key);
@@ -632,7 +642,9 @@ async function initializePerformance() {
       yearsCovered || currentPeriod
     );
   } catch (error) {
-    console.error("Falling back to simulated performance data:", error);
+    if (error?.code !== "DIRECT_HISTORICAL_FETCH_DISABLED") {
+      console.warn("Falling back to simulated performance data:", error);
+    }
     const targets = getCurrentTargets();
     const { portfolioValues, benchmarkValues } = simulatePerformance(targets, currentPeriod);
     const timestamps = createSyntheticTimestamps(portfolioValues.length, currentPeriod);
@@ -694,95 +706,111 @@ function populateAssetPerformanceTable() {
 
 // Event listeners for period buttons
 document.addEventListener('DOMContentLoaded', function() {
-  const period1YBtn = document.getElementById('period1Y');
-  const period5YBtn = document.getElementById('period5Y');
-  const period10YBtn = document.getElementById('period10Y');
+  const periodButtons = [
+    { years: 1, button: document.getElementById('period1Y') },
+    { years: 5, button: document.getElementById('period5Y') },
+    { years: 10, button: document.getElementById('period10Y') },
+    { years: 20, button: document.getElementById('period20Y') },
+    { years: 30, button: document.getElementById('period30Y') },
+    { years: 35, button: document.getElementById('period35Y') },
+  ];
   const refreshBtn = document.getElementById('refreshPerformanceBtn');
+  const section = document.getElementById('performance');
+  let hasActivatedPerformance = false;
 
-  if (period1YBtn) {
-    period1YBtn.addEventListener('click', function() {
-      currentPeriod = 1;
-      period1YBtn.className = 'bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700';
-      period5YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period10YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      initializePerformance();
+  function updatePeriodButtons() {
+    periodButtons.forEach(({ years, button }) => {
+      if (!button) return;
+      button.className =
+        years === currentPeriod
+          ? 'bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700'
+          : 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
     });
   }
 
-  if (period5YBtn) {
-    period5YBtn.addEventListener('click', function() {
-      currentPeriod = 5;
-      period1YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period5YBtn.className = 'bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700';
-      period10YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      initializePerformance();
-    });
+  function runPerformanceReview() {
+    initializePerformance();
+    populateAssetPerformanceTable();
   }
 
-  if (period10YBtn) {
-    period10YBtn.addEventListener('click', function() {
-      currentPeriod = 10;
-      period1YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period5YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period10YBtn.className = 'bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700';
-      period20YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period30YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period35YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      initializePerformance();
-    });
+  function activatePerformanceReview() {
+    if (hasActivatedPerformance) {
+      return;
+    }
+    hasActivatedPerformance = true;
+    runPerformanceReview();
   }
 
-  const period20YBtn = document.getElementById('period20Y');
-  const period30YBtn = document.getElementById('period30Y');
-  const period35YBtn = document.getElementById('period35Y');
-
-  if (period20YBtn) {
-    period20YBtn.addEventListener('click', function() {
-      currentPeriod = 20;
-      period1YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period5YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period10YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period20YBtn.className = 'bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700';
-      period30YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period35YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      initializePerformance();
-    });
+  function setDeferredPerformanceState() {
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = 'Open Performance Review';
+    }
+    const annualizedReturn = document.getElementById('annualizedReturn');
+    if (annualizedReturn && !annualizedReturn.dataset.loading) {
+      annualizedReturn.textContent = 'Deferred';
+      annualizedReturn.title = 'Performance review opens when the section enters view.';
+    }
   }
 
-  if (period30YBtn) {
-    period30YBtn.addEventListener('click', function() {
-      currentPeriod = 30;
-      period1YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period5YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period10YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period20YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period30YBtn.className = 'bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700';
-      period35YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      initializePerformance();
+  function setupLazyPerformanceLoad() {
+    setDeferredPerformanceState();
+    updatePeriodButtons();
+
+    if (window.location.hash === '#performance') {
+      activatePerformanceReview();
+      return;
+    }
+
+    window.addEventListener('hashchange', () => {
+      if (window.location.hash === '#performance') {
+        activatePerformanceReview();
+      }
     });
+
+    if (!('IntersectionObserver' in window) || !section) {
+      activatePerformanceReview();
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          observer.disconnect();
+          activatePerformanceReview();
+        }
+      },
+      {
+        rootMargin: '650px 0px',
+        threshold: 0.01,
+      }
+    );
+
+    observer.observe(section);
   }
 
-  if (period35YBtn) {
-    period35YBtn.addEventListener('click', function() {
-      currentPeriod = 35;
-      period1YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period5YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period10YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period20YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period30YBtn.className = 'bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700';
-      period35YBtn.className = 'bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700';
-      initializePerformance();
+  periodButtons.forEach(({ years, button }) => {
+    if (!button) return;
+    button.addEventListener('click', function() {
+      currentPeriod = years;
+      updatePeriodButtons();
+      if (hasActivatedPerformance) {
+        runPerformanceReview();
+      } else {
+        activatePerformanceReview();
+      }
     });
-  }
+  });
 
   if (refreshBtn) {
     refreshBtn.addEventListener('click', function() {
-      initializePerformance();
-      populateAssetPerformanceTable();
+      if (hasActivatedPerformance) {
+        runPerformanceReview();
+      } else {
+        activatePerformanceReview();
+      }
     });
   }
 
-  // Initial render
-  initializePerformance();
-  populateAssetPerformanceTable();
+  setupLazyPerformanceLoad();
 });

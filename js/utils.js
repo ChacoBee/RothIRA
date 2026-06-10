@@ -2259,6 +2259,8 @@ function initializeMetricDropdownToggles() {
 
       panel.style.right = "";
 
+      panel.style.maxWidth = "";
+
       const button = document.querySelector(
 
         `[data-metric-toggle="${panel.id}"]`
@@ -2275,6 +2277,37 @@ function initializeMetricDropdownToggles() {
 
     });
 
+  };
+
+  const alignPanelToViewport = (button, panel) => {
+    const wrapper = button.closest(".metric-dropdown-wrapper");
+    const viewportWidth =
+      window.innerWidth || document.documentElement.clientWidth || 0;
+
+    panel.style.left = "";
+    panel.style.right = "";
+    panel.style.maxWidth = "";
+    panel.classList.remove("metric-dropdown--align-right");
+
+    if (!wrapper || !viewportWidth) return;
+
+    const viewportPadding = 8;
+    panel.style.maxWidth = `${Math.max(180, viewportWidth - viewportPadding * 2)}px`;
+
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const dropdownRect = panel.getBoundingClientRect();
+    const minLeft = viewportPadding - wrapperRect.left;
+    const maxLeft =
+      viewportWidth - viewportPadding - wrapperRect.left - dropdownRect.width;
+    const upperBound = Math.max(minLeft, maxLeft);
+    const leftOffset = Math.min(Math.max(0, minLeft), upperBound);
+
+    panel.style.left = `${leftOffset}px`;
+    panel.style.right = "auto";
+
+    if (leftOffset < 0) {
+      panel.classList.add("metric-dropdown--align-right");
+    }
   };
 
 
@@ -2316,37 +2349,7 @@ function initializeMetricDropdownToggles() {
 
 
 
-        target.style.left = "";
-
-        target.style.right = "";
-
-        target.classList.remove("metric-dropdown--align-right");
-
-        const wrapperRect = btn
-
-          .closest(".metric-dropdown-wrapper")
-
-          ?.getBoundingClientRect();
-
-        const dropdownRect = target.getBoundingClientRect();
-
-        const viewportWidth =
-
-          window.innerWidth || document.documentElement.clientWidth || 0;
-
-        if (wrapperRect && dropdownRect.right > viewportWidth - 16) {
-
-          target.style.left = "auto";
-
-          target.style.right = "0";
-
-          target.classList.add("metric-dropdown--align-right");
-
-        } else {
-
-          target.classList.remove("metric-dropdown--align-right");
-
-        }
+        alignPanelToViewport(btn, target);
 
       } else {
 

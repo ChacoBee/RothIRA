@@ -173,8 +173,97 @@
     let slowLoadTimeoutId = null;
     let hardFailTimeoutId = null;
     let activeLoadId = 0;
+    let hasActivatedHeatmap = false;
     const reloadDefaultLabel = reloadLabelEl ? reloadLabelEl.textContent.trim() : "Reload TradingView heatmap";
     let heatmapWatchlist = loadWatchlistFromStorage();
+
+    function buildFinanceIntelNotes(filterKey, label, metricLabel) {
+      const baseNotes = {
+        sp500: [
+          "Use S&P 500 breadth to separate broad risk appetite from a narrow mega-cap advance.",
+          "Watch defensive sectors such as healthcare and utilities for signs of risk-off rotation.",
+          "If mega-cap leadership dominates the map, compare core ETF exposure against target weights.",
+        ],
+        dow30: [
+          "Dow 30 strength can signal demand for established cash-flow businesses.",
+          "Industrial weakness may point to cyclical pressure that deserves a risk review.",
+          "Dow outperformance versus the S&P 500 can suggest a quality or lower-volatility tilt.",
+        ],
+        nasdaq100: [
+          "Nasdaq 100 heat shows how much of the day is being driven by growth and technology risk.",
+          "If software and AI leaders cool together, check concentration before adding new capital.",
+          "Weekly technology momentum is useful context for GOOGL and other growth sleeves.",
+        ],
+        russell2000: [
+          "Russell 2000 moves can affect small-cap value exposure such as AVUV and AVDV.",
+          "Use small-cap breadth as a liquidity and domestic-cycle signal.",
+          "A broad small-cap recovery may support adding to underweight value positions.",
+        ],
+      };
+      const notes = [...(baseNotes[filterKey] || baseNotes.sp500)];
+
+      const overlapTickers =
+        (HEATMAP_PORTFOLIO_MEMBERSHIP[filterKey] || []).filter(
+          (ticker) => initialStockData && initialStockData[ticker]
+        ) || [];
+      if (overlapTickers.length) {
+        const exposure = overlapTickers
+          .map((ticker) => safeNumber(initialStockData[ticker]?.target))
+          .reduce((sum, value) => sum + value, 0);
+        notes.push(
+          `Portfolio overlap: ${overlapTickers.join(", ")} sits in ${label} at roughly ${formatPercentInline(
+            exposure
+          )} target weight.`
+        );
+      }
+
+      if (window.latestAnalyticsScores) {
+        const { expectedReturn, volatility, sharpeRatio } = window.latestAnalyticsScores;
+        const expectedLabel = formatPercentInline((expectedReturn || 0) * 100);
+        const volatilityLabel = formatPercentInline((volatility || 0) * 100);
+        notes.push(
+          `Portfolio assumptions show ${expectedLabel} expected return with ${volatilityLabel} volatility; compare that risk profile against ${
+            metricLabel || "the heatmap"
+          } for ${label}.`
+        );
+        if (Number.isFinite(sharpeRatio)) {
+          notes.push(
+            `Current Sharpe ratio is ${sharpeRatio.toFixed(2)}; review whether heatmap momentum is improving risk-adjusted return.`
+          );
+        }
+      }
+
+      const watchlistOverlap = heatmapWatchlist.filter((ticker) =>
+        (HEATMAP_PORTFOLIO_MEMBERSHIP[filterKey] || []).includes(ticker)
+      );
+      if (watchlistOverlap.length) {
+        notes.push(
+          `Watchlist overlap with ${label}: ${watchlistOverlap.join(", ")}. Monitor price reaction before adjusting weights.`
+        );
+      } else if (heatmapWatchlist.length) {
+        notes.push(
+          `Current watchlist has no overlap with ${label}; add related tickers if this universe matters to your allocation review.`
+        );
+      }
+
+      return notes;
+    }
+
+    function normalizeHeatmapVisibleCopy() {
+      if (watchlistSummaryEl) {
+        const filterTickers = HEATMAP_PORTFOLIO_MEMBERSHIP[activeFilter] || [];
+        const inFilterCount = heatmapWatchlist.filter((ticker) =>
+          filterTickers.includes(ticker)
+        ).length;
+        const label = FILTER_LABELS[activeFilter] || "heatmap";
+        const cleanSummary = `${heatmapWatchlist.length} ticker${
+          heatmapWatchlist.length === 1 ? "" : "s"
+        } tracked; ${inFilterCount} overlaps with ${label}.`;
+        if (!watchlistSummaryEl.textContent || /[\u00c0-\uffff]/.test(watchlistSummaryEl.textContent)) {
+          watchlistSummaryEl.textContent = cleanSummary;
+        }
+      }
+    }
 
     function renderHeatmapIntel(filter) {
       if (!(intelListEl && intelEmptyEl)) {
@@ -232,9 +321,10 @@
         );
       }
 
+      const financeIntelNotes = buildFinanceIntelNotes(filterKey, label, metricLabel);
       const uniqueIntel = Array.from(
         new Set(
-          intelNotes
+          financeIntelNotes
             .map((note) => (note || "").trim())
             .filter(Boolean)
         )
@@ -349,7 +439,7 @@
         (HEATMAP_PORTFOLIO_MEMBERSHIP[activeFilter] || []).includes(ticker)
       ).length;
 
-      watchlistSummaryEl.textContent = `${heatmapWatchlist.length} ticker được theo dõi · ${inFilterCount} trùng với ${
+      watchlistSummaryEl.textContent = `${heatmapWatchlist.length} ticker${heatmapWatchlist.length === 1 ? "" : "s"} tracked; ${inFilterCount} overlaps with ${
         FILTER_LABELS[activeFilter] || "heatmap"
       }.`;
     }
@@ -357,6 +447,7 @@
     function syncCompanionPanels() {
       renderHeatmapIntel(activeFilter);
       renderWatchlist();
+      normalizeHeatmapVisibleCopy();
     }
 
     function setLoading(isLoading) {
@@ -549,6 +640,52 @@
       }, HEATMAP_HARD_FAIL_TIMEOUT_MS);
     }
 
+    function activateHeatmap() {
+      if (hasActivatedHeatmap) {
+        return;
+      }
+      hasActivatedHeatmap = true;
+      loadHeatmapWidget();
+    }
+
+    function setupLazyHeatmapLoad() {
+      if (updatedEl) {
+        updatedEl.textContent = "Updated: opens when section enters view";
+      }
+
+      if (window.location.hash === "#marketHeatmap") {
+        activateHeatmap();
+        return;
+      }
+
+      window.addEventListener("hashchange", () => {
+        if (window.location.hash === "#marketHeatmap") {
+          activateHeatmap();
+        }
+      });
+
+      const section = document.getElementById("marketHeatmap") || widgetContainer;
+      if (!("IntersectionObserver" in window) || !section) {
+        activateHeatmap();
+        return;
+      }
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            observer.disconnect();
+            activateHeatmap();
+          }
+        },
+        {
+          rootMargin: "650px 0px",
+          threshold: 0.01,
+        }
+      );
+
+      observer.observe(section);
+    }
+
     filterButtons.forEach((button) => {
       button.addEventListener("click", () => {
         if (button.dataset.filter === activeFilter) {
@@ -560,19 +697,29 @@
         }
         updateLabel();
         setActiveFilterButton();
-        loadHeatmapWidget();
+        if (hasActivatedHeatmap) {
+          loadHeatmapWidget();
+        } else {
+          activateHeatmap();
+        }
       });
     });
 
     if (reloadBtn) {
       reloadBtn.addEventListener("click", () => {
-        loadHeatmapWidget();
+        if (hasActivatedHeatmap) {
+          loadHeatmapWidget();
+        } else {
+          activateHeatmap();
+        }
       });
     }
 
     window.addEventListener("themechange", (event) => {
       currentTheme = event.detail?.isDarkMode ? "dark" : "light";
-      loadHeatmapWidget();
+      if (hasActivatedHeatmap) {
+        loadHeatmapWidget();
+      }
     });
 
     if (watchlistInput) {
@@ -589,20 +736,20 @@
         const ticker = sanitizeTicker(raw);
         if (!ticker) {
           if (watchlistSummaryEl) {
-            watchlistSummaryEl.textContent = "Ticker không hợp lệ. Chỉ sử dụng chữ cái, số, dấu '.' hoặc '-'.";
+            watchlistSummaryEl.textContent = "Enter a valid ticker using letters, numbers, '.', or '-'.";
           }
           return;
         }
         if (heatmapWatchlist.includes(ticker)) {
           if (watchlistSummaryEl) {
-            watchlistSummaryEl.textContent = `${ticker} đã có trong watchlist.`;
+            watchlistSummaryEl.textContent = `${ticker} is already in the watchlist.`;
           }
           watchlistInput.value = "";
           return;
         }
         if (heatmapWatchlist.length >= WATCHLIST_LIMIT) {
           if (watchlistSummaryEl) {
-            watchlistSummaryEl.textContent = `Watchlist chỉ hỗ trợ tối đa ${WATCHLIST_LIMIT} ticker.`;
+            watchlistSummaryEl.textContent = `Watchlist supports up to ${WATCHLIST_LIMIT} tickers.`;
           }
           return;
         }
@@ -630,6 +777,6 @@
 
     updateLabel();
     setActiveFilterButton();
-    loadHeatmapWidget();
+    setupLazyHeatmapLoad();
   });
 })();

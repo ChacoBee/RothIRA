@@ -3781,7 +3781,7 @@ function updateMetricBreakdown(metrics) {
     element.removeAttribute('data-status');
 
     if (!hasMetrics) {
-      element.textContent = 'Telemetry standby - run analytics to activate this diagnostic.';
+      element.textContent = 'Analytics standby - run analytics to activate this diagnostic.';
       element.classList.add(METRIC_TONE_CLASSES.neutral);
       return;
     }
@@ -3796,7 +3796,7 @@ function updateMetricBreakdown(metrics) {
       element.setAttribute('data-status', status);
     }
 
-    element.textContent = displayMessage || 'Telemetry active.';
+    element.textContent = displayMessage || 'Analytics active.';
     element.classList.add(toneClass);
   });
 }

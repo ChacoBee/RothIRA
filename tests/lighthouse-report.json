@@ -1187,7 +1187,7 @@
             "entity": "tailwindcss.com"
           },
           {
-            "url": "https://financialmodelingprep.com/api/v3/quote/%5EGSPC,%5EDJI,%5EIXIC,%5ERUT,%5EFTSE,%5EGDAXI,%5EN225,%5EHSI,%5EBSESN?apikey=qPhDU6pPgXTmbdzSL7FxdxXUzQFELzW9&_=1761585355191",
+            "url": "https://financialmodelingprep.com/api/v3/quote/%5EGSPC,%5EDJI,%5EIXIC,%5ERUT,%5EFTSE,%5EGDAXI,%5EN225,%5EHSI,%5EBSESN?apikey=demo&_=1761585355191",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 734.7180000022054,
@@ -1595,7 +1595,7 @@
             "entity": "tradingview.com"
           },
           {
-            "url": "https://financialmodelingprep.com/api/v3/quotes/index?apikey=qPhDU6pPgXTmbdzSL7FxdxXUzQFELzW9&_=1761585355191",
+            "url": "https://financialmodelingprep.com/api/v3/quotes/index?apikey=demo&_=1761585355191",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2229.2760000005364,
@@ -10000,14 +10000,14 @@
               "type": "subitems",
               "items": [
                 {
-                  "url": "https://financialmodelingprep.com/api/v3/quote/%5EGSPC,%5EDJI,%5EIXIC,%5ERUT,%5EFTSE,%5EGDAXI,%5EN225,%5EHSI,%5EBSESN?apikey=qPhDU6pPgXTmbdzSL7FxdxXUzQFELzW9&_=1761585355191",
+                  "url": "https://financialmodelingprep.com/api/v3/quote/%5EGSPC,%5EDJI,%5EIXIC,%5ERUT,%5EFTSE,%5EGDAXI,%5EN225,%5EHSI,%5EBSESN?apikey=demo&_=1761585355191",
                   "mainThreadTime": 0,
                   "blockingTime": 0,
                   "transferSize": 678,
                   "tbtImpact": 0
                 },
                 {
-                  "url": "https://financialmodelingprep.com/api/v3/quotes/index?apikey=qPhDU6pPgXTmbdzSL7FxdxXUzQFELzW9&_=1761585355191",
+                  "url": "https://financialmodelingprep.com/api/v3/quotes/index?apikey=demo&_=1761585355191",
                   "mainThreadTime": 0,
                   "blockingTime": 0,
                   "transferSize": 677,

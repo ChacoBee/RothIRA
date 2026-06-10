@@ -2,7 +2,7 @@
   "name": "rothira",
   "private": true,
   "version": "1.0.0",
-  "description": "Gunpla Hangar Command Console migrated to Vite + React.",
+  "description": "Roth IRA portfolio dashboard migrated to Vite + React.",
   "directories": {
     "doc": "docs",
     "test": "tests"
@@ -124,8 +124,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:unit": "node tests/deposit-core.test.js && node tests/deposit-rebalance-core.test.js && node tests/finnhub-news.test.mjs && node tests/contribution-optimizer.test.mjs && node tests/historical-crisis-replay.test.mjs && node tests/monte-carlo-retirement.test.mjs",
-    "test:smoke": "npm run build && node tests/run-console-check.mjs",
+    "test:unit": "node tests/deposit-core.test.js && node tests/deposit-rebalance-core.test.js && node tests/finnhub-news.test.mjs && node tests/finance-video-channels.test.mjs && node tests/contribution-optimizer.test.mjs && node tests/historical-crisis-replay.test.mjs && node tests/monte-carlo-retirement.test.mjs",
+    "test:smoke": "npm run build && node tests/run-console-check.mjs && node tests/performance-budget.test.mjs",
     "test": "npm run test:unit && npm run test:smoke"
   },
   "keywords": [],
