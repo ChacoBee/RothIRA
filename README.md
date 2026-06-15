@@ -65,14 +65,13 @@ Recommended flow:
 - `tests/deposit-core.test.js`
 - `tests/deposit-rebalance-core.test.js`
 - `tests/finnhub-news.test.mjs`
-- `tests/finance-video-channels.test.mjs`
 - `tests/run-console-check.mjs`
 
 The smoke test serves the built app under `/RothIRA/`, mocks unstable third-party feeds, and verifies:
 - app boot without runtime console errors
 - sidebar hash navigation
 - theme toggle
-- Section 6 removals, live news theater, channel switching, and Finnhub news render
+- Section 6 removals, removed live news theater, and Finnhub news render
 - Action Center Alpha Vantage key save/forget flow
 - Action Center priority alerts for data freshness, drift, contribution state, and history-source fallback
 - Action Center target allocation policy snapshot persistence
@@ -91,7 +90,5 @@ Manual real-feed check:
 1. Add your key through the `World Stock News` local key form or `.env.local`
 2. Run `npm run dev`
 3. Open `/RothIRA/`
-4. Confirm `World Stock News` loads a public finance video stream and switches channels
-5. Confirm custom live channels persist after adding a valid YouTube `UC...` channel ID
-6. Confirm `World Stock News` renders live headlines instead of the missing-key state
-7. Confirm the browser network tab shows `https://finnhub.io/api/v1/news?category=general&token=...` with `200`
+4. Confirm `World Stock News` renders live headlines instead of the missing-key state
+5. Confirm the browser network tab shows `https://finnhub.io/api/v1/news?category=general&token=...` with `200`

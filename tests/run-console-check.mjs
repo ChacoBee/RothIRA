@@ -649,110 +649,16 @@ async function runSmokeTest() {
     await page.waitForFunction(
       () => /Finnhub key not configured/i.test(document.querySelector('#worldStockNewsMount')?.textContent || '')
     );
-    await page.waitForSelector('[data-live-news-theater] [data-live-news-iframe]');
-
-    const initialLiveTheaterState = await page.evaluate(() => {
-      const iframe = document.querySelector('[data-live-news-iframe]');
-      const buttons = Array.from(document.querySelectorAll('[data-live-channel-id]'));
-      const iframeRect = iframe.getBoundingClientRect();
-      return {
-        buttonCount: buttons.length,
-        defaultChannels: buttons
-          .filter((button) => button.dataset.liveChannelSource === 'default')
-          .map((button) => button.dataset.liveChannelId),
-        iframeSrc: iframe.getAttribute('src'),
-        iframeWidth: iframeRect.width,
-        iframeHeight: iframeRect.height,
-        iframeRight: iframeRect.right,
-        viewportWidth: window.innerWidth,
-      };
-    });
-    assertValue(initialLiveTheaterState.buttonCount >= 4, 'Live theater default channels did not render.');
-    assertValue(
-      initialLiveTheaterState.defaultChannels.includes('cnbc-television') &&
-        initialLiveTheaterState.defaultChannels.includes('yahoo-finance') &&
-        initialLiveTheaterState.defaultChannels.includes('bloomberg-television') &&
-        initialLiveTheaterState.defaultChannels.includes('schwab-network'),
-      'Live theater default channel catalog is incomplete.'
-    );
-    assertValue(
-      initialLiveTheaterState.iframeSrc.includes('youtube.com/embed/live_stream') &&
-        initialLiveTheaterState.iframeSrc.includes('channel=UCrp_UI8XtuYfpiqluWLD7Lw'),
-      'Live theater did not autoload the default CNBC stream.'
-    );
-    assertValue(
-      initialLiveTheaterState.iframeWidth > 300 &&
-        initialLiveTheaterState.iframeHeight > 160 &&
-        initialLiveTheaterState.iframeRight <= initialLiveTheaterState.viewportWidth,
-      'Live theater iframe is not sized correctly on desktop.'
-    );
-
-    await page.click('[data-live-channel-id="yahoo-finance"]');
-    await page.waitForFunction(() =>
-      document.querySelector('[data-live-news-iframe]')?.getAttribute('src')?.includes('channel=UCEAZeUIeJs0IjQiqTCdVSIg')
-    );
-
-    await page.click('[data-live-channel-manage]');
-    await page.type('[data-live-channel-label-input]', 'Custom Market TV');
-    await page.type('[data-live-channel-id-input]', 'UCbbbbbbbbbbbbbbbbbbbbbb');
-    await page.type('[data-live-channel-handle-input]', '@CustomMarketTV');
-    await page.type('[data-live-channel-description-input]', 'Custom broad finance livestream.');
-    await page.click('[data-live-channel-add]');
-    await page.waitForSelector('[data-live-channel-id="custom-ucbbbbbbbbbbbbbbbbbbbbbb"]');
-    await page.waitForFunction(() =>
-      document.querySelector('[data-live-news-iframe]')?.getAttribute('src')?.includes('channel=UCbbbbbbbbbbbbbbbbbbbbbb')
-    );
-
-    const customChannelState = await page.evaluate(() => {
-      const stored = JSON.parse(localStorage.getItem('rothira.financeVideoChannels.v1') || '[]');
-      return {
-        storedCount: stored.length,
-        storedLabel: stored[0]?.label,
-        storedChannelId: stored[0]?.channelId,
-        activeChannel: localStorage.getItem('rothira.activeFinanceVideoChannel.v1'),
-      };
-    });
-    assertValue(customChannelState.storedCount === 1, 'Custom live channel was not persisted.');
-    assertValue(customChannelState.storedLabel === 'Custom Market TV', 'Custom live channel label was not persisted.');
-    assertValue(customChannelState.storedChannelId === 'UCbbbbbbbbbbbbbbbbbbbbbb', 'Custom live channel ID was not persisted.');
-    assertValue(
-      customChannelState.activeChannel === 'custom-ucbbbbbbbbbbbbbbbbbbbbbb',
-      'Active live channel was not persisted after adding a custom channel.'
-    );
-
-    await page.click('[data-live-channel-remove="custom-ucbbbbbbbbbbbbbbbbbbbbbb"]');
-    await page.waitForFunction(
-      () => !document.querySelector('[data-live-channel-id="custom-ucbbbbbbbbbbbbbbbbbbbbbb"]')
-    );
-    const customChannelRemoved = await page.evaluate(
-      () => JSON.parse(localStorage.getItem('rothira.financeVideoChannels.v1') || '[]').length
-    );
-    assertValue(customChannelRemoved === 0, 'Custom live channel was not removed from storage.');
-
-    await page.setViewport({ width: 390, height: 900 });
-    await page.waitForFunction(() => window.innerWidth === 390);
-    const mobileLiveTheaterState = await page.evaluate(() => {
-      const iframe = document.querySelector('[data-live-news-iframe]');
-      const theater = document.querySelector('[data-live-news-theater]');
-      const iframeRect = iframe.getBoundingClientRect();
-      const theaterRect = theater.getBoundingClientRect();
-      return {
-        iframeLeft: iframeRect.left,
-        iframeRight: iframeRect.right,
-        theaterLeft: theaterRect.left,
-        theaterRight: theaterRect.right,
-        viewportWidth: window.innerWidth,
-      };
-    });
-    assertValue(
-      mobileLiveTheaterState.iframeLeft >= 0 &&
-        mobileLiveTheaterState.iframeRight <= mobileLiveTheaterState.viewportWidth &&
-        mobileLiveTheaterState.theaterLeft >= 0 &&
-        mobileLiveTheaterState.theaterRight <= mobileLiveTheaterState.viewportWidth,
-      'Live theater overflows the mobile viewport.'
-    );
-    await page.setViewport({ width: 1280, height: 900 });
-    await page.waitForFunction(() => window.innerWidth === 1280);
+    const removedLiveTheaterState = await page.evaluate(() => ({
+      theater: Boolean(document.querySelector('[data-live-news-theater]')),
+      iframe: Boolean(document.querySelector('[data-live-news-iframe]')),
+      channelButtons: document.querySelectorAll('[data-live-channel-id]').length,
+      text: document.querySelector('#worldStockNewsMount')?.textContent || '',
+    }));
+    assertValue(!removedLiveTheaterState.theater, 'Live finance theater should not render.');
+    assertValue(!removedLiveTheaterState.iframe, 'Live finance iframe should not render.');
+    assertValue(removedLiveTheaterState.channelButtons === 0, 'Live channel buttons should not render.');
+    assertValue(/Market headlines/i.test(removedLiveTheaterState.text), 'World Stock News should still render the headlines area.');
 
     await page.type('[data-finnhub-key-input]', 'smoke-finnhub-key');
     await page.click('[data-finnhub-key-save]');
