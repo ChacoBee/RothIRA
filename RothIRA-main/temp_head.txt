@@ -1,0 +1,40 @@
+/* --- Light Mode Variables --- */
+:root {
+  --color-primary: #10b981; /* Emerald 500 */
+  --color-secondary: #3b82f6; /* Blue 500 */
+  --color-background-light: #f4f6f8;
+  --color-text-light: #1f2937; /* Gray 800 */
+  --color-card-light: #ffffff;
+  --color-border-light: #e5e7eb;
+  --color-profit: #10b981;
+  --color-loss: #ef4444;
+  --color-neutral: #9ca3af;
+}
+
+/* --- Dark Mode Variables (Tối hơn theo yêu cầu) --- */
+.dark-mode {
+  --color-background: #0a0a0a; /* Gần như đen */
+  --color-text: #e5e7eb; /* Gray 200 */
+  --color-card: #1f2937; /* Darker Slate 800 for contrast */
+  --color-border: #374151; /* Slate 700 */
+  --color-input-bg: #374151;
+}
+
+/* Base styling */
+html:not(.dark-mode) {
+  background-color: var(--color-background-light);
+  color: var(--color-text-light);
+}
+.dark-mode {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  /* Loại bỏ pattern để nền tối hơn */
+  background-image: none;
+}
+body {
+  font-family: "Inter", sans-serif;
+  transition: background-color 0.4s, color 0.4s;
+}
+
+.card {
+  background-color: var(--color-card-light);

@@ -1,0 +1,238 @@
+
+
+      <section id="fearGreed" class="section mb-12">
+        <div class="section-header">
+          <div class="section-header__icon">
+            <svg
+              class="w-8 h-8 text-rose-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.95-6.95l-2.12 2.12M9.17 14.83L7.05 16.95m12.02 0l-2.12-2.12M9.17 9.17L7.05 7.05"
+              ></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="section-title">12. Psycho-Frame Sentiment Monitor</h2>
+            <p class="section-intro">
+              Gauge collective pilot morale with a Psycho-Frame index, historical checkpoints, and context for redeploying your Gunpla assets.
+            </p>
+          </div>
+        </div>
+
+        <div class="sentiment-hud" id="sentimentHud">
+          <div class="sentiment-hud__backdrop" aria-hidden="true"></div>
+          <div class="sentiment-hud__scanlines" aria-hidden="true"></div>
+
+          <header class="sentiment-hud__header">
+            <div>
+              <p class="sentiment-hud__eyebrow">Psycho-Frame Telemetry</p>
+              <h3 class="sentiment-hud__title">Sentiment Nexus Console</h3>
+            </div>
+            <div class="sentiment-hud__actions">
+              <span id="fearGreedError" class="sentiment-hud__error hidden">
+                Live feed unstable – pulling from cache
+              </span>
+              <button
+                id="fearGreedRefreshBtn"
+                type="button"
+                class="sentiment-refresh-btn"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  ></path>
+                </svg>
+                <span class="fear-greed-refresh-label">Refresh now</span>
+              </button>
+            </div>
+          </header>
+
+          <div class="sentiment-hud__grid">
+            <article class="sentiment-module sentiment-module--core">
+              <div class="sentiment-core">
+                <div class="sentiment-core__gauge">
+                  <div class="sentiment-module__titlebar">
+                    <span class="sentiment-module__eyebrow">Core Index</span>
+                    <h4 class="sentiment-module__title">Psycho-Frame Gauge</h4>
+                  </div>
+                  <div class="sentiment-core__gauge-inner">
+                    <div class="fear-greed-meter">
+                      <div class="fear-greed-meter__canvas">
+                        <canvas id="fearGreedGauge"></canvas>
+                        <div id="fearGreedNeedle" class="fear-greed-meter__needle"></div>
+                        <div class="fear-greed-meter__pivot"></div>
+                        <div class="fear-greed-meter__value">
+                          <span id="fearGreedValue" class="fear-greed-meter__score">--</span>
+                          <span id="fearGreedLabel" class="fear-greed-meter__status">Loading...</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="sentiment-core__gauge-meta">
+                      <div class="sentiment-core__badges">
+                        <span id="fearGreedStatusBadge" class="fear-greed-badge">--</span>
+                        <span id="fearGreedChange" class="fear-greed-change">
+                          Awaiting data
+                        </span>
+                        <p
+                          id="fearGreedComparison"
+                          class="mt-2 text-xs text-gray-500 dark:text-gray-400"
+                        >
+                          --
+                        </p>
+                      </div>
+                      <p class="sentiment-core__description">
+                        Composite morale index blending momentum, breadth, volatility, and safety flows.
+                        Deploy alongside battle plans to sense risk-on or risk-off pivots.
+                      </p>
+                      <dl class="sentiment-core__stats">
+                        <div>
+                          <dt>Updated</dt>
+                          <dd id="fearGreedUpdated">--</dd>
+                        </div>
+                        <div>
+                          <dt>Next refresh</dt>
+                          <dd id="fearGreedCountdown">--</dd>
+                        </div>
+                        <div>
+                          <dt>30-day mean</dt>
+                          <dd id="fearGreedAverage">--</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+                <div class="sentiment-core__radar">
+                  <div class="sentiment-module__titlebar">
+                    <span class="sentiment-module__eyebrow">Source Sync</span>
+                    <h4 class="sentiment-module__title">Composite Sentiment Mesh</h4>
+                  </div>
+                  <div class="sentiment-radar">
+                    <canvas id="sentimentRadarChart"></canvas>
+                  </div>
+                  <ul id="sentimentSourceList" class="sentiment-source-list">
+                    <li class="sentiment-source-list__item">
+                      <span class="sentiment-source-list__label">Market breadth</span>
+                      <span class="sentiment-source-list__value">--</span>
+                    </li>
+                    <li class="sentiment-source-list__item">
+                      <span class="sentiment-source-list__label">Social pulse</span>
+                      <span class="sentiment-source-list__value">--</span>
+                    </li>
+                    <li class="sentiment-source-list__item">
+                      <span class="sentiment-source-list__label">Fund flows</span>
+                      <span class="sentiment-source-list__value">--</span>
+                    </li>
+                    <li class="sentiment-source-list__item">
+                      <span class="sentiment-source-list__label">Options skew</span>
+                      <span class="sentiment-source-list__value">--</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div class="sentiment-history">
+                <div class="sentiment-module__titlebar">
+                  <span class="sentiment-module__eyebrow">Checkpoints</span>
+                  <h4 class="sentiment-module__title">Temporal Anchors</h4>
+                </div>
+                <ul id="fearGreedHistory" class="sentiment-history__list">
+                  <li class="sentiment-history__item">
+                    <p class="sentiment-history__label">Yesterday</p>
+                    <p class="sentiment-history__meta">Awaiting data</p>
+                    <span class="sentiment-history__value">--</span>
+                  </li>
+                  <li class="sentiment-history__item">
+                    <p class="sentiment-history__label">Last week</p>
+                    <p class="sentiment-history__meta">Awaiting data</p>
+                    <span class="sentiment-history__value">--</span>
+                  </li>
+                  <li class="sentiment-history__item">
+                    <p class="sentiment-history__label">Last month</p>
+                    <p class="sentiment-history__meta">Awaiting data</p>
+                    <span class="sentiment-history__value">--</span>
+                  </li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="sentiment-module sentiment-module--forecast">
+              <div class="sentiment-module__titlebar">
+                <span class="sentiment-module__eyebrow">Sentiment Forecast</span>
+                <h4 class="sentiment-module__title">7-Day Psycho-Frame Projection</h4>
+              </div>
+              <div class="sentiment-forecast-chart">
+                <canvas id="sentimentForecastChart"></canvas>
+              </div>
+              <dl class="sentiment-forecast-stats" id="sentimentForecastStats">
+                <div>
+                  <dt>Trend vector</dt>
+                  <dd id="forecastTrendLabel">--</dd>
+                </div>
+                <div>
+                  <dt>Expected range</dt>
+                  <dd id="forecastRangeLabel">--</dd>
+                </div>
+                <div>
+                  <dt>Confidence band</dt>
+                  <dd id="forecastConfidenceLabel">--</dd>
+                </div>
+              </dl>
+            </article>
+            <article class="sentiment-module sentiment-module--alerts">
+              <div class="sentiment-module__titlebar">
+                <span class="sentiment-module__eyebrow">Psycho-Frame Tripwires</span>
+                <h4 class="sentiment-module__title">Custom Alert Programming</h4>
+              </div>
+              <div class="sentiment-alerts-grid">
+                <div class="sentiment-alerts-slider">
+                  <label for="alertLowerInput">Lower threshold</label>
+                  <input id="alertLowerInput" type="range" min="0" max="100" step="1" />
+                  <span id="alertLowerLabel" class="sentiment-alerts-value">--</span>
+                </div>
+                <div class="sentiment-alerts-slider">
+                  <label for="alertUpperInput">Upper threshold</label>
+                  <input id="alertUpperInput" type="range" min="0" max="100" step="1" />
+                  <span id="alertUpperLabel" class="sentiment-alerts-value">--</span>
+                </div>
+                <div class="sentiment-alerts-options">
+                  <label class="sentiment-toggle">
+                    <input type="checkbox" id="alertEnableToggle" />
+                    <span>Activate alerting protocol</span>
+                  </label>
+                  <label class="sentiment-toggle">
+                    <input type="checkbox" id="alertSoundToggle" />
+                    <span>Arm audio ping</span>
+                  </label>
+                  <label class="sentiment-toggle">
+                    <input type="checkbox" id="alertThemeToggle" />
+                    <span>Flash HUD colour on trigger</span>
+                  </label>
+                </div>
+                <div class="sentiment-alerts-status">
+                  <p class="sentiment-alerts-summary">
+                    Status: <span id="sentimentAlertStatus">Standby</span>
+                  </p>
+                  <p class="sentiment-alerts-summary">
+                    Current reading: <span id="sentimentAlertCurrent">--</span>
+                  </p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
