@@ -589,21 +589,24 @@
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
-                  AI Allocation Insight
+                  Claude Portfolio Analysis
                 </div>
                 <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  AI allocation diagnostics keep your target mix on course.
+                  Claude reviews your live Robinhood holdings and target allocation.
                 </h3>
                 <p id="allocation-ai-summary" class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                  AI is preparing the latest allocation review. Launch the analysis to refresh this panel.
+                  Claude is preparing the latest allocation review.
                 </p>
                 <div id="allocation-ai-focus" class="text-sm font-medium text-blue-600 dark:text-blue-400">
-                  Run the AI analysis to surface the next recommended action.
+                  Ask Claude to analyze the portfolio to surface the next recommended action.
+                </div>
+                <div class="text-xs text-gray-400 dark:text-gray-500">
+                  Updated on request, not real-time · Last analysis: <span id="allocation-ai-updated">--</span>
                 </div>
               </div>
               <div class="flex flex-col items-center justify-center min-w-[160px] bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
                 <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
-                  AI Score
+                  Claude Grade
                 </div>
                 <div id="allocation-ai-score" class="text-4xl font-black text-gray-900 dark:text-white">
                   --
@@ -697,7 +700,7 @@
                 </svg>
                 Insights
               </h3>
-              <div class="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+              <div class="space-y-3 text-sm text-gray-700 dark:text-gray-300" id="allocation-insights-list">
                 <div class="flex items-start gap-2">
                   <div
                     class="w-2 h-2 bg-rose-500 rounded-full mt-1.5 flex-shrink-0"

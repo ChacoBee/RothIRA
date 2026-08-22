@@ -21,6 +21,7 @@ const LEGACY_SCRIPT_SOURCES = [
   'js/stockDetails.js',
   'js/theme.js',
   'js/analytics.js',
+  'js/ai-analysis.js',
   'js/heatmap.js',
   'js/fear-greed.js',
   'js/market-indices.js',

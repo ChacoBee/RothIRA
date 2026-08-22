@@ -58,14 +58,6 @@ const FINANCE_COPY_REPLACEMENTS = [
     'Compare planned loadouts versus actual deployments to see which Gunpla squads need reinforcement or part redistribution.',
     'Compare target weights against current holdings to identify drift, concentration, and rebalancing opportunities.',
   ],
-  ['AI Allocation Insight', 'Allocation Insight'],
-  ['AI allocation diagnostics keep your target mix on course.', 'Allocation diagnostics keep your target mix on course.'],
-  [
-    'AI is preparing the latest allocation review. Launch the analysis to refresh this panel.',
-    'The dashboard is preparing the latest allocation review. Refresh analytics to update this panel.',
-  ],
-  ['Run the AI analysis to surface the next recommended action.', 'Run the allocation review to surface the next recommended action.'],
-  ['AI Score', 'Allocation Score'],
   ['3. Combat Telemetry', '3. Market Chart'],
   [
     'Visualize sortie performance, damage logs, and rival benchmarks with live telemetry overlays.',
