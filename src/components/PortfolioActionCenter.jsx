@@ -6,6 +6,7 @@ import { readAlphaVantageState, readLocalStorageJson, writeLocalStorageJson } fr
 
 const BASE_IRA_LIMIT_2026 = 7500;
 const ALPHA_VANTAGE_STORAGE_KEY = 'hangar.alphaVantageKey';
+const CLAUDE_API_KEY_STORAGE_KEY = 'hangar.claudeApiKey';
 const TARGET_POLICY_HISTORY_KEY = 'rothira.targetPolicyHistory.v1';
 const DEFAULT_CONTRIBUTION_STATE = {
   taxYear: 2026,
@@ -224,6 +225,88 @@ function persistAlphaVantageFallback(value) {
   }
 }
 
+function readClaudeKeyRuntimeState() {
+  if (typeof window === 'undefined') {
+    return { configured: false };
+  }
+
+  const manager = window.ClaudeAnalysis;
+  if (manager && typeof manager.isConfigured === 'function') {
+    return { configured: manager.isConfigured() };
+  }
+
+  try {
+    return { configured: Boolean(window.localStorage.getItem(CLAUDE_API_KEY_STORAGE_KEY)) };
+  } catch {
+    return { configured: false };
+  }
+}
+
+function persistClaudeKeyFallback(value) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    const sanitized = String(value || '').trim();
+    if (sanitized) {
+      window.localStorage.setItem(CLAUDE_API_KEY_STORAGE_KEY, sanitized);
+    } else {
+      window.localStorage.removeItem(CLAUDE_API_KEY_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore local storage failures; the runtime manager may still be available.
+  }
+}
+
+function useClaudeKeyManager() {
+  const [state, setState] = useState(() => readClaudeKeyRuntimeState());
+
+  useEffect(() => {
+    const refreshState = () => {
+      window.setTimeout(() => setState(readClaudeKeyRuntimeState()), 80);
+    };
+
+    refreshState();
+    window.addEventListener('claude-api-key-changed', refreshState);
+    window.addEventListener('hangar-data-bridge-ready', refreshState);
+
+    return () => {
+      window.removeEventListener('claude-api-key-changed', refreshState);
+      window.removeEventListener('hangar-data-bridge-ready', refreshState);
+    };
+  }, []);
+
+  const saveKey = (value) => {
+    const sanitized = String(value || '').trim();
+    const manager = typeof window !== 'undefined' ? window.ClaudeAnalysis : null;
+    if (manager && typeof manager.setKey === 'function') {
+      manager.setKey(sanitized);
+    } else {
+      persistClaudeKeyFallback(sanitized);
+      window.dispatchEvent(new CustomEvent('claude-api-key-changed'));
+    }
+    setState(readClaudeKeyRuntimeState());
+  };
+
+  const clearKey = () => {
+    const manager = typeof window !== 'undefined' ? window.ClaudeAnalysis : null;
+    if (manager && typeof manager.setKey === 'function') {
+      manager.setKey('');
+    } else {
+      persistClaudeKeyFallback('');
+      window.dispatchEvent(new CustomEvent('claude-api-key-changed'));
+    }
+    setState(readClaudeKeyRuntimeState());
+  };
+
+  return {
+    state,
+    saveKey,
+    clearKey,
+  };
+}
+
 function useAlphaVantageKeyManager() {
   const [state, setState] = useState(() => readAlphaVantageRuntimeState());
 
@@ -407,12 +490,16 @@ function PriorityAlert({ alert }) {
 export default function PortfolioActionCenter() {
   const { snapshot, refresh } = useHangarPortfolioSnapshot();
   const { state: alphaVantageState, saveKey: saveAlphaVantageKey, clearKey: clearAlphaVantageKey } = useAlphaVantageKeyManager();
+  const { state: claudeKeyState, saveKey: saveClaudeKey, clearKey: clearClaudeKey } = useClaudeKeyManager();
   const [contribution, setContribution] = usePersistentState(
     'rothira.contributionTracker.v1',
     DEFAULT_CONTRIBUTION_STATE
   );
   const [alphaKeyInput, setAlphaKeyInput] = useState('');
   const [alphaKeyFeedback, setAlphaKeyFeedback] = useState({ type: '', message: '' });
+  const [claudeKeyInput, setClaudeKeyInput] = useState('');
+  const [claudeKeyFeedback, setClaudeKeyFeedback] = useState({ type: '', message: '' });
+  const [claudeAnalysisStatus, setClaudeAnalysisStatus] = useState({ state: 'idle', lastRun: null, message: '' });
   const rebalanceHistory = useRebalanceHistory();
   const assets = snapshot?.assets || [];
   const {
@@ -507,6 +594,39 @@ export default function PortfolioActionCenter() {
   const handleAlphaKeyClear = () => {
     clearAlphaVantageKey();
     setAlphaKeyFeedback({ type: 'success', message: 'Alpha Vantage key removed from this browser.' });
+  };
+
+  const handleClaudeKeySubmit = (event) => {
+    event.preventDefault();
+    const nextKey = claudeKeyInput.trim();
+    if (!nextKey) {
+      setClaudeKeyFeedback({ type: 'error', message: 'Enter a Claude API key before saving.' });
+      return;
+    }
+
+    saveClaudeKey(nextKey);
+    setClaudeKeyInput('');
+    setClaudeKeyFeedback({ type: 'success', message: 'Claude API key saved locally.' });
+  };
+
+  const handleClaudeKeyClear = () => {
+    clearClaudeKey();
+    setClaudeKeyFeedback({ type: 'success', message: 'Claude API key removed from this browser.' });
+  };
+
+  const handleRunClaudeAnalysis = async () => {
+    if (typeof window === 'undefined' || typeof window.runClaudeAnalysis !== 'function') {
+      setClaudeAnalysisStatus({ state: 'error', lastRun: null, message: 'Analysis runtime is still loading -- try again in a moment.' });
+      return;
+    }
+
+    setClaudeAnalysisStatus((previous) => ({ ...previous, state: 'loading', message: 'Analyzing with Claude...' }));
+    try {
+      await window.runClaudeAnalysis();
+      setClaudeAnalysisStatus({ state: 'success', lastRun: Date.now(), message: 'Analysis updated in Sections 1, 2, 7, and 8.' });
+    } catch (error) {
+      setClaudeAnalysisStatus({ state: 'error', lastRun: null, message: error?.message || 'Claude analysis failed.' });
+    }
   };
 
   return (
@@ -879,6 +999,106 @@ export default function PortfolioActionCenter() {
             </p>
           ) : null}
         </form>
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-700/70 dark:bg-slate-900/40">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+              Data Sources
+            </p>
+            <h3 className="mt-2 text-lg font-semibold text-slate-950 dark:text-white">
+              Claude portfolio analysis
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
+              Calls the Anthropic API directly from this browser using your own key to grade Sections 1, 2, 7, and 8. The key is
+              stored only in this browser and is never sent anywhere except api.anthropic.com. Each run costs a small amount on
+              your own Anthropic account (well under $0.05 with Opus) -- it only runs when you click the button below, never on
+              page load.
+            </p>
+          </div>
+          <span
+            data-claude-key-status
+            className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold ${
+              claudeKeyState.configured
+                ? 'border-emerald-300 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/40 dark:text-emerald-200'
+                : 'border-amber-300 bg-amber-500/10 text-amber-800 dark:border-amber-400/40 dark:text-amber-200'
+            }`}
+          >
+            {claudeKeyState.configured ? 'Key saved' : 'No key saved'}
+          </span>
+        </div>
+
+        <form
+          data-claude-key-form
+          className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]"
+          onSubmit={handleClaudeKeySubmit}
+        >
+          <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+            Local Claude API key
+            <input
+              data-claude-key-input
+              type="password"
+              value={claudeKeyInput}
+              onChange={(event) => {
+                setClaudeKeyInput(event.target.value);
+                if (claudeKeyFeedback.message) {
+                  setClaudeKeyFeedback({ type: '', message: '' });
+                }
+              }}
+              className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal tracking-normal text-slate-950 outline-none focus:border-sky-500 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+              placeholder="Paste personal Anthropic API key (sk-ant-...)"
+              autoComplete="off"
+            />
+          </label>
+          <button
+            type="submit"
+            data-claude-key-save
+            className="self-end rounded-xl border border-sky-400/50 bg-sky-500/10 px-3 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-500/20 dark:text-sky-200"
+          >
+            Save key
+          </button>
+          <button
+            type="button"
+            data-claude-key-clear
+            onClick={handleClaudeKeyClear}
+            className="self-end rounded-xl border border-slate-300/80 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Forget key
+          </button>
+          {claudeKeyFeedback.message ? (
+            <p
+              data-claude-key-feedback
+              className={`lg:col-span-3 text-xs font-semibold ${
+                claudeKeyFeedback.type === 'error' ? 'text-rose-700 dark:text-rose-200' : 'text-emerald-700 dark:text-emerald-200'
+              }`}
+            >
+              {claudeKeyFeedback.message}
+            </p>
+          ) : null}
+        </form>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <button
+            type="button"
+            data-claude-run-analysis
+            disabled={!claudeKeyState.configured || claudeAnalysisStatus.state === 'loading'}
+            onClick={handleRunClaudeAnalysis}
+            className="self-start rounded-xl border border-emerald-400/50 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:text-emerald-200"
+          >
+            {claudeAnalysisStatus.state === 'loading' ? 'Analyzing...' : 'Run Claude Analysis'}
+          </button>
+          {claudeAnalysisStatus.message ? (
+            <p
+              className={`text-xs font-semibold ${
+                claudeAnalysisStatus.state === 'error' ? 'text-rose-700 dark:text-rose-200' : 'text-slate-600 dark:text-slate-300'
+              }`}
+            >
+              {claudeAnalysisStatus.message}
+              {claudeAnalysisStatus.lastRun ? ` (${formatTime(claudeAnalysisStatus.lastRun)})` : ''}
+            </p>
+          ) : null}
+        </div>
       </div>
     </section>
   );
